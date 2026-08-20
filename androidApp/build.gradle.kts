@@ -28,10 +28,21 @@ dependencies {
     // navigation
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.kotlinx.datetime)
     // home-screen widget — optional
     implementation(libs.androidx.glance)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+
+    // logging
+    implementation(libs.kermit)
+    implementation(libs.kermit.koin)
+
+    // dependency injection
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
+    implementation(libs.koin.compose.viewmodel)
 }
 
 android {
