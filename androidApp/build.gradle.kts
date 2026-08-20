@@ -12,11 +12,26 @@ kotlin {
 }
 dependencies {
     implementation(project(":shared"))
-
     implementation(libs.androidx.activity.compose)
-
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
+
+    // foreground service / notification / overlay
+    implementation(libs.androidx.media3.session)
+    implementation(libs.accompanist.permissions)
+    implementation(libs.accompanist.drawablepainter)
+
+    // screenshot capture & caching
+    implementation(libs.coil.compose)
+    implementation(libs.zoomimage.compose.coil) // optional — drop if no full-size viewer
+
+    // navigation
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    // home-screen widget — optional
+    implementation(libs.androidx.glance)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 }
 
 android {

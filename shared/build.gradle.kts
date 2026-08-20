@@ -43,6 +43,17 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+
+            // persistence: usage sessions, screenshot metadata, prefs
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.sqlite.bundled)
+            implementation(libs.androidx.datastore.preferences)
+
+            // periodic purge sweep (14-day cache eviction)
+            implementation(libs.androidx.work.runtime)
+
+            // logging
+            implementation(libs.kermit)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
