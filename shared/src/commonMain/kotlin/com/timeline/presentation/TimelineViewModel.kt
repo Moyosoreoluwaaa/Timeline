@@ -7,11 +7,14 @@ import com.timeline.data.TimelineRepository
 import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -21,6 +24,7 @@ import kotlin.random.Random
 import kotlin.time.Clock as KClock
 import kotlin.time.Duration.Companion.minutes
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TimelineViewModel(
     private val repository: TimelineRepository,
     private val appInfoProvider: AppInfoProvider,
@@ -51,24 +55,30 @@ class TimelineViewModel(
         val filter = args[5] as TimeFilter
         val loading = args[6] as Boolean
 
-        val enrichedSessions = sessions
+        val filteredSessions = sessions
             .filter { it.packageName !in excluded }
-            .map { s ->
-                s.copy(
-                    displayName = kotlinx.coroutines.runBlocking { appInfoProvider.getAppName(s.packageName) },
-                    icon = kotlinx.coroutines.runBlocking { appInfoProvider.getAppIcon(s.packageName) }
-                )
-            }
             .filter { applyTimeFilter(it, filter) }
 
         TimelineState(
-            sessions = enrichedSessions,
+            sessions = filteredSessions,
             isLoading = loading,
             selectedDate = date,
             selectedSession = session,
             isSheetExpanded = expanded,
             timeFilter = filter
         )
+    }.flatMapLatest { s ->
+        flow {
+            val enrichedSessions = s.sessions.map { session ->
+                if (session.displayName == null) {
+                    session.copy(
+                        displayName = appInfoProvider.getAppName(session.packageName),
+                        icon = appInfoProvider.getAppIcon(session.packageName)
+                    )
+                } else session
+            }
+            emit(s.copy(sessions = enrichedSessions))
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineState())
 
     private val _effects = Channel<TimelineEffect>(Channel.BUFFERED)
@@ -83,6 +93,20 @@ class TimelineViewModel(
             is TimelineEvent.SelectSession -> _selectedSession.value = event.session
             is TimelineEvent.ToggleSheet -> _isSheetExpanded.value = event.expanded
             is TimelineEvent.FilterTime -> _timeFilter.value = event.filter
+            is TimelineEvent.SelectPreviousSession -> navigateSession(-1)
+            is TimelineEvent.SelectNextSession -> navigateSession(1)
+        }
+    }
+
+    private fun navigateSession(direction: Int) {
+        val sessions = state.value.sessions
+        val current = state.value.selectedSession ?: return
+        val currentIndex = sessions.indexOfFirst { it.id == current.id }
+        if (currentIndex != -1) {
+            val nextIndex = currentIndex + direction
+            if (nextIndex in sessions.indices) {
+                _selectedSession.value = sessions[nextIndex]
+            }
         }
     }
 

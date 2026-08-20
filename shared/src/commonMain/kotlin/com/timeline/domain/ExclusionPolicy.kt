@@ -25,7 +25,8 @@ class TimelineExclusionPolicy(
         "android",
         "com.android.systemui",
         "com.google.android.apps.nexuslauncher",
-        "com.android.launcher3"
+        "com.android.launcher3",
+        "com.transsion.XOSLauncher" // Added as per mockup observing launcher in focus
     )
 
     override fun isExcludedFlow(packageName: String): Flow<Boolean> {

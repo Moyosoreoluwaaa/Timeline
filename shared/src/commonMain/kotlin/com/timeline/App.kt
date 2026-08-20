@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -25,8 +26,10 @@ import com.timeline.presentation.TimeFilter
 import com.timeline.ui.SessionDetailSheet
 import com.timeline.ui.SetupScreen
 import com.timeline.ui.SettingsScreen
+import com.timeline.ui.AppIcon
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.compose.viewmodel.koinViewModel
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock as KClock
@@ -43,9 +46,11 @@ fun App(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val setupState by setupViewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     
     var showSettings by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimeFilters by remember { mutableStateOf(false) }
 
     MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -63,13 +68,32 @@ fun App(
                     onBack = { showSettings = false }
                 )
             } else {
+                if (showDatePicker) {
+                    val datePickerState = rememberDatePickerState()
+                    DatePickerDialog(
+                        onDismissRequest = { showDatePicker = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                datePickerState.selectedDateMillis?.let {
+                                    viewModel.onEvent(TimelineEvent.SelectDate(Instant.fromEpochMilliseconds(it)))
+                                }
+                                showDatePicker = false
+                            }) {
+                                Text("OK")
+                            }
+                        }
+                    ) {
+                        DatePicker(state = datePickerState)
+                    }
+                }
+
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Everett", style = MaterialTheme.typography.headlineMedium) },
+                            title = { Text("Timeline", style = MaterialTheme.typography.headlineMedium) },
                             actions = {
-                                IconButton(onClick = { /* Toggle calendar */ }) {
-                                    Icon(Icons.Default.DateRange, "Calendar")
+                                IconButton(onClick = { showTimeFilters = !showTimeFilters }) {
+                                    Icon(Icons.Default.DateRange, "Time of Day")
                                 }
                                 IconButton(onClick = { showSettings = true }) {
                                     Icon(Icons.Default.Settings, "Settings")
@@ -86,10 +110,13 @@ fun App(
                     ) {
                         // Date Selector
                         Row(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .clickable { showDatePicker = true },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Today ↓", style = MaterialTheme.typography.titleMedium)
+                            Text("Today", style = MaterialTheme.typography.titleMedium)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             val dateText = remember(state.selectedDate) {
                                 val date = state.selectedDate ?: KClock.System.now()
@@ -99,21 +126,22 @@ fun App(
                             Text(dateText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                         }
 
-                        // Time Filters
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            TimeFilter.entries.forEach { filter ->
-                                FilterChip(
-                                    selected = state.timeFilter == filter,
-                                    onClick = { viewModel.onEvent(TimelineEvent.FilterTime(filter)) },
-                                    label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) }
-                                )
+                        // Time Filters (Temporal Filters)
+                        if (showTimeFilters) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TimeFilter.entries.forEach { filter ->
+                                    FilterChip(
+                                        selected = state.timeFilter == filter,
+                                        onClick = { viewModel.onEvent(TimelineEvent.FilterTime(filter)) },
+                                        label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
 
                         if (state.sessions.isEmpty()) {
                             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -147,6 +175,10 @@ fun App(
                     }
 
                     if (state.selectedSession != null) {
+                        val currentIndex = state.sessions.indexOfFirst { it.id == state.selectedSession?.id }
+                        val prevApp = if (currentIndex > 0) state.sessions[currentIndex - 1].displayName ?: state.sessions[currentIndex - 1].packageName else null
+                        val nextApp = if (currentIndex != -1 && currentIndex < state.sessions.lastIndex) state.sessions[currentIndex + 1].displayName ?: state.sessions[currentIndex + 1].packageName else null
+
                         ModalBottomSheet(
                             onDismissRequest = { viewModel.onEvent(TimelineEvent.SelectSession(null)) },
                             sheetState = sheetState
@@ -154,6 +186,8 @@ fun App(
                             SessionDetailSheet(
                                 session = state.selectedSession!!,
                                 isExpanded = state.isSheetExpanded,
+                                prevAppName = prevApp,
+                                nextAppName = nextApp,
                                 onEvent = viewModel::onEvent
                             )
                         }
@@ -232,7 +266,11 @@ fun TimelineEntry(
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surface
                 ) {
-                    // Placeholder for Icon
+                    AppIcon(
+                        icon = session.icon,
+                        contentDescription = session.displayName,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -282,9 +320,12 @@ fun BottomSummary(sessions: List<com.timeline.domain.Session>) {
         Column {
             Text("Most used", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                // Mock icons
-                repeat(minOf(sessions.size, 3)) {
-                    Surface(modifier = Modifier.size(20.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {}
+                sessions.take(3).forEach { session ->
+                    AppIcon(
+                        icon = session.icon,
+                        contentDescription = session.displayName,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }

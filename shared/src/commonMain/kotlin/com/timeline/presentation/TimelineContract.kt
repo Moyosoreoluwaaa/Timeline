@@ -23,6 +23,8 @@ sealed interface TimelineEvent {
     data class SelectSession(val session: Session?) : TimelineEvent
     data class ToggleSheet(val expanded: Boolean) : TimelineEvent
     data class FilterTime(val filter: TimeFilter) : TimelineEvent
+    data object SelectPreviousSession : TimelineEvent
+    data object SelectNextSession : TimelineEvent
 }
 
 sealed interface TimelineEffect {

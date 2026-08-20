@@ -45,6 +45,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
+            implementation(libs.accompanist.drawablepainter)
 
             // periodic purge sweep (14-day cache eviction)
             implementation(libs.androidx.work.runtime)

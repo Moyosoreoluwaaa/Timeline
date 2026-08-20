@@ -1,6 +1,7 @@
 package com.timeline.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -9,7 +10,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +26,8 @@ import kotlinx.datetime.toLocalDateTime
 fun SessionDetailSheet(
     session: Session,
     isExpanded: Boolean,
+    prevAppName: String?,
+    nextAppName: String?,
     onEvent: (TimelineEvent) -> Unit
 ) {
     Column(
@@ -43,7 +47,11 @@ fun SessionDetailSheet(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
-                    // App Icon
+                    AppIcon(
+                        icon = session.icon,
+                        contentDescription = session.displayName,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
@@ -58,69 +66,108 @@ fun SessionDetailSheet(
                     )
                 }
             }
-            IconButton(onClick = { /* Share */ }) {
-                Icon(Icons.Default.Share, contentDescription = "Share")
+            IconButton(onClick = { onEvent(TimelineEvent.ToggleSheet(!isExpanded)) }) {
+                Icon(
+                    if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand"
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Screenshots Carousel
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(3) { // Mocking 3 screenshots
-                Surface(
-                    modifier = Modifier.width(160.dp).height(240.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium
-                ) {}
+        if (isExpanded) {
+            ExpandedSessionContent(session)
+        } else {
+            Column {
+                StatRow(session)
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(session.segments.take(3)) { _ ->
+                        Surface(
+                            modifier = Modifier.width(100.dp).height(150.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.medium
+                        ) {}
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Session Stats
+        // Navigation Footer
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            StatItem("Started", session.startTime.formatTime())
-            StatItem("Ended", session.endTime?.formatTime() ?: "--:--")
-            StatItem("Duration", "${session.durationMinutes}m")
+            if (prevAppName != null) {
+                NavButton("Previous", prevAppName, true) {
+                    onEvent(TimelineEvent.SelectPreviousSession)
+                }
+            } else {
+                Spacer(modifier = Modifier.width(40.dp))
+            }
+
+            if (nextAppName != null) {
+                NavButton("Next", nextAppName, false) {
+                    onEvent(TimelineEvent.SelectNextSession)
+                }
+            } else {
+                Spacer(modifier = Modifier.width(40.dp))
+            }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Earlier Today Segments
-        Text("Earlier Today", style = MaterialTheme.typography.titleSmall)
+@Composable
+fun ExpandedSessionContent(session: Session) {
+    Column {
+        StatRow(session)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Application Timeline", style = MaterialTheme.typography.titleSmall)
         Spacer(modifier = Modifier.height(12.dp))
         
-        LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+        LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
             items(session.segments) { segment ->
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Text(segment.timestamp.formatTime(), style = MaterialTheme.typography.bodySmall, modifier = Modifier.width(60.dp))
-                    Text(segment.activityDescription ?: "Active", style = MaterialTheme.typography.bodySmall)
-                }
-            }
-            if (session.segments.isEmpty()) {
-                item {
-                    Text("Started using ${session.displayName ?: "app"}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = segment.timestamp.formatTime(),
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.width(60.dp)
+                        )
+                        Text(
+                            text = segment.activityDescription ?: "Active session segment",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (segment.screenshotPath != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().height(200.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.medium
+                        ) {}
+                    }
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Navigation
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            NavButton("Previous", "Slack", true)
-            NavButton("Next", "Notion", false)
-        }
+@Composable
+fun StatRow(session: Session) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        StatItem("Started", session.startTime.formatTime())
+        StatItem("Ended", session.endTime?.formatTime() ?: "--:--")
+        StatItem("Duration", "${session.durationMinutes}m")
     }
 }
 
@@ -133,8 +180,11 @@ fun StatItem(label: String, value: String) {
 }
 
 @Composable
-fun NavButton(label: String, appName: String, isBack: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+fun NavButton(label: String, appName: String, isBack: Boolean, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable { onClick() }
+    ) {
         if (isBack) Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
         Column(horizontalAlignment = if (isBack) Alignment.Start else Alignment.End) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
