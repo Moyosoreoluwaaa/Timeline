@@ -4,6 +4,9 @@ import android.content.Context
 import com.timeline.data.TimelineDatabase
 import com.timeline.data.getDatabase
 import com.timeline.data.getDatabaseBuilder
+import com.timeline.data.createDataStore
+import com.timeline.domain.AndroidAppInfoProvider
+import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.AndroidPermissionManager
 import com.timeline.domain.PermissionManager
 import org.koin.core.module.Module
@@ -17,4 +20,6 @@ actual val platformModule: Module = module {
     }
     single { get<TimelineDatabase>().sessionDao() }
     singleOf(::AndroidPermissionManager) { bind<PermissionManager>() }
+    single { createDataStore(get<Context>()) }
+    singleOf(::AndroidAppInfoProvider) { bind<AppInfoProvider>() }
 }

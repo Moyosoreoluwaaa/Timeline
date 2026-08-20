@@ -5,6 +5,8 @@ import kotlinx.datetime.Instant
 data class Session(
     val id: String,
     val packageName: String,
+    val displayName: String? = null,
+    val icon: Any? = null,
     val startTime: Instant,
     val endTime: Instant?,
     val durationMinutes: Long = 0,

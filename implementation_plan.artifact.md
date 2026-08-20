@@ -1,78 +1,67 @@
-# Implementation Plan - Timeline Core Activity & Tracking
+# Implementation Plan - App Identity, Exclusions & "Threaded" UI
 
-This plan outlines the implementation of the Timeline core activity journal, including the independent foreground tracking service, persistence layer, and MVI-based UI.
+This plan addresses the remaining core features: persistent exclusion policies, real app identity (names/icons), and a Material 3 "Threaded" UI polish with edge-to-edge support.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Persistence Layer Choice**: The project currently has **Room (KMP)** dependencies configured. Although SQLDelight was mentioned in the grilling session, Room KMP provides the same relational capabilities for multiplatform. I will proceed with Room unless you explicitly prefer switching to SQLDelight.
+> **Threaded UI Layout**: The Timeline will be redesigned to show a vertical line with dots on the left side, aligned with the center of each session card. The time will be displayed next to the dot, separate from the card itself.
 
 > [!IMPORTANT]
-> **Separate Process Service**: The tracking service will run in `com.timeline:tracking`. This ensures it survives UI process terminations but requires careful consideration for shared memory (handled via the Database).
+> **Process Isolation**: Moving `TrackingService` to `:tracking` process requires that the Room database and DataStore are thread-safe across processes. I will use `DataStore` with its built-in multi-process support.
 
 ## Proposed Changes
 
 ### [shared] Domain & Data Layer
 
-#### [MODIFY] [CONTEXT.md](file:///C:/Users/USER/AndroidStudioProjects/Timeline/CONTEXT.md)
-Update with resolved terms if necessary.
+#### [MODIFY] [ExclusionPolicy.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/domain/ExclusionPolicy.kt)
+Convert to a reactive policy using `DataStore<Preferences>` to persist user-defined exclusions.
 
-#### [NEW] [Session.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/domain/Session.kt)
-Core domain model for activity sessions.
+#### [NEW] [AppInfoProvider.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/domain/AppInfoProvider.kt)
+Interface to resolve app names and icons from package names.
 
-#### [NEW] [TimelineDatabase.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/data/TimelineDatabase.kt)
-Room database definition for Multiplatform.
-
-#### [NEW] [TimelineRepository.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/data/TimelineRepository.kt)
-Repository interface and implementation for session management.
+#### [NEW] [AndroidAppInfoProvider.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/androidMain/kotlin/com/timeline/domain/AndroidAppInfoProvider.kt)
+Android implementation using `PackageManager`.
 
 ---
 
-### [shared] Presentation Layer (MVI)
+### [shared] Presentation & UI
 
-#### [NEW] [TimelineContract.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/presentation/TimelineContract.kt)
-MVI Contract (State, Event, Effect) for the Timeline screen.
+#### [MODIFY] [SettingsViewModel.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/presentation/SettingsViewModel.kt)
+Implement `ToggleExclusion` logic to update `DataStore`.
 
-#### [NEW] [TimelineViewModel.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/presentation/TimelineViewModel.kt)
-MVI ViewModel implementation.
-
----
-
-### [:androidApp] Tracking Service
-
-#### [NEW] [TrackingService.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/androidApp/src/main/kotlin/com/timeline/service/TrackingService.kt)
-Independent foreground service running in `:tracking` process. Implements the **Adaptive** polling logic via `UsageStatsManager`.
-
-#### [MODIFY] [AndroidManifest.xml](file:///C:/Users/USER/AndroidStudioProjects/Timeline/androidApp/src/main/AndroidManifest.xml)
-Register the service with `android:process=":tracking"` and required permissions.
-
----
-
-### [:androidApp] UI Components
+#### [MODIFY] [TimelineViewModel.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/presentation/TimelineViewModel.kt)
+- Integrate `AppInfoProvider` to enrich `Session` objects with human-readable names.
+- Implement filtering logic for `TimeFilter` (Today, Morning, Afternoon, Evening).
 
 #### [MODIFY] [App.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/App.kt)
-Implement the main Timeline list and the **Platform Native Bottom Sheet** interaction.
+- **Threaded Layout**: Implement a custom layout where a vertical line and dots are drawn to the left of the session cards.
+- **Edge-to-Edge**: Wrap content in `Scaffold` and use `WindowInsets` to handle system bars.
+- Add filter chips at the top as shown in the mockup.
 
-#### [NEW] [SessionDetailSheet.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/SessionDetailSheet.kt)
-The specialized draggable bottom sheet (Icon | Time | Expand) with screenshot gallery.
+#### [MODIFY] [SessionDetailSheet.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/SessionDetailSheet.kt)
+- Replace placeholders with real icons.
+- Add horizontal scrollable screenshots.
+- Implement "Started", "Ended", and "Duration" summary.
+- Add "Previous/Next" navigation with app icons.
 
 ---
 
-### [:androidApp] Background Tasks
+### [:androidApp] Configuration
 
-#### [NEW] [SummaryWorker.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/androidApp/src/main/kotlin/com/timeline/worker/SummaryWorker.kt)
-WorkManager implementation for the **Smart Trigger** daily summary notification.
+#### [MODIFY] [AndroidManifest.xml](file:///C:/Users/USER/AndroidStudioProjects/Timeline/androidApp/src/main/AndroidManifest.xml)
+- Set `android:process=":tracking"` for `TrackingService`.
+- Configure distinct app icon resources.
+
+---
 
 ## Verification Plan
 
 ### Automated Tests
-- **ViewModel Tests**: Verify MVI state transitions using Turbine.
-- **Repository Tests**: Verify CRUD operations on the Room database.
+- **ExclusionPolicyTest**: Verify `DataStore` updates.
+- **TimelineViewModelTest**: Verify `TimeFilter` logic and app name resolution.
 
 ### Manual Verification
-1. Deploy to Android device.
-2. Grant Usage Access permission.
-3. Open several apps (YouTube, Chrome, etc.).
-4. Verify Timeline records sessions accurately.
-5. Swipe away Timeline from Recents and verify tracking notification persists and continues recording.
-6. Verify Bottom Sheet "Expand" interaction and screenshot display.
+1. Verify the "Threaded" UI looks consistent with `img_1.png` mockup.
+2. Toggle "Chrome" exclusion in Settings and verify it disappears from Timeline.
+3. Check Edge-to-Edge behavior on physical device/emulator.

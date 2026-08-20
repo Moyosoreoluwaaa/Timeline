@@ -34,16 +34,23 @@ class TrackingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private var excludedPackages = setOf<String>()
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        serviceScope.launch {
+            exclusionPolicy.getExcludedPackages().collect {
+                excludedPackages = it
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Logger.d { "TrackingService started" }
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Timeline Tracking Active")
-            .setContentText("Observing digital activity journal...")
+            .setContentTitle("Everett Tracking Active")
+            .setContentText("Recording activity journal...")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
@@ -67,7 +74,7 @@ class TrackingService : Service() {
     private var lastApp: String? = null
     private var lastStartTime: Long = 0
 
-    private fun pollUsageStats() {
+    private suspend fun pollUsageStats() {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
         val startTime = endTime - 60000 // Look back 1 minute for reliability
@@ -84,7 +91,8 @@ class TrackingService : Service() {
         }
 
         if (currentApp != null && currentApp != lastApp) {
-            if (exclusionPolicy.isExcluded(currentApp)) {
+            val isExcluded = exclusionPolicy.isExcluded(currentApp)
+            if (isExcluded) {
                 Logger.v { "App $currentApp is excluded by policy" }
                 lastApp = currentApp
                 return

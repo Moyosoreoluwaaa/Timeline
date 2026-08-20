@@ -2,6 +2,7 @@ package com.timeline.di
 
 import com.timeline.data.TimelineRepository
 import com.timeline.data.TimelineRepositoryImpl
+import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.TimelineExclusionPolicy
 import com.timeline.presentation.SettingsViewModel
@@ -19,7 +20,7 @@ expect val platformModule: Module
 
 val appModule = module {
     singleOf(::TimelineRepositoryImpl) { bind<TimelineRepository>() }
-    singleOf(::TimelineExclusionPolicy) { bind<ExclusionPolicy>() }
+    single<ExclusionPolicy> { TimelineExclusionPolicy(get()) }
     viewModelOf(::TimelineViewModel)
     viewModelOf(::SetupViewModel)
     viewModelOf(::SettingsViewModel)

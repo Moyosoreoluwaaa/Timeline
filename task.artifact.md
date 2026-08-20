@@ -1,0 +1,16 @@
+- [ ] **Infrastructure & Data**
+    - [ ] Implement `DataStore` based `ExclusionPolicy`
+    - [ ] Implement `AppInfoProvider` (common interface + Android actual)
+    - [ ] Update `SettingsViewModel` with persistence logic
+- [ ] **UI Refactor (Threaded Layout)**
+    - [ ] Update `App.kt` with vertical line/dot layout
+    - [ ] Add `TimeFilter` chips to `App.kt`
+    - [ ] Implement Material 3 `ListItem` styling for `TimelineEntry`
+    - [ ] Handle `WindowInsets` for edge-to-edge support
+- [ ] **Session Detail Polish**
+    - [ ] Update `SessionDetailSheet.kt` with real icons and screenshots
+    - [ ] Add summary labels (Started, Ended, Duration)
+    - [ ] Add navigation buttons with icons
+- [ ] **Android App Config**
+    - [ ] Move `TrackingService` to `:tracking` process
+    - [ ] Configure app icons in `AndroidManifest.xml`
