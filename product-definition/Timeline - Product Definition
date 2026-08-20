@@ -1,0 +1,1109 @@
+# Timeline — Product Definition
+
+## 1. Product Overview
+
+**Timeline** is a passive digital activity journal that records how a person actually spends time on their phone.
+
+It does not tell the user what they should do. It does not score their productivity, judge their habits, or require AI to interpret their behavior.
+
+Instead, Timeline creates a **visual, chronological record of the user's digital day**.
+
+> **Your phone already knows what you do. Timeline lets you see it.**
+
+The product should feel less like a conventional screen-time analytics tool and more like a **visual diary of digital activity**.
+
+---
+
+# 2. Product Philosophy
+
+Timeline is fundamentally observational.
+
+Most screen-time products answer questions such as:
+
+- How much time did I spend on YouTube?
+- How many times did I open WhatsApp?
+- Which application did I use the most?
+
+Timeline answers a different question:
+
+> **What did I actually do with my phone today?**
+
+The product reconstructs the user's day as a sequence of activities rather than reducing it to a collection of statistics.
+
+For example:
+
+```text
+9:12 AM
+Chrome
+12 min
+
+9:24 AM
+WhatsApp
+4 min
+
+9:28 AM
+YouTube
+38 min
+
+10:06 AM
+Chrome
+7 min
+
+10:13 AM
+Android Studio
+52 min
+
+11:05 AM
+WhatsApp
+3 min
+```
+
+The resulting experience is a **visual history of the user's digital activity**.
+
+---
+
+# 3. Product Definition
+
+Timeline is fundamentally an **event recorder**.
+
+When the user moves from one application to another, Timeline records an activity event.
+
+Conceptually:
+
+```text
+Application: YouTube
+Started: 10:42 AM
+Ended: 11:20 AM
+Duration: 38 minutes
+```
+
+These events form the foundation from which Timeline derives everything else.
+
+### Primary data
+
+- Application
+- Start time
+- End time
+- Duration
+- Previous application
+- Next application
+- Date
+- Session ID
+- Optional screenshot
+
+### Derived information
+
+- App usage
+- Daily activity
+- Total phone usage
+- Number of sessions
+- Number of launches
+- Longest session
+- Most-used applications
+- First activity
+- Last activity
+- Usage by time of day
+
+The distinction is important:
+
+> **The timeline is the product. Statistics are derived from the timeline.**
+
+---
+
+# 4. Core Timeline Experience
+
+Timeline opens directly into the user's current day.
+
+There is no dashboard that the user must navigate through before seeing their activity.
+
+The primary experience is a chronological activity timeline.
+
+Each session appears as a compact timeline entry containing the essential information:
+
+- Application identity
+- Timestamp
+- Duration
+- Optional visual record
+
+The visual structure should communicate:
+
+> **One continuous timeline of my digital day.**
+
+Not a collection of disconnected analytics pages.
+
+---
+
+# 5. Timeline Header
+
+The Timeline header provides the primary controls for navigating the user's activity.
+
+The current visual direction contains:
+
+- Timeline product name
+- Date control
+- Current date
+- Calendar control
+- Settings control
+
+The product name displayed in the interface is always:
+
+> **Timeline**
+
+---
+
+# 6. Date Navigation
+
+The date control is represented by the current period, such as:
+
+```text
+Today ↓    May 17, 2025
+```
+
+The **down arrow beside Today** opens the calendar/date-selection state.
+
+This allows the user to move between dates while remaining within the Timeline experience.
+
+The calendar is therefore:
+
+> **A nested Timeline state, not a separate screen.**
+
+The underlying Timeline context remains the primary product surface.
+
+---
+
+# 7. Time-of-Day Navigation
+
+The calendar icon in the Timeline header controls the time-of-day navigation.
+
+When activated, it reveals a horizontal row of temporal filters:
+
+```text
+Today   Morning   Afternoon   Evening
+```
+
+These controls allow the user to change which portion of the current day's activity is being viewed.
+
+The important distinction is:
+
+- **Today ↓** → date/calendar selection
+- **Calendar icon** → time-of-day selection
+
+The time-of-day pills are therefore not a permanent navigation bar and are not separate screens.
+
+They are a temporary control state belonging to Timeline.
+
+---
+
+# 8. Timeline Sessions
+
+Every continuous period spent inside an application becomes a **session**.
+
+A collapsed timeline entry exposes only the information necessary to understand the event.
+
+Example:
+
+```text
+┌─────────────────────────────┐
+│  ◉  YouTube                 │
+│     10:42 AM · 38 min       │
+│                             │
+│     [ screenshot ]          │
+└─────────────────────────────┘
+```
+
+The default state should remain intentionally compact.
+
+Timeline should reveal additional information progressively rather than presenting every available detail at once.
+
+---
+
+# 9. Session Detail Bottom Sheet
+
+When a user selects a Timeline session, a **short bottom sheet** appears.
+
+This is the **Session Detail** state.
+
+The scope of this sheet is the specific session selected by the user.
+
+It may contain:
+
+- Application identity
+- Session start time
+- Session end time
+- Session duration
+- Screenshot or visual record
+- Previous session
+- Next session
+- Session-specific activity information
+
+Conceptually:
+
+```text
+────────────────────────────
+
+Chrome
+
+12:42 PM — 1:14 PM
+32 minutes
+
+[ screenshot ]
+
+Previous
+Slack
+
+Next
+Notion
+
+────────────────────────────
+```
+
+The Timeline remains visible underneath the sheet.
+
+The user has not navigated to another screen.
+
+---
+
+# 10. Expanded Application Timeline
+
+The Session Detail bottom sheet is **draggable**.
+
+When the user drags the short Session Detail sheet upward until it reaches the top of the screen, it transitions into the **complete Application Timeline**.
+
+This is a critical distinction.
+
+The two states are:
+
+### Short sheet
+
+**Session Detail**
+
+Scope:
+
+> One selected session.
+
+### Expanded sheet
+
+**Complete Application Timeline**
+
+Scope:
+
+> The complete history of the selected application.
+
+The expanded state can show information such as:
+
+```text
+Chrome
+
+Today, May 17, 2025
+
+12:42 PM
+Started using chrome.google.com
+12 min
+
+12:54 PM
+developer.chrome.com
+8 min
+
+1:02 PM
+New Tab
+6 min
+
+1:08 PM
+design.google
+6 min
+
+────────────────────
+
+Earlier Today
+
+10:15 AM
+google.com
+9 min
+
+9:32 AM
+youtube.com
+14 min
+
+────────────────────
+
+Total usage     32 min
+Sessions        2
+First used      9:32 AM
+Last used       1:14 PM
+```
+
+This expanded state is **not a separate application screen**.
+
+It is the maximized state of the same draggable bottom-sheet interaction.
+
+The user can drag the sheet back down or dismiss it to return to the Timeline.
+
+---
+
+# 11. Detail Interaction Model
+
+The complete interaction is:
+
+```text
+Timeline
+   │
+   │ tap a session
+   ▼
+Short Bottom Sheet
+   │
+   │ Session Detail
+   │
+   │ drag upward
+   ▼
+Expanded Bottom Sheet
+   │
+   │ Complete Application Timeline
+   │
+   └── drag down / dismiss
+            │
+            ▼
+         Timeline
+```
+
+This preserves the user's context throughout the entire interaction.
+
+The product should not introduce a separate navigation destination for application history.
+
+### Core principle
+
+> **The user moves deeper into the same Timeline surface rather than navigating through additional screens.**
+
+---
+
+# 12. Screenshots
+
+Screenshots are an **optional visual layer**.
+
+They are not the foundation of Timeline.
+
+Their purpose is to give the user visual evidence of what they were doing, turning an otherwise abstract activity record into something more tangible.
+
+Instead of:
+
+> YouTube — 38 minutes
+
+the user may see:
+
+> YouTube — 38 minutes
+> `[visual snapshot]`
+
+The core product remains useful without screenshots.
+
+### Android
+
+Android may support screenshot capture through the appropriate screen-capture mechanisms and explicit user permission.
+
+The implementation must respect platform permissions, indicators, background execution requirements, and system restrictions.
+
+### iOS
+
+iOS does not provide the same unrestricted background screen-capture model.
+
+Timeline therefore treats screenshots as a **platform-enhanced capability**, not a cross-platform requirement.
+
+---
+
+# 13. Floating Overlay
+
+Android may optionally provide a small floating Timeline element while the user is using another application.
+
+The purpose is not to create a permanent dashboard.
+
+It should remain subtle and potentially expose only minimal information such as:
+
+- Current session duration
+- A lightweight Timeline control
+- A small indication that tracking is active
+
+This is an optional Android-specific enhancement and requires the appropriate overlay permission.
+
+---
+
+# 14. Daily Summary
+
+Timeline may expose a compact summary of the current day without introducing a dedicated dashboard.
+
+For example:
+
+```text
+TODAY
+
+5h 42m
+total phone usage
+
+47 sessions
+
+Most used
+YouTube · 1h 42m
+
+23 apps used
+```
+
+The summary can appear as part of the Timeline surface.
+
+It is subordinate to the chronological timeline itself.
+
+The product should never become primarily a statistics dashboard.
+
+---
+
+# 15. Two-Screen Architecture
+
+Timeline has exactly **two navigable screens**.
+
+## Screen 1 — Timeline
+
+The primary product experience.
+
+It contains or can reveal:
+
+- Chronological activity
+- Application sessions
+- Date selection
+- Time-of-day selection
+- Optional screenshots
+- Daily summary
+- Session Detail bottom sheet
+- Expanded Application Timeline
+- Usage information
+
+All of these belong to the Timeline experience.
+
+They are not additional navigation destinations.
+
+## Screen 2 — Settings
+
+Settings contains configuration and system-related controls, including:
+
+- Usage tracking
+- Screenshot capture
+- Floating overlay
+- Permissions
+- Privacy
+- Data retention
+- Tracking preferences
+
+### No additional destinations
+
+Timeline should not introduce:
+
+```text
+Timeline | Apps | Overview | Profile
+```
+
+or:
+
+```text
+Home | Stats | Apps | Settings
+```
+
+There is no dedicated:
+
+- Apps screen
+- Overview screen
+- Profile screen
+- Session screen
+- Application screen
+- Calendar screen
+
+The Timeline remains the central product surface.
+
+---
+
+# 16. Complete Interaction Hierarchy
+
+The current product interaction model is:
+
+```text
+                         TIMELINE
+                            │
+             ┌──────────────┼──────────────┐
+             │              │              │
+             ▼              ▼              ▼
+        Today ↓       Calendar icon     Session
+             │              │              │
+             ▼              ▼              ▼
+       Date picker     Time-of-day     Session Detail
+                         pills          bottom sheet
+                                           │
+                                           │ drag upward
+                                           ▼
+                                    Complete Application
+                                         Timeline
+```
+
+Settings remains the only separate navigable destination:
+
+```text
+Timeline
+   │
+   └── Settings
+          │
+          ▼
+    Settings screen
+```
+
+---
+
+# 17. UI Component Inventory
+
+## Timeline
+
+1. Timeline header
+2. Date control
+3. Calendar/date-selection state
+4. Calendar/time-of-day control
+5. Time-of-day pills
+6. Timeline
+7. Timeline entry
+8. Application identity
+9. Duration and timestamp
+10. Screenshot preview
+11. Daily summary
+12. Session Detail bottom sheet
+13. Expanded Application Timeline bottom sheet
+14. Screenshot viewer
+15. Contextual usage information
+
+## Settings
+
+1. Tracking controls
+2. Screenshot controls
+3. Floating overlay controls
+4. Permission controls
+5. Privacy controls
+6. Data-retention controls
+7. Tracking preferences
+
+The distinction between **component**, **state**, **sheet**, and **screen** must remain explicit.
+
+A bottom sheet does not become a new navigation destination simply because it can expand to occupy the full display.
+
+---
+
+# 18. Core Data Model
+
+The fundamental Timeline object is an activity event.
+
+```text
+Activity Event
+
+Application
+Start time
+End time
+Duration
+Previous application
+Next application
+Screenshot
+Date
+Session ID
+```
+
+From this structure, Timeline can construct:
+
+```text
+Activity Events
+       ↓
+Session History
+       ↓
+Daily Timeline
+       ↓
+Application Timeline
+       ↓
+Derived Statistics
+       ↓
+Optional Intelligence
+```
+
+The application timeline is therefore derived from the same underlying session/event model rather than requiring a separate data concept.
+
+---
+
+# 19. Tracking Philosophy
+
+Timeline should be **event-driven rather than continuously active**.
+
+The system should perform the minimum work necessary to maintain an accurate activity record.
+
+Conceptually:
+
+```text
+No transition
+      ↓
+Lightweight state
+      ↓
+Application transition detected
+      ↓
+Record event
+      ↓
+Create or update session
+      ↓
+Return to lightweight state
+```
+
+The product should avoid unnecessary continuous processing.
+
+This is important both for battery consumption and for the trustworthiness of the product.
+
+Timeline should never become a significant source of battery drain simply because it is observing phone activity.
+
+---
+
+# 20. Android Service Architecture
+
+On Android, persistent tracking should be owned by the tracking service rather than by the launcher Activity.
+
+The Activity is responsible for entering the product and initiating the tracking experience when necessary.
+
+The tracking service owns:
+
+- Session tracking
+- Activity transitions
+- Notifications
+- Persistent tracking state
+- Background execution
+- Relevant system integrations
+
+The Activity should not be tightly coupled to the lifetime of the tracking service.
+
+Conceptually:
+
+```text
+Launcher Activity
+       │
+       │ starts tracking
+       ▼
+Tracking Service
+       │
+       ├── Activity/session tracking
+       ├── Notifications
+       ├── Persistent state
+       └── Optional screenshot/overlay systems
+```
+
+Clearing the application from Recents should not inherently terminate tracking unless that behavior is explicitly intended.
+
+Android OEMs may impose their own background-management policies, so Timeline should design for standard Android lifecycle behavior while acknowledging that some manufacturers may terminate background services more aggressively.
+
+---
+
+# 21. Battery and Resource Philosophy
+
+Timeline must be designed around resource restraint.
+
+The application should:
+
+- Avoid unnecessary continuous processing.
+- Record transitions rather than repeatedly polling when platform APIs provide event-driven alternatives.
+- Keep background work minimal.
+- Avoid unnecessary screenshot activity.
+- Avoid excessive database writes.
+- Avoid unnecessary network activity.
+- Keep notifications and overlays lightweight.
+
+The principle is:
+
+> **Timeline should observe the phone without becoming another demanding application running on it.**
+
+---
+
+# 22. Platform Strategy
+
+Timeline is a cross-platform product, but Android and iOS do not need identical technical capabilities.
+
+## Shared
+
+The shared product layer should contain:
+
+- Activity/session models
+- Timeline models
+- Aggregation logic
+- Statistics calculations
+- Local data structures
+- Business rules
+- Shared UI concepts
+- Presentation logic
+
+## Android-specific
+
+Android can provide platform-specific capabilities such as:
+
+- Usage access
+- Foreground application detection
+- Foreground tracking service
+- Screen capture
+- Floating overlay
+- Android-specific background mechanisms
+
+## iOS-specific
+
+iOS should use the activity and usage APIs available within Apple's platform restrictions.
+
+The product principle is:
+
+> **Same product concept, platform-appropriate capabilities.**
+
+The iOS implementation should not force Android-specific functionality into the shared product model.
+
+---
+
+# 23. Privacy Model
+
+Timeline deals with inherently personal activity data.
+
+The product should therefore treat user activity as private by default.
+
+The core experience should not require sending activity data to a remote service.
+
+Where possible, activity data should remain under the user's control on the device.
+
+Privacy-related controls belong in Settings and should make it clear:
+
+- What Timeline records
+- Whether screenshots are enabled
+- What permissions are active
+- How long activity data is retained
+- How tracking can be disabled
+- How stored activity can be removed
+
+The product should never make the user feel that their activity is being collected for someone else.
+
+Timeline exists primarily so **the user can understand their own activity**.
+
+---
+
+# 24. What Timeline Does Not Do
+
+These boundaries are part of the product definition.
+
+## No AI in the Core Product
+
+Timeline does not need to interpret behavior.
+
+It records:
+
+> YouTube — 38 minutes.
+
+It does not automatically conclude:
+
+> You appear to be procrastinating.
+
+The user decides what their activity means.
+
+## No Productivity Score
+
+There is no:
+
+> 73% productive day.
+
+## No Gamification
+
+There are no achievement systems or streak mechanics designed to manipulate engagement.
+
+## No Judgment
+
+Timeline does not tell users:
+
+> You spent too much time on social media.
+
+## No Forced Categorization
+
+Timeline does not need to decide whether an application is:
+
+- Productive
+- Entertainment
+- Education
+- Social
+- Distracting
+
+The user's behavior is presented without imposing a value judgment.
+
+---
+
+# 25. Future Intelligence
+
+Intelligence may eventually be added, but it must sit **above the mechanical Timeline system**.
+
+The architecture should remain:
+
+```text
+               Timeline Events
+                      │
+                      ▼
+              Session History
+                      │
+                      ▼
+               Visual Timeline
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+       User view             Intelligence
+```
+
+Future intelligence could answer questions such as:
+
+- What did I spend most of my evening doing?
+- How many times did I switch away from Android Studio?
+- What usually happens before I open YouTube?
+- Show me my biggest distractions this week.
+
+But intelligence is an enhancement.
+
+The underlying Timeline must remain useful without it.
+
+---
+
+# 26. Product Personality
+
+Timeline should be positioned as a:
+
+### **Digital activity journal**
+
+or:
+
+### **Visual record of your digital day**
+
+Its emotional character should be:
+
+**Quiet.
+Observational.
+Personal.
+Visual.**
+
+Not:
+
+**Analytical.
+Judgmental.
+Productivity-focused.
+Gamified.**
+
+When users open Timeline, the intended reaction is:
+
+> **“Oh. That's what my day actually looked like.”**
+
+---
+
+# 27. Visual and Interaction Principles
+
+### 1. Context over navigation
+
+Keep users in Timeline rather than sending them through multiple screens.
+
+### 2. Progressive disclosure
+
+Show essential information first and reveal additional detail only when requested.
+
+### 3. One Timeline surface
+
+Dates, time periods, sessions, summaries, and application history should feel like different states of the same product surface.
+
+### 4. Draggable depth
+
+The Session Detail bottom sheet provides the first level of detail. Dragging it upward reveals the complete Application Timeline.
+
+### 5. Quiet observation
+
+The UI should document activity without judging it.
+
+### 6. Visual evidence
+
+Where platform capabilities allow it, screenshots should make activity more tangible.
+
+### 7. Minimal architecture
+
+The product should remain centered around one primary experience and one configuration screen.
+
+### 8. Platform honesty
+
+Android and iOS should expose the capabilities their respective platforms actually support rather than pretending they are technically identical.
+
+### 9. Mechanical foundation
+
+Tracking and session history must remain valuable independently of AI, analytics, or future intelligence.
+
+---
+
+# 28. Current Product Boundaries
+
+The following decisions are authoritative for the current Timeline product direction.
+
+### Architecture
+
+- Exactly **2 navigable screens**.
+- Timeline is the primary screen.
+- Settings is the secondary screen.
+- No Apps screen.
+- No Overview screen.
+- No Profile screen.
+- No dedicated Session screen.
+- No dedicated Application screen.
+- No dedicated Calendar screen.
+- No conventional multi-destination bottom navigation.
+
+### Timeline navigation
+
+- The **Today ↓** control opens date/calendar selection.
+- The **calendar icon** opens the time-of-day controls.
+- Time-of-day controls are:
+  - Today
+  - Morning
+  - Afternoon
+  - Evening
+- Time-of-day controls are nested Timeline state, not navigation destinations.
+
+### Session interaction
+
+- Tapping a timeline entry opens a **short Session Detail bottom sheet**.
+- The short sheet represents the **specific selected session**.
+- The sheet is draggable.
+- Dragging the sheet to the top expands it.
+- The expanded sheet becomes the **Complete Application Timeline** for the selected application.
+- The expanded Application Timeline is still a bottom-sheet state, not a separate screen.
+- The user can dismiss or drag the sheet down to return to Timeline.
+
+### Tracking
+
+- Mechanical application/session tracking is the core functionality.
+- Tracking should be lightweight and event-driven.
+- Android persistent tracking belongs to a properly managed foreground service.
+- The Activity should not own the tracking lifecycle.
+
+### Screenshots
+
+- Optional.
+- Platform-dependent.
+- Not required for the core Timeline experience.
+- Android may support them through appropriate system permissions.
+- iOS should use only capabilities permitted by the platform.
+
+### Overlay
+
+- Optional.
+- Android-specific.
+- Requires appropriate system permission.
+- Must remain subtle and lightweight.
+
+### Intelligence
+
+- Not part of the core product.
+- AI/OCR/screenshot intelligence is future scope.
+- Future intelligence must consume the mechanical Timeline rather than replace it.
+
+### Branding
+
+- The product name is **Timeline**.
+- All previous product-name references in UI, copy, documentation, and design should use **Timeline**.
+
+---
+
+# 29. Authoritative UI State Model
+
+The current UI should be understood as the following state hierarchy:
+
+```text
+TIMELINE
+│
+├── Default Timeline
+│
+├── Date Selection
+│   └── Triggered by Today ↓
+│
+├── Time-of-Day Selection
+│   └── Triggered by Calendar icon
+│       ├── Today
+│       ├── Morning
+│       ├── Afternoon
+│       └── Evening
+│
+└── Session Selection
+    │
+    └── Short Bottom Sheet
+        │
+        └── Session Detail
+            │
+            │ Drag upward
+            ▼
+        Expanded Bottom Sheet
+            │
+            └── Complete Application Timeline
+```
+
+Settings is the only separate screen:
+
+```text
+TIMELINE
+   │
+   └── Settings
+          │
+          ▼
+    SETTINGS SCREEN
+```
+
+This hierarchy is the authoritative interpretation of the current UI.
+
+---
+
+# 30. Product North Star
+
+Timeline exists to answer one simple question:
+
+> **What did my digital day actually look like?**
+
+It does not need to tell the user whether that day was good or bad.
+
+It does not need to tell them what they should have done.
+
+It simply reconstructs the day.
+
+The product succeeds when a user can open Timeline and immediately understand the shape of their digital life through a chronological, visual record of their activity.
+
+---
+
+# 31. One-Sentence Definition
+
+> **Timeline is a passive visual journal of phone activity that reconstructs a user's digital day as a chronological record of the applications they used, when they used them, how long they stayed, and—where the platform permits—what they were doing inside them.**
+
+And the central product principle is:
+
+> **Timeline doesn't tell you how to spend your time. It shows you how you spent it.**
+
+---
+
+# 32. Definition of Done
+
+Timeline's core product is complete when:
+
+- The user can open the app directly into their activity Timeline.
+- Application sessions are recorded reliably.
+- Each session has a start time, end time, duration, application identity, and date.
+- The user can move between dates without navigating to another screen.
+- The user can reveal Today/Morning/Afternoon/Evening through the calendar control.
+- The user can select a specific session from the Timeline.
+- Selecting a session opens a short **Session Detail bottom sheet**.
+- The Session Detail sheet can be dragged upward.
+- The expanded sheet presents the **Complete Application Timeline** for that application.
+- The expanded Application Timeline remains part of the same bottom-sheet interaction.
+- The user can dismiss or collapse the sheet and return to the Timeline.
+- The user can access a compact daily summary without leaving Timeline.
+- Settings provides the required tracking, permission, privacy, and retention controls.
+- Android tracking can operate independently of the launcher Activity through the appropriate service architecture.
+- Tracking is designed to minimize battery and resource consumption.
+- Screenshots remain optional and platform-dependent.
+- The Android overlay remains optional and platform-dependent.
+- No AI is required for the core experience.
+- No productivity score, gamification, or judgment system is required.
+- The product maintains exactly two navigable screens.
+- Timeline remains the center of the experience.
+
+**Timeline is not a productivity coach.**
+
+**Timeline is not an analytics dashboard.**
+
+**Timeline is not an AI behavior interpreter.**
+
+**Timeline is a visual record of the user's digital day.**
