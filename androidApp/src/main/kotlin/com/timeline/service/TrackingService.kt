@@ -77,6 +77,8 @@ class TrackingService : Service() {
 
     private var lastApp: String? = null
     private var lastStartTime: Long = 0
+    private var currentSessionId: String? = null
+    private var lastScreenshotTime: Long = 0
 
     private suspend fun pollUsageStats() {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
@@ -95,47 +97,92 @@ class TrackingService : Service() {
             }
         }
 
-        if (currentApp != null && currentApp != lastApp) {
-            Logger.d("TrackingService") { "App transition detected: $lastApp -> $currentApp" }
-            val isExcluded = exclusionPolicy.isExcluded(currentApp)
-            if (isExcluded) {
-                Logger.d("TrackingService") { "App $currentApp is excluded, skipping" }
+        if (currentApp != null) {
+            if (currentApp != lastApp) {
+                Logger.d("TrackingService") { "App transition detected: $lastApp -> $currentApp" }
+                
+                // Close previous session if it exists
+                currentSessionId?.let { sessionId ->
+                    closePreviousSession(sessionId)
+                }
+
+                val isExcluded = exclusionPolicy.isExcluded(currentApp)
+                if (isExcluded) {
+                    Logger.d("TrackingService") { "App $currentApp is excluded, skipping" }
+                    lastApp = currentApp
+                    currentSessionId = null
+                    return
+                }
+
+                Logger.i("TrackingService") { "Recording session for: $currentApp" }
+                val sessionId = java.util.UUID.randomUUID().toString()
+                currentSessionId = sessionId
                 lastApp = currentApp
-                return
-            }
-
-            Logger.i("TrackingService") { "Recording session for: $currentApp" }
-            lastApp = currentApp
-            lastStartTime = System.currentTimeMillis()
-            
-            serviceScope.launch {
-                try {
-                    val session = Session(
-                        id = java.util.UUID.randomUUID().toString(),
-                        packageName = currentApp,
-                        startTime = KClock.System.now(),
-                        endTime = null,
-                        durationMinutes = 0,
-                        screenshots = emptyList(),
-                        segments = emptyList()
-                    )
-                    repository.saveSession(session)
-                    Logger.i("TrackingService") { "Successfully saved session for $currentApp" }
-
-                    // Trigger screenshot capture
-                    val workRequest = OneTimeWorkRequestBuilder<ScreenshotWorker>()
-                        .setInputData(workDataOf(
-                            "package_name" to currentApp,
-                            "session_id" to session.id
-                        ))
-                        .build()
-                    WorkManager.getInstance(this@TrackingService).enqueue(workRequest)
-                    Logger.d("TrackingService") { "Enqueued ScreenshotWorker for $currentApp" }
-                } catch (e: Exception) {
-                    Logger.e(e, "TrackingService") { "Failed to save session for $currentApp" }
+                lastStartTime = System.currentTimeMillis()
+                lastScreenshotTime = lastStartTime
+                
+                startNewSession(sessionId, currentApp)
+            } else {
+                // Periodic screenshot check (every 1 minute)
+                if (currentSessionId != null && (System.currentTimeMillis() - lastScreenshotTime) >= 60000L) {
+                    Logger.d("TrackingService") { "Periodic screenshot trigger for $currentApp" }
+                    lastScreenshotTime = System.currentTimeMillis()
+                    enqueueScreenshot(currentSessionId!!, currentApp)
                 }
             }
         }
+    }
+
+    private fun closePreviousSession(sessionId: String) {
+        serviceScope.launch {
+            try {
+                val session = repository.getSession(sessionId)
+                if (session != null) {
+                    val endTime = KClock.System.now()
+                    val duration = (endTime - session.startTime).inWholeMinutes
+                    val updatedSession = session.copy(
+                        endTime = endTime,
+                        durationMinutes = duration
+                    )
+                    repository.saveSession(updatedSession)
+                    Logger.i("TrackingService") { "Closed session $sessionId. Duration: ${duration}m" }
+                }
+            } catch (e: Exception) {
+                Logger.e(e, "TrackingService") { "Failed to close session $sessionId" }
+            }
+        }
+    }
+
+    private fun startNewSession(sessionId: String, packageName: String) {
+        serviceScope.launch {
+            try {
+                val session = Session(
+                    id = sessionId,
+                    packageName = packageName,
+                    startTime = KClock.System.now(),
+                    endTime = null,
+                    durationMinutes = 0,
+                    screenshots = emptyList(),
+                    segments = emptyList()
+                )
+                repository.saveSession(session)
+                Logger.i("TrackingService") { "Successfully saved session for $packageName" }
+                enqueueScreenshot(sessionId, packageName)
+            } catch (e: Exception) {
+                Logger.e(e, "TrackingService") { "Failed to start session for $packageName" }
+            }
+        }
+    }
+
+    private fun enqueueScreenshot(sessionId: String, packageName: String) {
+        val workRequest = OneTimeWorkRequestBuilder<ScreenshotWorker>()
+            .setInputData(workDataOf(
+                "package_name" to packageName,
+                "session_id" to sessionId
+            ))
+            .build()
+        WorkManager.getInstance(this).enqueue(workRequest)
+        Logger.d("TrackingService") { "Enqueued ScreenshotWorker for $packageName (Session: $sessionId)" }
     }
 
     private fun createNotificationChannel() {
