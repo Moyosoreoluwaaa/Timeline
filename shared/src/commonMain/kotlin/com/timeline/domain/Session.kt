@@ -1,6 +1,6 @@
 package com.timeline.domain
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class Session(
     val id: String,

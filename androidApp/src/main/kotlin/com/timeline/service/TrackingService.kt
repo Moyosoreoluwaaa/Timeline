@@ -16,6 +16,7 @@ import co.touchlab.kermit.Logger
 import com.timeline.data.TimelineRepository
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
+import com.timeline.domain.UserPreferences
 import com.timeline.worker.ScreenshotWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,15 +25,17 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import kotlin.time.Clock as KClock
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 class TrackingService : Service() {
 
     private val repository: TimelineRepository by inject()
     private val exclusionPolicy: ExclusionPolicy by inject()
+    private val userPreferences: UserPreferences by inject()
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var trackingJob: Job? = null
 
@@ -81,6 +84,15 @@ class TrackingService : Service() {
     private var lastScreenshotTime: Long = 0
 
     private suspend fun pollUsageStats() {
+        val prefs = userPreferences.state.first()
+        if (!prefs.isUsageTrackingEnabled) {
+            // If tracking is disabled, close any active session
+            currentSessionId?.let { closePreviousSession(it) }
+            currentSessionId = null
+            lastApp = null
+            return
+        }
+
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
         val startTime = endTime - 10000 // Polling every 5s, so 10s lookback is enough and more efficient
@@ -138,7 +150,7 @@ class TrackingService : Service() {
             try {
                 val session = repository.getSession(sessionId)
                 if (session != null) {
-                    val endTime = KClock.System.now()
+                    val endTime = kotlin.time.Clock.System.now()
                     val duration = (endTime - session.startTime).inWholeMinutes
                     val updatedSession = session.copy(
                         endTime = endTime,
@@ -159,7 +171,7 @@ class TrackingService : Service() {
                 val session = Session(
                     id = sessionId,
                     packageName = packageName,
-                    startTime = KClock.System.now(),
+                    startTime = kotlin.time.Clock.System.now(),
                     endTime = null,
                     durationMinutes = 0,
                     screenshots = emptyList(),

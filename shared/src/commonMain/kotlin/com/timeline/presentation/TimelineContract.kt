@@ -1,7 +1,7 @@
 package com.timeline.presentation
 
 import com.timeline.domain.Session
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 
 data class TimelineState(
     val sessions: List<Session> = emptyList(),

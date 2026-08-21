@@ -18,10 +18,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.random.Random
-import kotlin.time.Clock as KClock
 import kotlin.time.Duration.Companion.minutes
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -57,6 +57,7 @@ class TimelineViewModel(
 
         val filteredSessions = sessions
             .filter { it.packageName !in excluded }
+            .filter { applyDateFilter(it, date) }
             .filter { applyTimeFilter(it, filter) }
 
         TimelineState(
@@ -121,34 +122,19 @@ class TimelineViewModel(
         }
     }
 
-    private fun generateDummyData() {
-        viewModelScope.launch {
-            val apps = listOf("com.android.chrome", "com.google.android.youtube", "com.whatsapp", "com.instagram.android")
-            val now = KClock.System.now()
-            
-            apps.forEachIndexed { index, pkg ->
-                val session = Session(
-                    id = "dummy_${index}_${Random.nextInt()}",
-                    packageName = pkg,
-                    startTime = now.minus((index * 30).minutes),
-                    endTime = now.minus((index * 30 - 15).minutes),
-                    durationMinutes = 15,
-                    screenshots = listOf("/sdcard/dummy.png"),
-                    segments = listOf(
-                        com.timeline.domain.SessionSegment(
-                            timestamp = now.minus((index * 30).minutes),
-                            screenshotPath = "/sdcard/dummy.png",
-                            activityDescription = "Application launched"
-                        ),
-                        com.timeline.domain.SessionSegment(
-                            timestamp = now.minus((index * 30 - 5).minutes),
-                            activityDescription = "User interacted with content"
-                        )
-                    )
-                )
-                repository.saveSession(session)
-            }
-            _refreshTrigger.value++
+    private fun applyDateFilter(session: Session, selectedDate: kotlinx.datetime.Instant?): Boolean {
+        if (selectedDate == null) {
+            // Default to today if no date selected? 
+            // Or if null, show all?
+            // Usually timeline is per day.
+            return true 
         }
+        val sessionDate = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val filterDate = selectedDate.toLocalDateTime(TimeZone.currentSystemDefault()).date
+        return sessionDate == filterDate
+    }
+
+    private fun generateDummyData() {
+        // Removed as per request
     }
 }

@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.androidxRoom)
     alias(libs.plugins.ksp)
+    kotlin("plugin.serialization") version "2.0.21" // Matching current kotlin version if possible
 }
 
 kotlin {
@@ -49,6 +50,10 @@ kotlin {
 
             // periodic purge sweep (14-day cache eviction)
             implementation(libs.androidx.work.runtime)
+
+            // navigation
+            implementation(libs.androidx.navigation3.runtime)
+            implementation(libs.androidx.navigation3.ui)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -61,6 +66,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.androidx.navigation3.runtime)
 
             // dependency injection
             implementation(libs.koin.core)

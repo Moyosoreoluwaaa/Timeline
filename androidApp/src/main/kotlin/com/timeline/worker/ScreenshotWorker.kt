@@ -10,7 +10,9 @@ import androidx.work.WorkerParameters
 import co.touchlab.kermit.Logger
 import com.timeline.data.TimelineRepository
 import com.timeline.domain.SessionSegment
+import com.timeline.domain.UserPreferences
 import com.timeline.service.TimelineAccessibilityService
+import kotlinx.coroutines.flow.first
 import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -24,11 +26,18 @@ class ScreenshotWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val repository: TimelineRepository by inject()
+    private val userPreferences: UserPreferences by inject()
 
     override suspend fun doWork(): Result {
         val packageName = inputData.getString("package_name") ?: return Result.failure()
         val sessionId = inputData.getString("session_id") ?: return Result.failure()
         
+        val prefs = userPreferences.state.first()
+        if (!prefs.isScreenshotCaptureEnabled) {
+            Logger.d { "Screenshot capture disabled in settings, skipping for $packageName" }
+            return Result.success()
+        }
+
         Logger.d { "Taking screenshot for $packageName (Session: $sessionId)" }
         
         val accessibilityService = TimelineAccessibilityService.getInstance()

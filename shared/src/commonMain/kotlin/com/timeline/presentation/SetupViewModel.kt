@@ -1,15 +1,19 @@
 package com.timeline.presentation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.timeline.domain.PermissionManager
+import com.timeline.domain.UserPreferences
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class SetupViewModel(
-    private val permissionManager: PermissionManager
+    private val permissionManager: PermissionManager,
+    private val userPreferences: UserPreferences
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SetupState())
@@ -26,8 +30,11 @@ class SetupViewModel(
             SetupEvent.RequestNotification -> _effects.trySend(SetupEffect.RequestNotificationPermission)
             SetupEvent.RequestAccessibility -> _effects.trySend(SetupEffect.NavigateToAccessibilitySettings)
             SetupEvent.StartTracking -> {
-                _state.update { it.copy(isTrackingStarted = true) }
-                _effects.trySend(SetupEffect.AllPermissionsGranted)
+                viewModelScope.launch {
+                    userPreferences.setSetupCompleted(true)
+                    _state.update { it.copy(isTrackingStarted = true) }
+                    _effects.trySend(SetupEffect.AllPermissionsGranted)
+                }
             }
         }
     }

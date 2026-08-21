@@ -1,22 +1,14 @@
 package com.timeline
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.timeline.presentation.SetupEffect
-import com.timeline.presentation.SetupEvent
-import com.timeline.presentation.SetupViewModel
-import com.timeline.presentation.TimelineViewModel
+import androidx.core.net.toUri
 import com.timeline.service.TrackingService
-import org.koin.compose.viewmodel.koinViewModel
 
 class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher = registerForActivityResult(
@@ -30,37 +22,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val viewModel: TimelineViewModel = koinViewModel()
-            val setupViewModel: SetupViewModel = koinViewModel()
-            val setupState by setupViewModel.state.collectAsStateWithLifecycle()
-
-            LaunchedEffect(setupViewModel) {
-                setupViewModel.onEvent(SetupEvent.CheckPermissions)
-                setupViewModel.effects.collect { effect ->
-                    if (effect is SetupEffect.AllPermissionsGranted) {
-                        startForegroundService(Intent(this@MainActivity, TrackingService::class.java))
-                    }
-                }
-            }
-
-            // Start service if permissions are already granted
-            LaunchedEffect(setupState.isUsageStatsGranted, setupState.isOverlayGranted, 
-                setupState.isNotificationGranted, setupState.isAccessibilityGranted) {
-                if (setupState.isUsageStatsGranted && setupState.isOverlayGranted && 
-                    setupState.isNotificationGranted && setupState.isAccessibilityGranted) {
-                    startForegroundService(Intent(this@MainActivity, TrackingService::class.java))
-                }
-            }
-
             App(
-                viewModel = viewModel,
-                setupViewModel = setupViewModel,
                 onNavigateToUsageStats = {
                     startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                 },
                 onNavigateToOverlay = {
                     startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                        data = Uri.parse("package:$packageName")
+                        data = "package:$packageName".toUri()
                     })
                 },
                 onNavigateToNotification = {
@@ -70,6 +38,9 @@ class MainActivity : ComponentActivity() {
                 },
                 onNavigateToAccessibility = {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                },
+                onStartService = {
+                    startForegroundService(Intent(this@MainActivity, TrackingService::class.java))
                 }
             )
         }
@@ -77,6 +48,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Force refresh permissions when returning to app
+        // Koin doesn't easily provide access to the same VM instance here without complexity
+        // But since we use collectAsStateWithLifecycle, the UI will refresh when it becomes active
+        // and we have CheckPermissions in AppNavigation or SetupScreen.
     }
 }

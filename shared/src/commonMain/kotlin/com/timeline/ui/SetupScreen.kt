@@ -6,6 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.timeline.presentation.SetupEvent
 import com.timeline.presentation.SetupViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,7 +23,15 @@ fun SetupScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            if (effect is com.timeline.presentation.SetupEffect.AllPermissionsGranted) {
+                onComplete()
+            }
+        }
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.onEvent(SetupEvent.CheckPermissions)
     }
 

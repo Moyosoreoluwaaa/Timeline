@@ -28,8 +28,8 @@ class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
     private fun SessionEntity.toDomain(): Session = Session(
         id = id,
         packageName = packageName,
-        startTime = kotlinx.datetime.Instant.fromEpochMilliseconds(startTime),
-        endTime = endTime?.let { kotlinx.datetime.Instant.fromEpochMilliseconds(it) },
+        startTime = kotlin.time.Instant.fromEpochMilliseconds(startTime),
+        endTime = endTime?.let { kotlin.time.Instant.fromEpochMilliseconds(it) },
         durationMinutes = durationMinutes,
         screenshots = screenshotsJson.split("|||").filter { it.isNotBlank() },
         segments = deserializeSegments(segmentsJson)
@@ -60,7 +60,7 @@ class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
             val parts = line.split("|")
             if (parts.size >= 3) {
                 com.timeline.domain.SessionSegment(
-                    timestamp = kotlinx.datetime.Instant.fromEpochMilliseconds(parts[0].toLongOrNull() ?: 0L),
+                    timestamp = kotlin.time.Instant.fromEpochMilliseconds(parts[0].toLongOrNull() ?: 0L),
                     screenshotPath = parts[1].ifBlank { null },
                     activityDescription = parts[2].ifBlank { null }
                 )
