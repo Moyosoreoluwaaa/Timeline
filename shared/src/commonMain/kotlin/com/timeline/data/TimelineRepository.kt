@@ -31,8 +31,8 @@ class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
         startTime = kotlinx.datetime.Instant.fromEpochMilliseconds(startTime),
         endTime = endTime?.let { kotlinx.datetime.Instant.fromEpochMilliseconds(it) },
         durationMinutes = durationMinutes,
-        screenshots = emptyList(), // JSON parsing logic omitted for brevity
-        segments = emptyList()
+        screenshots = screenshotsJson.split("|||").filter { it.isNotBlank() },
+        segments = deserializeSegments(segmentsJson)
     )
 
     private fun Session.toEntity(): SessionEntity = SessionEntity(
@@ -41,7 +41,30 @@ class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
         startTime = startTime.toEpochMilliseconds(),
         endTime = endTime?.toEpochMilliseconds(),
         durationMinutes = durationMinutes,
-        screenshotsJson = "",
-        segmentsJson = ""
+        screenshotsJson = screenshots.joinToString("|||"),
+        segmentsJson = serializeSegments(segments)
     )
+
+    private fun serializeSegments(segments: List<com.timeline.domain.SessionSegment>): String {
+        return segments.joinToString("\n") { segment ->
+            val timestamp = segment.timestamp.toEpochMilliseconds()
+            val path = segment.screenshotPath ?: ""
+            val desc = segment.activityDescription ?: ""
+            "$timestamp|$path|$desc"
+        }
+    }
+
+    private fun deserializeSegments(json: String): List<com.timeline.domain.SessionSegment> {
+        if (json.isBlank()) return emptyList()
+        return json.split("\n").filter { it.isNotBlank() }.mapNotNull { line ->
+            val parts = line.split("|")
+            if (parts.size >= 3) {
+                com.timeline.domain.SessionSegment(
+                    timestamp = kotlinx.datetime.Instant.fromEpochMilliseconds(parts[0].toLongOrNull() ?: 0L),
+                    screenshotPath = parts[1].ifBlank { null },
+                    activityDescription = parts[2].ifBlank { null }
+                )
+            } else null
+        }
+    }
 }

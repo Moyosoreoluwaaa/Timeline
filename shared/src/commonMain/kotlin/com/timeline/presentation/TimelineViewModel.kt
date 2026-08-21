@@ -133,8 +133,18 @@ class TimelineViewModel(
                     startTime = now.minus((index * 30).minutes),
                     endTime = now.minus((index * 30 - 15).minutes),
                     durationMinutes = 15,
-                    screenshots = emptyList(),
-                    segments = emptyList()
+                    screenshots = listOf("/sdcard/dummy.png"),
+                    segments = listOf(
+                        com.timeline.domain.SessionSegment(
+                            timestamp = now.minus((index * 30).minutes),
+                            screenshotPath = "/sdcard/dummy.png",
+                            activityDescription = "Application launched"
+                        ),
+                        com.timeline.domain.SessionSegment(
+                            timestamp = now.minus((index * 30 - 5).minutes),
+                            activityDescription = "User interacted with content"
+                        )
+                    )
                 )
                 repository.saveSession(session)
             }

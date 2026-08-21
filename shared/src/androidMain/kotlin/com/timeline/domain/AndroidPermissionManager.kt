@@ -33,4 +33,13 @@ class AndroidPermissionManager(private val context: Context) : PermissionManager
             true
         }
     }
+
+    override fun hasAccessibilityPermission(): Boolean {
+        val expectedServiceName = context.packageName + "/com.timeline.service.TimelineAccessibilityService"
+        val enabledServices = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return enabledServices?.contains(expectedServiceName) == true
+    }
 }

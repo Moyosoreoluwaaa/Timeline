@@ -16,6 +16,7 @@ fun SetupScreen(
     onNavigateToUsageStats: () -> Unit,
     onNavigateToOverlay: () -> Unit,
     onNavigateToNotification: () -> Unit,
+    onNavigateToAccessibility: () -> Unit,
     onComplete: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -36,7 +37,7 @@ fun SetupScreen(
             Text("Permissions Required", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "Timeline needs Usage Access, Overlay, and Notification permissions to track your digital activity in the background.",
+                "Timeline needs Usage Access, Overlay, Notification, and Accessibility permissions to track activity and capture screenshots.",
                 style = MaterialTheme.typography.bodyLarge
             )
             Spacer(modifier = Modifier.height(32.dp))
@@ -63,11 +64,20 @@ fun SetupScreen(
                 onClick = onNavigateToNotification
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            PermissionRow(
+                title = "Accessibility Service",
+                isGranted = state.isAccessibilityGranted,
+                onClick = onNavigateToAccessibility
+            )
+
             Spacer(modifier = Modifier.height(48.dp))
 
             Button(
                 onClick = { viewModel.onEvent(SetupEvent.StartTracking) },
-                enabled = state.isUsageStatsGranted && state.isOverlayGranted && state.isNotificationGranted,
+                enabled = state.isUsageStatsGranted && state.isOverlayGranted && 
+                        state.isNotificationGranted && state.isAccessibilityGranted,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Start Tracking")

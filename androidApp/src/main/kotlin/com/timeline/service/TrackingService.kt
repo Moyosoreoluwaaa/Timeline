@@ -124,7 +124,10 @@ class TrackingService : Service() {
 
                     // Trigger screenshot capture
                     val workRequest = OneTimeWorkRequestBuilder<ScreenshotWorker>()
-                        .setInputData(workDataOf("package_name" to currentApp))
+                        .setInputData(workDataOf(
+                            "package_name" to currentApp,
+                            "session_id" to session.id
+                        ))
                         .build()
                     WorkManager.getInstance(this@TrackingService).enqueue(workRequest)
                     Logger.d("TrackingService") { "Enqueued ScreenshotWorker for $currentApp" }

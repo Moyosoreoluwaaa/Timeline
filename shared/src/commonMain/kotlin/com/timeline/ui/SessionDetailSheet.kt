@@ -86,12 +86,12 @@ fun SessionDetailSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(session.segments.take(3)) { _ ->
-                        Surface(
-                            modifier = Modifier.width(100.dp).height(150.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = MaterialTheme.shapes.medium
-                        ) {}
+                    items(session.segments.take(3)) { segment ->
+                        ScreenshotImage(
+                            path = segment.screenshotPath,
+                            contentDescription = "Session segment",
+                            modifier = Modifier.width(100.dp).height(150.dp)
+                        )
                     }
                 }
             }
@@ -147,11 +147,11 @@ fun ExpandedSessionContent(session: Session) {
                     }
                     if (segment.screenshotPath != null) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().height(200.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = MaterialTheme.shapes.medium
-                        ) {}
+                        ScreenshotImage(
+                            path = segment.screenshotPath,
+                            contentDescription = "Segment screenshot",
+                            modifier = Modifier.fillMaxWidth().height(200.dp)
+                        )
                     }
                 }
             }

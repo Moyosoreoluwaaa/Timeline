@@ -42,7 +42,8 @@ fun App(
     settingsViewModel: SettingsViewModel = koinViewModel(),
     onNavigateToUsageStats: () -> Unit = {},
     onNavigateToOverlay: () -> Unit = {},
-    onNavigateToNotification: () -> Unit = {}
+    onNavigateToNotification: () -> Unit = {},
+    onNavigateToAccessibility: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val setupState by setupViewModel.state.collectAsStateWithLifecycle()
@@ -54,12 +55,14 @@ fun App(
 
     MaterialTheme(colorScheme = darkColorScheme()) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            if (!setupState.isUsageStatsGranted || !setupState.isOverlayGranted || !setupState.isNotificationGranted) {
+            if (!setupState.isUsageStatsGranted || !setupState.isOverlayGranted || 
+                !setupState.isNotificationGranted || !setupState.isAccessibilityGranted) {
                 SetupScreen(
                     viewModel = setupViewModel,
                     onNavigateToUsageStats = onNavigateToUsageStats,
                     onNavigateToOverlay = onNavigateToOverlay,
                     onNavigateToNotification = onNavigateToNotification,
+                    onNavigateToAccessibility = onNavigateToAccessibility,
                     onComplete = { setupViewModel.onEvent(SetupEvent.CheckPermissions) }
                 )
             } else if (showSettings) {

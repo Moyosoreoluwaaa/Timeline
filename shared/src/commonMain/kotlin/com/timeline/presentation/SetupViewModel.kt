@@ -24,6 +24,7 @@ class SetupViewModel(
             SetupEvent.RequestUsageStats -> _effects.trySend(SetupEffect.NavigateToUsageStatsSettings)
             SetupEvent.RequestOverlay -> _effects.trySend(SetupEffect.NavigateToOverlaySettings)
             SetupEvent.RequestNotification -> _effects.trySend(SetupEffect.RequestNotificationPermission)
+            SetupEvent.RequestAccessibility -> _effects.trySend(SetupEffect.NavigateToAccessibilitySettings)
             SetupEvent.StartTracking -> {
                 _state.update { it.copy(isTrackingStarted = true) }
                 _effects.trySend(SetupEffect.AllPermissionsGranted)
@@ -35,10 +36,12 @@ class SetupViewModel(
         val hasUsage = permissionManager.hasUsageStatsPermission()
         val hasOverlay = permissionManager.hasOverlayPermission()
         val hasNotification = permissionManager.hasNotificationPermission()
+        val hasAccessibility = permissionManager.hasAccessibilityPermission()
         _state.update { it.copy(
             isUsageStatsGranted = hasUsage,
             isOverlayGranted = hasOverlay,
-            isNotificationGranted = hasNotification
+            isNotificationGranted = hasNotification,
+            isAccessibilityGranted = hasAccessibility
         ) }
     }
 }

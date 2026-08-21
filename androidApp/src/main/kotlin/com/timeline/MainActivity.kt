@@ -44,8 +44,10 @@ class MainActivity : ComponentActivity() {
             }
 
             // Start service if permissions are already granted
-            LaunchedEffect(setupState.isUsageStatsGranted, setupState.isOverlayGranted, setupState.isNotificationGranted) {
-                if (setupState.isUsageStatsGranted && setupState.isOverlayGranted && setupState.isNotificationGranted) {
+            LaunchedEffect(setupState.isUsageStatsGranted, setupState.isOverlayGranted, 
+                setupState.isNotificationGranted, setupState.isAccessibilityGranted) {
+                if (setupState.isUsageStatsGranted && setupState.isOverlayGranted && 
+                    setupState.isNotificationGranted && setupState.isAccessibilityGranted) {
                     startForegroundService(Intent(this@MainActivity, TrackingService::class.java))
                 }
             }
@@ -65,6 +67,9 @@ class MainActivity : ComponentActivity() {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                         requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     }
+                },
+                onNavigateToAccessibility = {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 }
             )
         }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Timeline</string>
+    <string name="accessibility_description">Timeline uses accessibility to capture screenshots of your activity for journaling purposes.</string>
 </resources>
