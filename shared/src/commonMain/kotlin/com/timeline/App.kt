@@ -1,9 +1,11 @@
 package com.timeline
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -59,9 +61,31 @@ fun TimelineScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = state.isSheetExpanded
+        skipPartiallyExpanded = false
     )
-    
+
+    val expansionProgress by animateFloatAsState(
+        targetValue = if (sheetState.targetValue == SheetValue.Expanded) 1f else 0f,
+        label = "ExpansionProgress"
+    )
+
+    // Sync state: When sheet settles, update the ViewModel state
+    LaunchedEffect(sheetState.currentValue) {
+        val isAtTop = sheetState.currentValue == SheetValue.Expanded
+        if (isAtTop != state.isSheetExpanded) {
+            viewModel.onEvent(TimelineEvent.ToggleSheet(isAtTop))
+        }
+    }
+
+    // Reaction: When Toggle event (from UI button) changes state, animate the sheet
+    LaunchedEffect(state.isSheetExpanded) {
+        if (state.isSheetExpanded && sheetState.currentValue != SheetValue.Expanded) {
+            sheetState.expand()
+        } else if (!state.isSheetExpanded && sheetState.currentValue == SheetValue.Expanded) {
+            sheetState.partialExpand()
+        }
+    }
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimeFilters by remember { mutableStateOf(false) }
 
@@ -126,11 +150,13 @@ fun TimelineScreen(
 
                 // Time Filters (Temporal Filters)
                 if (showTimeFilters) {
-                    Row(
+                    LazyRow(
                         modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(end = 16.dp)
                     ) {
-                        TimeFilter.entries.forEach { filter ->
+                        items(TimeFilter.entries.size) { index ->
+                            val filter = TimeFilter.entries[index]
                             FilterChip(
                                 selected = state.timeFilter == filter,
                                 onClick = { viewModel.onEvent(TimelineEvent.FilterTime(filter)) },
@@ -182,6 +208,7 @@ fun TimelineScreen(
                     session = state.selectedSession!!,
                     allSessions = state.sessions,
                     isExpanded = state.isSheetExpanded,
+                    expansionProgress = expansionProgress,
                     prevSession = prevSession,
                     nextSession = nextSession,
                     onEvent = viewModel::onEvent
@@ -293,7 +320,7 @@ fun BottomSummary(sessions: List<com.timeline.domain.Session>) {
     val totalMinutes = sessions.sumOf { it.durationMinutes }
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
-    
+
     Surface(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 24.dp)
