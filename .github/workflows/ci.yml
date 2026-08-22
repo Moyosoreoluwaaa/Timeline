@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build & Unit tests
+    runs-on: ubuntu-latest
+    env:
+      # default fallback; overwritten by install step when SDK is present
+      ANDROID_SDK_ROOT: /opt/hostedtoolcache/android-sdk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Restore Android SDK cache
+        uses: actions/cache@v4
+        with:
+          path: /opt/hostedtoolcache/android-sdk
+          key: ${{ runner.os }}-android-sdk-${{ hashFiles('**/androidApp/build.gradle*', '**/androidApp/build.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-android-sdk-
+
+      - name: Install Android command-line tools and SDK components (no emulator)
+        run: |
+          set -euo pipefail
+
+          ANDROID_SDK_ROOT="${RUNNER_TOOL_CACHE:-/opt}/hostedtoolcache/android-sdk"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+
+          CLI_ZIP="/tmp/commandlinetools.zip"
+          # update this URL if Google publishes a newer commandline-tools zip
+          curl -sSLo "$CLI_ZIP" "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
+
+          unzip -q "$CLI_ZIP" -d /tmp/cmdline-tools
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv /tmp/cmdline-tools/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/" || true
+
+          # Persist env vars for following steps
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+
+          # Make sdkmanager and platform-tools available in PATH for next steps
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+
+          # Accept licenses safely (avoid failing due to yes -> SIGPIPE)
+          (set +o pipefail; yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null)
+
+          # Detect compileSdk from common Gradle files (fallback to 33)
+          COMPILE_SDK=""
+          # search in androidApp module first
+          if [ -d "androidApp" ]; then
+            COMPILE_SDK=$(grep -m1 -Po "compileSdk(?:Version)?\\s*(?:=|\\s)?\\s*\\K[0-9]+" androidApp/build.gradle* 2>/dev/null || true)
+          fi
+          # fallback to project-level shared module or default
+          if [ -z "$COMPILE_SDK" ]; then
+            COMPILE_SDK=$(grep -m1 -Po "compileSdk(?:Version)?\\s*(?:=|\\s)?\\s*\\K[0-9]+" shared/build.gradle* 2>/dev/null || true)
+          fi
+          if [ -z "$COMPILE_SDK" ]; then
+            COMPILE_SDK=33
+          fi
+          echo "Detected compileSdk: $COMPILE_SDK"
+
+          # Install platform-tools, matching platform, and a stable build-tools version.
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-$COMPILE_SDK" "build-tools;33.0.0"
+
+      - name: Run Gradle assemble & unit tests
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :androidApp:assembleDebug --no-daemon
+          ./gradlew test --no-daemon
