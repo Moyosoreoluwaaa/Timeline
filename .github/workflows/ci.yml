@@ -31,12 +31,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Install Android SDK components (no emulator)
-        uses: r0adkll/setup-android@v2
-        with:
-          api-level: 33
-          build-tools: 33.0.0
-          target: google_apis
+      - name: Install Android command-line tools and SDK components (no emulator)
+        run: |
+          set -euo pipefail
+
+          # SDK root inside the runner tool cache
+          ANDROID_SDK_ROOT="${RUNNER_TOOL_CACHE:-/opt}/android-sdk"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+
+          # Download commandlinetools (versioned). If this link breaks in future, replace with latest from:
+          # https://developer.android.com/studio#command-tools
+          CLI_ZIP="/tmp/commandlinetools.zip"
+          curl -sSLo "$CLI_ZIP" "https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip"
+
+          unzip -q "$CLI_ZIP" -d /tmp/cmdline-tools
+          # The zip contains a cmdline-tools folder; move it to a 'latest' layout expected by sdkmanager
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv /tmp/cmdline-tools/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
+
+          # Persist env vars across steps
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+
+          # Add sdkmanager and platform-tools to PATH for subsequent steps
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+
+          # Accept licenses and install required components
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.0"
 
       - name: Run Gradle assemble & unit tests
         run: |
