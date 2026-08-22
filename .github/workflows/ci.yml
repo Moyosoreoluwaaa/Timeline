@@ -31,16 +31,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Ensure gradlew is executable
-        run: chmod +x ./gradlew
-
-      - name: Install Android SDK and run build/tests
-        uses: reactivecircus/android-emulator-runner@v2
+      - name: Install Android SDK components (no emulator)
+        uses: r0adkll/setup-android@v2
         with:
           api-level: 33
+          build-tools: 33.0.0
           target: google_apis
-          arch: x86_64
-          emulator-options: "-no-window -gpu swiftshader_indirect"
-          script: |
-            ./gradlew :androidApp:assembleDebug --no-daemon
-            ./gradlew test --no-daemon
+
+      - name: Run Gradle assemble & unit tests
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :androidApp:assembleDebug --no-daemon
+          ./gradlew test --no-daemon
