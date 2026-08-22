@@ -25,6 +25,7 @@ actual fun AppNavigation(
     onNavigateToOverlay: () -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
+    onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 ) {
     val setupViewModel: SetupViewModel = koinViewModel()
@@ -36,30 +37,34 @@ actual fun AppNavigation(
 
     val backStack = remember { mutableStateListOf<NavKey>() }
 
-    // Initialize backstack once
-    if (backStack.isEmpty() && prefsState != null) {
-        val initialRoute = if (prefsState!!.isSetupCompleted && setupState.isUsageStatsGranted && 
-            setupState.isOverlayGranted && setupState.isNotificationGranted && 
-            setupState.isAccessibilityGranted) {
-            Route.Timeline
-        } else {
-            Route.Setup
+    val allPermissionsGranted = setupState.isUsageStatsGranted && 
+            setupState.isOverlayGranted && 
+            setupState.isNotificationGranted && 
+            setupState.isAccessibilityGranted &&
+            setupState.isBatteryOptimizationDisabled
+
+    // Initialize backstack once when preferences are loaded
+    LaunchedEffect(prefsState == null) {
+        if (backStack.isEmpty() && prefsState != null) {
+            val initialRoute = if (prefsState!!.isSetupCompleted && allPermissionsGranted) {
+                Route.Timeline
+            } else {
+                Route.Setup
+            }
+            backStack.add(initialRoute)
         }
-        backStack.add(initialRoute)
     }
 
-    // React to setup completion if we are on Setup screen
-    LaunchedEffect(prefsState?.isSetupCompleted) {
-        if (prefsState?.isSetupCompleted == true && backStack.contains(Route.Setup)) {
+    // React to setup completion or late permission grants if we are stuck on Setup screen
+    LaunchedEffect(prefsState?.isSetupCompleted, allPermissionsGranted) {
+        if (prefsState?.isSetupCompleted == true && allPermissionsGranted && backStack.contains(Route.Setup)) {
             backStack.clear()
             backStack.add(Route.Timeline)
         }
     }
 
-    LaunchedEffect(setupState.isUsageStatsGranted, setupState.isOverlayGranted, 
-        setupState.isNotificationGranted, setupState.isAccessibilityGranted) {
-        if (setupState.isUsageStatsGranted && setupState.isOverlayGranted && 
-            setupState.isNotificationGranted && setupState.isAccessibilityGranted) {
+    LaunchedEffect(allPermissionsGranted) {
+        if (allPermissionsGranted) {
             onStartService()
         }
     }
@@ -79,7 +84,8 @@ actual fun AppNavigation(
                         onNavigateToUsageStats = onNavigateToUsageStats,
                         onNavigateToOverlay = onNavigateToOverlay,
                         onNavigateToNotification = onNavigateToNotification,
-                        onNavigateToAccessibility = onNavigateToAccessibility
+                        onNavigateToAccessibility = onNavigateToAccessibility,
+                        onNavigateToBatteryOptimization = onNavigateToBatteryOptimization
                     ) {
                         backStack.clear()
                         backStack.add(Route.Timeline)

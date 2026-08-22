@@ -16,7 +16,15 @@ class SetupViewModel(
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(SetupState())
+    private val _state = MutableStateFlow(
+        SetupState(
+            isUsageStatsGranted = permissionManager.hasUsageStatsPermission(),
+            isOverlayGranted = permissionManager.hasOverlayPermission(),
+            isNotificationGranted = permissionManager.hasNotificationPermission(),
+            isAccessibilityGranted = permissionManager.hasAccessibilityPermission(),
+            isBatteryOptimizationDisabled = permissionManager.isBatteryOptimizationDisabled()
+        )
+    )
     val state = _state.asStateFlow()
 
     private val _effects = Channel<SetupEffect>(Channel.BUFFERED)
@@ -29,6 +37,7 @@ class SetupViewModel(
             SetupEvent.RequestOverlay -> _effects.trySend(SetupEffect.NavigateToOverlaySettings)
             SetupEvent.RequestNotification -> _effects.trySend(SetupEffect.RequestNotificationPermission)
             SetupEvent.RequestAccessibility -> _effects.trySend(SetupEffect.NavigateToAccessibilitySettings)
+            SetupEvent.RequestDisableBatteryOptimization -> _effects.trySend(SetupEffect.NavigateToBatteryOptimizationSettings)
             SetupEvent.StartTracking -> {
                 viewModelScope.launch {
                     userPreferences.setSetupCompleted(true)
@@ -44,11 +53,13 @@ class SetupViewModel(
         val hasOverlay = permissionManager.hasOverlayPermission()
         val hasNotification = permissionManager.hasNotificationPermission()
         val hasAccessibility = permissionManager.hasAccessibilityPermission()
+        val isBatteryOptimized = permissionManager.isBatteryOptimizationDisabled()
         _state.update { it.copy(
             isUsageStatsGranted = hasUsage,
             isOverlayGranted = hasOverlay,
             isNotificationGranted = hasNotification,
-            isAccessibilityGranted = hasAccessibility
+            isAccessibilityGranted = hasAccessibility,
+            isBatteryOptimizationDisabled = isBatteryOptimized
         ) }
     }
 }

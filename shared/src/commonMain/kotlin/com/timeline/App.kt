@@ -38,6 +38,7 @@ fun App(
     onNavigateToOverlay: () -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
+    onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 ) {
     MaterialTheme(colorScheme = darkColorScheme()) {
@@ -47,6 +48,7 @@ fun App(
                 onNavigateToOverlay = onNavigateToOverlay,
                 onNavigateToNotification = onNavigateToNotification,
                 onNavigateToAccessibility = onNavigateToAccessibility,
+                onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
                 onStartService = onStartService
             )
         }

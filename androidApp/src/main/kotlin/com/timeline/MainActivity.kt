@@ -39,6 +39,11 @@ class MainActivity : ComponentActivity() {
                 onNavigateToAccessibility = {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 },
+                onNavigateToBatteryOptimization = {
+                    startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = "package:$packageName".toUri()
+                    })
+                },
                 onStartService = {
                     startForegroundService(Intent(this@MainActivity, TrackingService::class.java))
                 }

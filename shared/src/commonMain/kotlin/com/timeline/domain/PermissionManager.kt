@@ -5,4 +5,5 @@ interface PermissionManager {
     fun hasOverlayPermission(): Boolean
     fun hasNotificationPermission(): Boolean
     fun hasAccessibilityPermission(): Boolean
+    fun isBatteryOptimizationDisabled(): Boolean
 }

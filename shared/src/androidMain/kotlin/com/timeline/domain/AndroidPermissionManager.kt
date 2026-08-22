@@ -4,6 +4,7 @@ import android.app.AppOpsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import androidx.core.content.ContextCompat
@@ -41,5 +42,10 @@ class AndroidPermissionManager(private val context: Context) : PermissionManager
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         )
         return enabledServices?.contains(expectedServiceName) == true
+    }
+
+    override fun isBatteryOptimizationDisabled(): Boolean {
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return powerManager.isIgnoringBatteryOptimizations(context.packageName)
     }
 }

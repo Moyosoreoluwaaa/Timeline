@@ -15,6 +15,7 @@ actual fun AppNavigation(
     onNavigateToOverlay: () -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
+    onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 ) {
     val setupViewModel: SetupViewModel = koinViewModel()
@@ -31,6 +32,7 @@ actual fun AppNavigation(
                 onNavigateToOverlay = onNavigateToOverlay,
                 onNavigateToNotification = onNavigateToNotification,
                 onNavigateToAccessibility = onNavigateToAccessibility,
+                onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
                 onComplete = { currentRoute = Route.Timeline }
             )
         }

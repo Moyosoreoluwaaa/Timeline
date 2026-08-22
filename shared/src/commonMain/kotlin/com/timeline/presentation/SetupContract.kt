@@ -5,6 +5,7 @@ data class SetupState(
     val isOverlayGranted: Boolean = false,
     val isNotificationGranted: Boolean = false,
     val isAccessibilityGranted: Boolean = false,
+    val isBatteryOptimizationDisabled: Boolean = false,
     val isTrackingStarted: Boolean = false
 )
 
@@ -14,6 +15,7 @@ sealed interface SetupEvent {
     data object RequestOverlay : SetupEvent
     data object RequestNotification : SetupEvent
     data object RequestAccessibility : SetupEvent
+    data object RequestDisableBatteryOptimization : SetupEvent
     data object StartTracking : SetupEvent
 }
 
@@ -22,5 +24,6 @@ sealed interface SetupEffect {
     data object NavigateToOverlaySettings : SetupEffect
     data object RequestNotificationPermission : SetupEffect
     data object NavigateToAccessibilitySettings : SetupEffect
+    data object NavigateToBatteryOptimizationSettings : SetupEffect
     data object AllPermissionsGranted : SetupEffect
 }

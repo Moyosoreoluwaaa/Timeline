@@ -8,5 +8,6 @@ expect fun AppNavigation(
     onNavigateToOverlay: () -> Unit,
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
+    onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 )
