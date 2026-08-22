@@ -99,70 +99,74 @@ fun TimelineScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .fillMaxSize()
         ) {
-            // Date Selector
-            Row(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .clickable { showDatePicker = true },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Today", style = MaterialTheme.typography.titleMedium)
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                val dateText = remember(state.selectedDate) {
-                    val date = state.selectedDate ?: Clock.System.now()
-                    val local = date.toLocalDateTime(TimeZone.currentSystemDefault())
-                    "${local.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${local.day}, ${local.year}"
-                }
-                Text(dateText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-            }
-
-            // Time Filters (Temporal Filters)
-            if (showTimeFilters) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Date Selector
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable { showDatePicker = true },
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TimeFilter.entries.forEach { filter ->
-                        FilterChip(
-                            selected = state.timeFilter == filter,
-                            onClick = { viewModel.onEvent(TimelineEvent.FilterTime(filter)) },
-                            label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) }
-                        )
+                    Text("Today", style = MaterialTheme.typography.titleMedium)
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val dateText = remember(state.selectedDate) {
+                        val date = state.selectedDate ?: Clock.System.now()
+                        val local = date.toLocalDateTime(TimeZone.currentSystemDefault())
+                        "${local.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${local.day}, ${local.year}"
                     }
+                    Text(dateText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
 
-            if (state.sessions.isEmpty()) {
-                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("No activity recorded", style = MaterialTheme.typography.bodyLarge)
+                // Time Filters (Temporal Filters)
+                if (showTimeFilters) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TimeFilter.entries.forEach { filter ->
+                            FilterChip(
+                                selected = state.timeFilter == filter,
+                                onClick = { viewModel.onEvent(TimelineEvent.FilterTime(filter)) },
+                                label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) }
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    itemsIndexed(state.sessions) { index, session ->
-                        TimelineEntry(
-                            session = session,
-                            isFirst = index == 0,
-                            isLast = index == state.sessions.lastIndex
-                        ) {
-                            viewModel.onEvent(TimelineEvent.SelectSession(session))
+
+                if (state.sessions.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text("No activity recorded", style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentPadding = PaddingValues(bottom = 100.dp) // Extra padding for floating summary
+                    ) {
+                        itemsIndexed(state.sessions) { index, session ->
+                            TimelineEntry(
+                                session = session,
+                                isFirst = index == 0,
+                                isLast = index == state.sessions.lastIndex
+                            ) {
+                                viewModel.onEvent(TimelineEvent.SelectSession(session))
+                            }
                         }
                     }
                 }
             }
 
-            // Bottom Summary as per mockup
-            BottomSummary(state.sessions)
+            // Bottom Summary as per mockup - Floating
+            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                BottomSummary(state.sessions)
+            }
         }
 
         if (state.selectedSession != null) {
@@ -291,26 +295,30 @@ fun BottomSummary(sessions: List<com.timeline.domain.Session>) {
     val minutes = totalMinutes % 60
     
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .navigationBarsPadding()
+            .fillMaxWidth(),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Total usage", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 Text("${hours}h ${minutes}m", style = MaterialTheme.typography.titleMedium)
             }
-            Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Sessions", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 Text(sessions.size.toString(), style = MaterialTheme.typography.titleMedium)
             }
-            Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Most used", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     sessions.take(3).forEach { session ->
