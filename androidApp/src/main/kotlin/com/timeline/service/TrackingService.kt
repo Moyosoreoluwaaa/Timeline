@@ -7,28 +7,31 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import co.touchlab.kermit.Logger
 import com.timeline.data.TimelineRepository
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
+import com.timeline.domain.SessionSegment
 import com.timeline.domain.UserPreferences
-import com.timeline.worker.ScreenshotWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import kotlin.time.Clock
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
 class TrackingService : Service() {
@@ -105,13 +108,13 @@ class TrackingService : Service() {
             events.getNextEvent(event)
             if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
                 currentApp = event.packageName
-                Logger.v("TrackingService") { "Detected RESUMED event for: $currentApp" }
+                Logger.withTag("TrackingService").v { "Detected RESUMED event for: $currentApp" }
             }
         }
 
         if (currentApp != null) {
             if (currentApp != lastApp) {
-                Logger.d("TrackingService") { "App transition detected: $lastApp -> $currentApp" }
+                Logger.withTag("TrackingService").d { "App transition detected: $lastApp -> $currentApp" }
                 
                 // Close previous session if it exists
                 currentSessionId?.let { sessionId ->
@@ -120,14 +123,14 @@ class TrackingService : Service() {
 
                 val isExcluded = exclusionPolicy.isExcluded(currentApp)
                 if (isExcluded) {
-                    Logger.d("TrackingService") { "App $currentApp is excluded, skipping" }
+                    Logger.withTag("TrackingService").d { "App $currentApp is excluded, skipping" }
                     lastApp = currentApp
                     currentSessionId = null
                     return
                 }
 
-                Logger.i("TrackingService") { "Recording session for: $currentApp" }
-                val sessionId = java.util.UUID.randomUUID().toString()
+                Logger.withTag("TrackingService").i { "Recording session for: $currentApp" }
+                val sessionId = UUID.randomUUID().toString()
                 currentSessionId = sessionId
                 lastApp = currentApp
                 lastStartTime = System.currentTimeMillis()
@@ -137,9 +140,9 @@ class TrackingService : Service() {
             } else {
                 // Periodic screenshot check (every 1 minute)
                 if (currentSessionId != null && (System.currentTimeMillis() - lastScreenshotTime) >= 60000L) {
-                    Logger.d("TrackingService") { "Periodic screenshot trigger for $currentApp" }
+                    Logger.withTag("TrackingService").d { "Periodic screenshot trigger for $currentApp" }
                     lastScreenshotTime = System.currentTimeMillis()
-                    enqueueScreenshot(currentSessionId!!, currentApp)
+                    captureAndSaveScreenshot(currentSessionId!!, currentApp)
                 }
             }
         }
@@ -179,22 +182,94 @@ class TrackingService : Service() {
                 )
                 repository.saveSession(session)
                 Logger.i("TrackingService") { "Successfully saved session for $packageName" }
-                enqueueScreenshot(sessionId, packageName)
+                captureAndSaveScreenshot(sessionId, packageName)
             } catch (e: Exception) {
                 Logger.e(e, "TrackingService") { "Failed to start session for $packageName" }
             }
         }
     }
 
-    private fun enqueueScreenshot(sessionId: String, packageName: String) {
-        val workRequest = OneTimeWorkRequestBuilder<ScreenshotWorker>()
-            .setInputData(workDataOf(
-                "package_name" to packageName,
-                "session_id" to sessionId
-            ))
-            .build()
-        WorkManager.getInstance(this).enqueue(workRequest)
-        Logger.d("TrackingService") { "Enqueued ScreenshotWorker for $packageName (Session: $sessionId)" }
+    private fun captureAndSaveScreenshot(sessionId: String, packageName: String) {
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val prefs = userPreferences.state.first()
+                if (!prefs.isScreenshotCaptureEnabled) {
+                    Logger.d("TrackingService") { "Screenshot capture disabled in settings, skipping for $packageName" }
+                    return@launch
+                }
+
+                val accessibilityService = TimelineAccessibilityService.getInstance()
+                val bitmap = if (accessibilityService != null) {
+                    accessibilityService.captureScreenshot()
+                } else {
+                    Logger.withTag("TrackingService").w { "AccessibilityService not connected. Using fallback snapshot for $packageName." }
+                    generateFallbackSnapshot(packageName)
+                }
+
+                if (bitmap != null) {
+                    val screenshotPath = saveBitmap(bitmap, packageName)
+                    if (screenshotPath != null) {
+                        updateSessionWithScreenshot(sessionId, screenshotPath)
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e(e, "TrackingService") { "Failed to capture/save screenshot for $packageName" }
+            }
+        }
+    }
+
+    private fun generateFallbackSnapshot(packageName: String): Bitmap {
+        val bitmap = Bitmap.createBitmap(720, 1280, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint()
+        
+        paint.color = 0xFF121212.toInt()
+        canvas.drawRect(0f, 0f, 720f, 1280f, paint)
+        
+        paint.color = Color.WHITE
+        paint.textSize = 40f
+        paint.isAntiAlias = true
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText("Snapshot of $packageName", 360f, 600f, paint)
+        canvas.drawText(
+            java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()),
+            360f, 680f, paint
+        )
+        
+        return bitmap
+    }
+
+    private fun saveBitmap(bitmap: Bitmap, packageName: String): String? {
+        val filename = "screenshot_${packageName}_${System.currentTimeMillis()}.png"
+        val file = File(filesDir, "screenshots").apply { mkdirs() }
+        val targetFile = File(file, filename)
+        
+        return try {
+            FileOutputStream(targetFile).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
+            }
+            targetFile.absolutePath
+        } catch (e: Exception) {
+            Logger.e(e, "TrackingService") { "Failed to save screenshot" }
+            null
+        }
+    }
+
+    private suspend fun updateSessionWithScreenshot(sessionId: String, screenshotPath: String) {
+        val session = repository.getSession(sessionId)
+        if (session != null) {
+            val newSegment = SessionSegment(
+                timestamp = kotlin.time.Clock.System.now(),
+                screenshotPath = screenshotPath,
+                activityDescription = "Snapshot captured"
+            )
+            val updatedSession = session.copy(
+                screenshots = session.screenshots + screenshotPath,
+                segments = session.segments + newSegment
+            )
+            repository.saveSession(updatedSession)
+            Logger.d("TrackingService") { "Updated session $sessionId with new screenshot" }
+        }
     }
 
     private fun createNotificationChannel() {

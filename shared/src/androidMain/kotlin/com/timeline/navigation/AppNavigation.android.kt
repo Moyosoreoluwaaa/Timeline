@@ -12,9 +12,13 @@ import androidx.navigation3.ui.NavDisplay
 import com.timeline.TimelineScreen
 import com.timeline.ui.SetupScreen
 import com.timeline.ui.SettingsScreen
+import com.timeline.ui.AuthScreen
+import com.timeline.ui.PermissionScreen
 import com.timeline.presentation.SetupViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
+import com.timeline.presentation.AuthViewModel
+import com.timeline.presentation.PermissionViewModel
 import com.timeline.domain.UserPreferences
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
@@ -31,6 +35,8 @@ actual fun AppNavigation(
     val setupViewModel: SetupViewModel = koinViewModel()
     val timelineViewModel: TimelineViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
+    val authViewModel: AuthViewModel = koinViewModel()
+    val permissionViewModel: PermissionViewModel = koinViewModel()
     val userPreferences: UserPreferences = koinInject()
     val setupState by setupViewModel.state.collectAsStateWithLifecycle()
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
@@ -46,12 +52,8 @@ actual fun AppNavigation(
     // Initialize backstack once when preferences are loaded
     LaunchedEffect(prefsState == null) {
         if (backStack.isEmpty() && prefsState != null) {
-            val initialRoute = if (prefsState!!.isSetupCompleted && allPermissionsGranted) {
-                Route.Timeline
-            } else {
-                Route.Setup
-            }
-            backStack.add(initialRoute)
+            // Start with Auth for testing
+            backStack.add(Route.Auth)
         }
     }
 
@@ -78,6 +80,23 @@ actual fun AppNavigation(
                 }
             },
             entryProvider = entryProvider {
+                entry<Route.Auth> {
+                    AuthScreen(
+                        viewModel = authViewModel,
+                        onAuthSuccess = {
+                            backStack.add(Route.PermissionTest)
+                        }
+                    )
+                }
+                entry<Route.PermissionTest> {
+                    PermissionScreen(
+                        viewModel = permissionViewModel,
+                        onAllGranted = {
+                            backStack.clear()
+                            backStack.add(Route.Timeline)
+                        }
+                    )
+                }
                 entry<Route.Setup> {
                     SetupScreen(
                         viewModel = setupViewModel,

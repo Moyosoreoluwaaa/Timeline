@@ -9,6 +9,8 @@ import com.timeline.domain.UserPreferences
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.SetupViewModel
 import com.timeline.presentation.TimelineViewModel
+import com.timeline.presentation.AuthViewModel
+import com.timeline.presentation.PermissionViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
@@ -26,6 +28,8 @@ val appModule = module {
     viewModelOf(::TimelineViewModel)
     viewModelOf(::SetupViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::AuthViewModel)
+    viewModelOf(::PermissionViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

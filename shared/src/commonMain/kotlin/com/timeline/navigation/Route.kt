@@ -8,6 +8,10 @@ sealed interface Route : NavKey {
     @Serializable
     data object Setup : Route
     @Serializable
+    data object Auth : Route
+    @Serializable
+    data object PermissionTest : Route
+    @Serializable
     data object Timeline : Route
     @Serializable
     data object Settings : Route

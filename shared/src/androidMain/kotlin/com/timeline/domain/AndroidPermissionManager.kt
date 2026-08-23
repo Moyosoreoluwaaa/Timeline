@@ -1,5 +1,6 @@
 package com.timeline.domain
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -7,6 +8,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import androidx.core.content.ContextCompat
 
 class AndroidPermissionManager(private val context: Context) : PermissionManager {
@@ -36,12 +38,26 @@ class AndroidPermissionManager(private val context: Context) : PermissionManager
     }
 
     override fun hasAccessibilityPermission(): Boolean {
-        val expectedServiceName = context.packageName + "/com.timeline.service.TimelineAccessibilityService"
+        val fullComponentName = "${context.packageName}/com.timeline.service.TimelineAccessibilityService"
+        val shortComponentName = "${context.packageName}/.service.TimelineAccessibilityService"
+        
         val enabledServices = Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         )
-        return enabledServices?.contains(expectedServiceName) == true
+        if (enabledServices != null && (enabledServices.contains(fullComponentName) || enabledServices.contains(shortComponentName))) {
+            return true
+        }
+
+        val accessibilityManager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
+        val enabledAccessibilityServices = accessibilityManager?.getEnabledAccessibilityServiceList(
+            AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+        ) ?: emptyList()
+
+        return enabledAccessibilityServices.any { service ->
+            val info = service.resolveInfo.serviceInfo
+            info.packageName == context.packageName && info.name == "com.timeline.service.TimelineAccessibilityService"
+        }
     }
 
     override fun isBatteryOptimizationDisabled(): Boolean {
