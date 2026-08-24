@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.presentation.PermissionEvent
 import com.timeline.presentation.PermissionEffect
@@ -34,6 +36,11 @@ import kotlinx.coroutines.delay
 @Composable
 fun PermissionScreen(
     viewModel: PermissionViewModel,
+    onNavigateToUsageStats: () -> Unit,
+    onNavigateToOverlay: () -> Unit,
+    onNavigateToNotification: () -> Unit,
+    onNavigateToAccessibility: () -> Unit,
+    onNavigateToBatteryOptimization: () -> Unit,
     onAllGranted: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -41,9 +48,18 @@ fun PermissionScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
+                is PermissionEffect.NavigateToUsageStatsSettings -> onNavigateToUsageStats()
+                is PermissionEffect.NavigateToOverlaySettings -> onNavigateToOverlay()
+                is PermissionEffect.RequestNotificationPermission -> onNavigateToNotification()
+                is PermissionEffect.NavigateToAccessibilitySettings -> onNavigateToAccessibility()
+                is PermissionEffect.NavigateToBatteryOptimizationSettings -> onNavigateToBatteryOptimization()
                 is PermissionEffect.AllGranted -> onAllGranted()
             }
         }
+    }
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onEvent(PermissionEvent.CheckPermissions)
     }
 
     Box(
@@ -93,23 +109,32 @@ fun PermissionScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color.Green) {}
-                Box(modifier = Modifier.width(40.dp).height(1.dp).background(Color.Gray))
-                Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color.Gray) {}
-                Box(modifier = Modifier.width(40.dp).height(1.dp).background(Color.Gray))
-                Surface(modifier = Modifier.size(8.dp), shape = CircleShape, color = Color.Gray) {}
+                val grantedCount = state.permissions.count { it.isGranted }
+                val totalCount = state.permissions.size
+                
+                repeat(totalCount) { index ->
+                    val isGranted = index < grantedCount
+                    Surface(
+                        modifier = Modifier.size(8.dp), 
+                        shape = CircleShape, 
+                        color = if (isGranted) Color.Green else Color.Gray
+                    ) {}
+                    if (index < totalCount - 1) {
+                        Box(modifier = Modifier.width(20.dp).height(1.dp).background(Color.Gray))
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Almost there",
+                text = if (state.allGranted) "You're all set!" else "Almost there",
                 style = MaterialTheme.typography.headlineMedium.copy(color = Color.White),
                 modifier = Modifier.align(Alignment.Start)
             )
 
             Text(
-                text = "To show you real insights, we need\naccess to how you use your apps.",
+                text = if (state.allGranted) "Everything is ready for your timeline." else "To show you real insights, we need\naccess to how you use your apps.",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.7f)),
                 modifier = Modifier.align(Alignment.Start)
             )
@@ -122,16 +147,33 @@ fun PermissionScreen(
                     .weight(1f),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                val remainingPermissions = state.permissions.filter { !it.isGranted }
-                
-                remainingPermissions.asReversed().forEachIndexed { index, permission ->
-                    val stackIndex = remainingPermissions.size - 1 - index
-                    PermissionCard(
-                        permission = permission,
-                        stackIndex = stackIndex,
-                        totalRemaining = remainingPermissions.size,
-                        onGrant = { viewModel.onEvent(PermissionEvent.GrantPermission(permission.id)) }
-                    )
+                if (state.allGranted) {
+                    Button(
+                        onClick = { viewModel.onEvent(PermissionEvent.StartTracking) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .padding(bottom = 20.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("Start Activity", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    val remainingPermissions = state.permissions.filter { !it.isGranted }
+                    
+                    remainingPermissions.asReversed().forEachIndexed { index, permission ->
+                        val stackIndex = remainingPermissions.size - 1 - index
+                        PermissionCard(
+                            permission = permission,
+                            stackIndex = stackIndex,
+                            totalRemaining = remainingPermissions.size,
+                            onGrant = { viewModel.onEvent(PermissionEvent.GrantPermission(permission.id)) }
+                        )
+                    }
                 }
             }
             
@@ -206,10 +248,27 @@ fun PermissionCard(
                     Surface(
                         modifier = Modifier.size(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.Green.copy(alpha = 0.2f)
+                        color = when(permission.id) {
+                            "usage" -> Color(0xFF3498DB).copy(alpha = 0.2f)
+                            "overlay" -> Color(0xFFE74C3C).copy(alpha = 0.2f)
+                            "notifications" -> Color(0xFFF1C40F).copy(alpha = 0.2f)
+                            "accessibility" -> Color(0xFF9B59B6).copy(alpha = 0.2f)
+                            "battery" -> Color(0xFF2ECC71).copy(alpha = 0.2f)
+                            else -> Color.Green.copy(alpha = 0.2f)
+                        }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("\uD83D\uDDA5\ufe0f", fontSize = 24.sp) // Display icon
+                            Text(
+                                when(permission.id) {
+                                    "usage" -> "\uD83D\uDCC8"
+                                    "overlay" -> "\uD83D\uDDA5\ufe0f"
+                                    "notifications" -> "\uD83D\uDD14"
+                                    "accessibility" -> "\uD83D\uDE4B"
+                                    "battery" -> "\uD83D\uDD0B"
+                                    else -> "✨"
+                                },
+                                fontSize = 24.sp
+                            )
                         }
                     }
 

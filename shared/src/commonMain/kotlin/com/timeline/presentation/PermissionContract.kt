@@ -9,20 +9,21 @@ data class PermissionItem(
 )
 
 data class PermissionState(
-    val permissions: List<PermissionItem> = listOf(
-        PermissionItem("usage", "Usage access", "Allows Everett to track app usage."),
-        PermissionItem("overlay", "Display over other apps", "Allows Everett to capture screenshots in the background."),
-        PermissionItem("notifications", "Notifications", "Allows Everett to send notifications."),
-        PermissionItem("accessibility", "Accessibility Service", "Required for advanced activity tracking."),
-        PermissionItem("battery", "Battery Optimization", "Prevents the system from revoking permissions.")
-    ),
+    val permissions: List<PermissionItem> = emptyList(),
     val allGranted: Boolean = false
 )
 
 sealed interface PermissionEvent {
+    data object CheckPermissions : PermissionEvent
     data class GrantPermission(val id: String) : PermissionEvent
+    data object StartTracking : PermissionEvent
 }
 
 sealed interface PermissionEffect {
+    data object NavigateToUsageStatsSettings : PermissionEffect
+    data object NavigateToOverlaySettings : PermissionEffect
+    data object RequestNotificationPermission : PermissionEffect
+    data object NavigateToAccessibilitySettings : PermissionEffect
+    data object NavigateToBatteryOptimizationSettings : PermissionEffect
     data object AllGranted : PermissionEffect
 }

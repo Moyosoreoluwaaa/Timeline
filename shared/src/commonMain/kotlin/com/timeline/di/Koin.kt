@@ -2,12 +2,10 @@ package com.timeline.di
 
 import com.timeline.data.TimelineRepository
 import com.timeline.data.TimelineRepositoryImpl
-import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.TimelineExclusionPolicy
 import com.timeline.domain.UserPreferences
 import com.timeline.presentation.SettingsViewModel
-import com.timeline.presentation.SetupViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
@@ -26,7 +24,6 @@ val appModule = module {
     single<ExclusionPolicy> { TimelineExclusionPolicy(get()) }
     singleOf(::UserPreferences)
     viewModelOf(::TimelineViewModel)
-    viewModelOf(::SetupViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AuthViewModel)
     viewModelOf(::PermissionViewModel)

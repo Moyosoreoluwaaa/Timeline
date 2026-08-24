@@ -10,14 +10,10 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.timeline.TimelineScreen
-import com.timeline.ui.SetupScreen
 import com.timeline.ui.SettingsScreen
-import com.timeline.ui.AuthScreen
 import com.timeline.ui.PermissionScreen
-import com.timeline.presentation.SetupViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
-import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.domain.UserPreferences
 import org.koin.compose.viewmodel.koinViewModel
@@ -32,41 +28,31 @@ actual fun AppNavigation(
     onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 ) {
-    val setupViewModel: SetupViewModel = koinViewModel()
     val timelineViewModel: TimelineViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
-    val authViewModel: AuthViewModel = koinViewModel()
     val permissionViewModel: PermissionViewModel = koinViewModel()
     val userPreferences: UserPreferences = koinInject()
-    val setupState by setupViewModel.state.collectAsStateWithLifecycle()
+    
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
+    val permState by permissionViewModel.state.collectAsStateWithLifecycle()
 
     val backStack = remember { mutableStateListOf<NavKey>() }
 
-    val allPermissionsGranted = setupState.isUsageStatsGranted && 
-            setupState.isOverlayGranted && 
-            setupState.isNotificationGranted && 
-            setupState.isAccessibilityGranted &&
-            setupState.isBatteryOptimizationDisabled
-
-    // Initialize backstack once when preferences are loaded
+    // Smart navigation logic
     LaunchedEffect(prefsState == null) {
         if (backStack.isEmpty() && prefsState != null) {
-            // Start with Auth for testing
-            backStack.add(Route.Auth)
+            val needsOnboarding = prefsState?.isPermissionsCompleted != true || !permState.allGranted
+            if (needsOnboarding) {
+                backStack.add(Route.Permission)
+            } else {
+                backStack.add(Route.Timeline)
+            }
         }
     }
 
-    // React to setup completion or late permission grants if we are stuck on Setup screen
-    LaunchedEffect(prefsState?.isSetupCompleted, allPermissionsGranted) {
-        if (prefsState?.isSetupCompleted == true && allPermissionsGranted && backStack.contains(Route.Setup)) {
-            backStack.clear()
-            backStack.add(Route.Timeline)
-        }
-    }
-
-    LaunchedEffect(allPermissionsGranted) {
-        if (allPermissionsGranted) {
+    // Auto-start service if all permissions are granted
+    LaunchedEffect(permState.allGranted) {
+        if (permState.allGranted) {
             onStartService()
         }
     }
@@ -80,35 +66,19 @@ actual fun AppNavigation(
                 }
             },
             entryProvider = entryProvider {
-                entry<Route.Auth> {
-                    AuthScreen(
-                        viewModel = authViewModel,
-                        onAuthSuccess = {
-                            backStack.add(Route.PermissionTest)
-                        }
-                    )
-                }
-                entry<Route.PermissionTest> {
+                entry<Route.Permission> {
                     PermissionScreen(
                         viewModel = permissionViewModel,
+                        onNavigateToUsageStats = onNavigateToUsageStats,
+                        onNavigateToOverlay = onNavigateToOverlay,
+                        onNavigateToNotification = onNavigateToNotification,
+                        onNavigateToAccessibility = onNavigateToAccessibility,
+                        onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
                         onAllGranted = {
                             backStack.clear()
                             backStack.add(Route.Timeline)
                         }
                     )
-                }
-                entry<Route.Setup> {
-                    SetupScreen(
-                        viewModel = setupViewModel,
-                        onNavigateToUsageStats = onNavigateToUsageStats,
-                        onNavigateToOverlay = onNavigateToOverlay,
-                        onNavigateToNotification = onNavigateToNotification,
-                        onNavigateToAccessibility = onNavigateToAccessibility,
-                        onNavigateToBatteryOptimization = onNavigateToBatteryOptimization
-                    ) {
-                        backStack.clear()
-                        backStack.add(Route.Timeline)
-                    }
                 }
                 entry<Route.Timeline> {
                     TimelineScreen(

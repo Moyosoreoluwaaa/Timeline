@@ -2,10 +2,10 @@ package com.timeline.navigation
 
 import androidx.compose.runtime.*
 import com.timeline.TimelineScreen
-import com.timeline.presentation.SetupViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
-import com.timeline.ui.SetupScreen
+import com.timeline.presentation.PermissionViewModel
+import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -18,22 +18,22 @@ actual fun AppNavigation(
     onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 ) {
-    val setupViewModel: SetupViewModel = koinViewModel()
     val timelineViewModel: TimelineViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
+    val permissionViewModel: PermissionViewModel = koinViewModel()
 
-    var currentRoute by remember { mutableStateOf<Route>(Route.Setup) }
+    var currentRoute by remember { mutableStateOf<Route>(Route.Permission) }
 
     when (currentRoute) {
-        Route.Setup -> {
-            SetupScreen(
-                viewModel = setupViewModel,
+        Route.Permission -> {
+            PermissionScreen(
+                viewModel = permissionViewModel,
                 onNavigateToUsageStats = onNavigateToUsageStats,
                 onNavigateToOverlay = onNavigateToOverlay,
                 onNavigateToNotification = onNavigateToNotification,
                 onNavigateToAccessibility = onNavigateToAccessibility,
                 onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
-                onComplete = { currentRoute = Route.Timeline }
+                onAllGranted = { currentRoute = Route.Timeline }
             )
         }
         Route.Timeline -> {
@@ -48,5 +48,6 @@ actual fun AppNavigation(
                 onBack = { currentRoute = Route.Timeline }
             )
         }
+        else -> {}
     }
 }
