@@ -1,24 +1,32 @@
 package com.timeline.service
 
+import android.Manifest
+import android.R
+import android.app.AlarmManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
-import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
 import android.os.IBinder
+import android.os.SystemClock
+import android.provider.Settings
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import co.touchlab.kermit.Logger
 import com.timeline.data.TimelineRepository
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
-import com.timeline.domain.SessionSegment
 import com.timeline.domain.UserPreferences
+import com.timeline.worker.ScreenshotWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,11 +37,46 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
-import java.io.File
-import java.io.FileOutputStream
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
+/**
+ * CHANGES vs. original (this conversation):
+ *
+ * 1. onTaskRemoved() override — added. Without it, START_STICKY alone gives
+ *    no control over restart timing, so a "Clear All" sweep could leave the
+ *    foreground notification and tracking down for an unpredictable stretch.
+ *    Restart is scheduled via AlarmManager at a 1s delay rather than calling
+ *    startForegroundService() directly from onTaskRemoved(), since a direct
+ *    call is sometimes dropped by the system mid-teardown.
+ *
+ *    IMPORTANT (see conversation): this restarts the *process* only. It does
+ *    NOT and cannot restore TimelineAccessibilityService's binding — that is
+ *    a Settings-level OS toggle, not process state, and no code on this side
+ *    of that boundary can flip it back on. Restoring accessibility always
+ *    requires a real human tap in system Settings.
+ *
+ * 2. checkAccessibilityStateChange() — added, called once per pollUsageStats()
+ *    cycle. TimelineAccessibilityService.getInstance() returning null used to
+ *    fail silently into generateFallbackSnapshot() with only a log line, so a
+ *    revoked-accessibility state could go unnoticed while blank placeholder
+ *    images kept getting saved as if they were real captures. This detects
+ *    the true→false transition and posts a visible, tappable notification
+ *    instead of degrading silently.
+ *
+ * 3. Screenshot capture — restored to go through ScreenshotWorker via
+ *    WorkManager (enqueueScreenshot()) instead of the inline
+ *    captureAndSaveScreenshot() duplicate that had crept back in. The
+ *    capture/save/session-update logic now lives only in ScreenshotWorker;
+ *    this service just enqueues the work. The request is marked
+ *    setExpedited(RUN_AS_NON_EXPEDITED_WORK_REQUEST) so it runs promptly
+ *    while the app has quota, and silently degrades to a regular deferrable
+ *    job (subject to Doze/App Standby delay) once quota is exhausted,
+ *    rather than throwing.
+ *
+ * Everything else (poll loop, session logic) is reproduced unchanged from
+ * the file as shared in this conversation.
+ */
 class TrackingService : Service() {
 
     private val repository: TimelineRepository by inject()
@@ -58,18 +101,46 @@ class TrackingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Logger.d { "TrackingService started" }
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Everett Tracking Active")
-            .setContentText("Recording activity journal...")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .build()
-
-        startForeground(NOTIFICATION_ID, notification)
+        startForeground(NOTIFICATION_ID, buildNotification())
         startTracking()
 
         return START_STICKY
     }
+
+    /**
+     * Fires for both a manual single-app swipe and a full "Clear All" sweep —
+     * Android does not distinguish them at this callback. Schedules a fast
+     * restart via AlarmManager so the foreground notification and tracking
+     * loop come back within ~1s, matching the behavior observed from apps
+     * like WhatsApp/Play Store during the recorded Clear All analysis.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Logger.d { "onTaskRemoved fired - restarting TrackingService" }
+        val restartIntent = Intent(applicationContext, TrackingService::class.java).apply {
+            setPackage(packageName)
+        }
+        val restartPendingIntent = PendingIntent.getService(
+            applicationContext,
+            1,
+            restartIntent,
+            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmService = getSystemService(ALARM_SERVICE) as AlarmManager
+        alarmService.set(
+            AlarmManager.ELAPSED_REALTIME,
+            SystemClock.elapsedRealtime() + 1000,
+            restartPendingIntent
+        )
+        super.onTaskRemoved(rootIntent)
+    }
+
+    private fun buildNotification(): Notification =
+        NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Everett Tracking Active")
+            .setContentText("Recording activity journal...")
+            .setSmallIcon(R.drawable.ic_menu_mylocation)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .build()
 
     private fun startTracking() {
         trackingJob?.cancel()
@@ -85,6 +156,7 @@ class TrackingService : Service() {
     private var lastStartTime: Long = 0
     private var currentSessionId: String? = null
     private var lastScreenshotTime: Long = 0
+    private var wasAccessibilityGranted = true
 
     private suspend fun pollUsageStats() {
         val prefs = userPreferences.state.first()
@@ -96,7 +168,9 @@ class TrackingService : Service() {
             return
         }
 
-        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        checkAccessibilityStateChange()
+
+        val usageStatsManager = getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager
         val endTime = System.currentTimeMillis()
         val startTime = endTime - 10000 // Polling every 5s, so 10s lookback is enough and more efficient
 
@@ -115,7 +189,7 @@ class TrackingService : Service() {
         if (currentApp != null) {
             if (currentApp != lastApp) {
                 Logger.withTag("TrackingService").d { "App transition detected: $lastApp -> $currentApp" }
-                
+
                 // Close previous session if it exists
                 currentSessionId?.let { sessionId ->
                     closePreviousSession(sessionId)
@@ -135,17 +209,51 @@ class TrackingService : Service() {
                 lastApp = currentApp
                 lastStartTime = System.currentTimeMillis()
                 lastScreenshotTime = lastStartTime
-                
+
                 startNewSession(sessionId, currentApp)
             } else {
                 // Periodic screenshot check (every 1 minute)
                 if (currentSessionId != null && (System.currentTimeMillis() - lastScreenshotTime) >= 60000L) {
                     Logger.withTag("TrackingService").d { "Periodic screenshot trigger for $currentApp" }
                     lastScreenshotTime = System.currentTimeMillis()
-                    captureAndSaveScreenshot(currentSessionId!!, currentApp)
+                    enqueueScreenshot(currentSessionId!!, currentApp)
                 }
             }
         }
+    }
+
+    /**
+     * Detects the true->false transition on TimelineAccessibilityService's
+     * connection state and surfaces it via notification instead of letting
+     * ScreenshotWorker silently fall back to placeholder bitmaps on every
+     * capture. Does NOT attempt to restore accessibility itself — that
+     * requires a human tap in system Settings and cannot be done from
+     * process code.
+     */
+    private fun checkAccessibilityStateChange() {
+        val isGranted = TimelineAccessibilityService.getInstance() != null
+        if (wasAccessibilityGranted && !isGranted) {
+            Logger.withTag("TrackingService").w { "Accessibility service disconnected — likely revoked by Clear All or Force Stop" }
+            showAccessibilityLostNotification()
+        }
+        wasAccessibilityGranted = isGranted
+    }
+
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    private fun showAccessibilityLostNotification() {
+        val settingsIntent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 2, settingsIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Screenshot capture stopped")
+            .setContentText("Tap to re-enable accessibility permission")
+            .setSmallIcon(R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(this).notify(NOTIFICATION_ID_ACCESSIBILITY_LOST, notification)
     }
 
     private fun closePreviousSession(sessionId: String) {
@@ -160,7 +268,7 @@ class TrackingService : Service() {
                         durationMinutes = duration
                     )
                     repository.saveSession(updatedSession)
-                    Logger.i("TrackingService") { "Closed session $sessionId. Duration: ${duration}m" }
+                    Logger.i(tag = "TrackingService") { "Closed session $sessionId. Duration: ${duration}m" }
                 }
             } catch (e: Exception) {
                 Logger.e(e, "TrackingService") { "Failed to close session $sessionId" }
@@ -181,95 +289,24 @@ class TrackingService : Service() {
                     segments = emptyList()
                 )
                 repository.saveSession(session)
-                Logger.i("TrackingService") { "Successfully saved session for $packageName" }
-                captureAndSaveScreenshot(sessionId, packageName)
+                Logger.i(tag = "TrackingService") { "Successfully saved session for $packageName" }
+                enqueueScreenshot(sessionId, packageName)
             } catch (e: Exception) {
                 Logger.e(e, "TrackingService") { "Failed to start session for $packageName" }
             }
         }
     }
 
-    private fun captureAndSaveScreenshot(sessionId: String, packageName: String) {
-        serviceScope.launch(Dispatchers.IO) {
-            try {
-                val prefs = userPreferences.state.first()
-                if (!prefs.isScreenshotCaptureEnabled) {
-                    Logger.d("TrackingService") { "Screenshot capture disabled in settings, skipping for $packageName" }
-                    return@launch
-                }
-
-                val accessibilityService = TimelineAccessibilityService.getInstance()
-                val bitmap = if (accessibilityService != null) {
-                    accessibilityService.captureScreenshot()
-                } else {
-                    Logger.withTag("TrackingService").w { "AccessibilityService not connected. Using fallback snapshot for $packageName." }
-                    generateFallbackSnapshot(packageName)
-                }
-
-                if (bitmap != null) {
-                    val screenshotPath = saveBitmap(bitmap, packageName)
-                    if (screenshotPath != null) {
-                        updateSessionWithScreenshot(sessionId, screenshotPath)
-                    }
-                }
-            } catch (e: Exception) {
-                Logger.e(e, "TrackingService") { "Failed to capture/save screenshot for $packageName" }
-            }
-        }
-    }
-
-    private fun generateFallbackSnapshot(packageName: String): Bitmap {
-        val bitmap = Bitmap.createBitmap(720, 1280, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val paint = Paint()
-        
-        paint.color = 0xFF121212.toInt()
-        canvas.drawRect(0f, 0f, 720f, 1280f, paint)
-        
-        paint.color = Color.WHITE
-        paint.textSize = 40f
-        paint.isAntiAlias = true
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("Snapshot of $packageName", 360f, 600f, paint)
-        canvas.drawText(
-            java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()),
-            360f, 680f, paint
-        )
-        
-        return bitmap
-    }
-
-    private fun saveBitmap(bitmap: Bitmap, packageName: String): String? {
-        val filename = "screenshot_${packageName}_${System.currentTimeMillis()}.png"
-        val file = File(filesDir, "screenshots").apply { mkdirs() }
-        val targetFile = File(file, filename)
-        
-        return try {
-            FileOutputStream(targetFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
-            }
-            targetFile.absolutePath
-        } catch (e: Exception) {
-            Logger.e(e, "TrackingService") { "Failed to save screenshot" }
-            null
-        }
-    }
-
-    private suspend fun updateSessionWithScreenshot(sessionId: String, screenshotPath: String) {
-        val session = repository.getSession(sessionId)
-        if (session != null) {
-            val newSegment = SessionSegment(
-                timestamp = kotlin.time.Clock.System.now(),
-                screenshotPath = screenshotPath,
-                activityDescription = "Snapshot captured"
-            )
-            val updatedSession = session.copy(
-                screenshots = session.screenshots + screenshotPath,
-                segments = session.segments + newSegment
-            )
-            repository.saveSession(updatedSession)
-            Logger.d("TrackingService") { "Updated session $sessionId with new screenshot" }
-        }
+    private fun enqueueScreenshot(sessionId: String, packageName: String) {
+        val workRequest = OneTimeWorkRequestBuilder<ScreenshotWorker>()
+            .setInputData(workDataOf(
+                "package_name" to packageName,
+                "session_id" to sessionId
+            ))
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .build()
+        WorkManager.getInstance(this).enqueue(workRequest)
+        Logger.d(tag = "TrackingService") { "Enqueued ScreenshotWorker for $packageName (Session: $sessionId)" }
     }
 
     private fun createNotificationChannel() {
@@ -289,6 +326,7 @@ class TrackingService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
+        private const val NOTIFICATION_ID_ACCESSIBILITY_LOST = 1002
         private const val CHANNEL_ID = "tracking_channel"
     }
 }
