@@ -89,7 +89,6 @@ class TimelineViewModel(
         Logger.d { "TimelineViewModel onEvent: $event" }
         when (event) {
             is TimelineEvent.Refresh -> _refreshTrigger.value++
-            is TimelineEvent.GenerateDummyData -> generateDummyData()
             is TimelineEvent.SelectDate -> _selectedDate.value = event.date
             is TimelineEvent.SelectSession -> _selectedSession.value = event.session
             is TimelineEvent.ToggleSheet -> _isSheetExpanded.value = event.expanded
@@ -132,9 +131,5 @@ class TimelineViewModel(
         val sessionDate = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
         val filterDate = selectedDate.toLocalDateTime(TimeZone.currentSystemDefault()).date
         return sessionDate == filterDate
-    }
-
-    private fun generateDummyData() {
-        // Removed as per request
     }
 }

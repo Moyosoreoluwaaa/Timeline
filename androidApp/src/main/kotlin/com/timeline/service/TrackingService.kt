@@ -95,7 +95,9 @@ class TrackingService : Service() {
                         sessionManager.clearCurrentSession()
                     },
                     onAccessibilityLost = {
-                        notificationHelper.showAccessibilityLostNotification()
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(this@TrackingService, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            notificationHelper.showAccessibilityLostNotification()
+                        }
                     }
                 )
                 delay(5000.milliseconds)
