@@ -7,6 +7,7 @@ import com.timeline.data.TimelineRepository
 import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
+import com.timeline.util.PlaceholderData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimelineViewModel(
@@ -32,7 +34,7 @@ class TimelineViewModel(
 ) : ViewModel() {
 
     private val _refreshTrigger = MutableStateFlow(0)
-    private val _selectedDate = MutableStateFlow<kotlinx.datetime.Instant?>(null)
+    private val _selectedDate = MutableStateFlow<Instant?>(null)
     private val _selectedSession = MutableStateFlow<Session?>(null)
     private val _isSheetExpanded = MutableStateFlow(false)
     private val _timeFilter = MutableStateFlow(TimeFilter.ALL)
@@ -49,7 +51,7 @@ class TimelineViewModel(
     ) { args: Array<Any?> ->
         val sessions = args[0] as List<Session>
         val excluded = args[1] as Set<String>
-        val date = args[2] as kotlinx.datetime.Instant?
+        val date = args[2] as Instant?
         val session = args[3] as Session?
         val expanded = args[4] as Boolean
         val filter = args[5] as TimeFilter
@@ -89,6 +91,7 @@ class TimelineViewModel(
         Logger.d { "TimelineViewModel onEvent: $event" }
         when (event) {
             is TimelineEvent.Refresh -> _refreshTrigger.value++
+            is TimelineEvent.GenerateDummyData -> generateDummyData()
             is TimelineEvent.SelectDate -> _selectedDate.value = event.date
             is TimelineEvent.SelectSession -> _selectedSession.value = event.session
             is TimelineEvent.ToggleSheet -> _isSheetExpanded.value = event.expanded
@@ -117,11 +120,10 @@ class TimelineViewModel(
             TimeFilter.MORNING -> local.hour in 5..11
             TimeFilter.AFTERNOON -> local.hour in 12..17
             TimeFilter.EVENING -> local.hour in 18..23 || local.hour in 0..4
-            else -> true
         }
     }
 
-    private fun applyDateFilter(session: Session, selectedDate: kotlinx.datetime.Instant?): Boolean {
+    private fun applyDateFilter(session: Session, selectedDate: Instant?): Boolean {
         if (selectedDate == null) {
             // Default to today if no date selected? 
             // Or if null, show all?
@@ -131,5 +133,12 @@ class TimelineViewModel(
         val sessionDate = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
         val filterDate = selectedDate.toLocalDateTime(TimeZone.currentSystemDefault()).date
         return sessionDate == filterDate
+    }
+
+    private fun generateDummyData() {
+        viewModelScope.launch {
+            val dummySessions = PlaceholderData.getDummySessions()
+            dummySessions.forEach { repository.saveSession(it) }
+        }
     }
 }

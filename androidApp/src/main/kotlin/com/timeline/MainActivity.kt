@@ -2,9 +2,11 @@ package com.timeline
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,7 +22,22 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                lightScrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                lightScrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
+            )
+        )
+
+        // Disable automatic navigation bar contrast enforcement on Android 10+ (API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+
         super.onCreate(savedInstanceState)
 
         setContent {
@@ -34,7 +51,7 @@ class MainActivity : ComponentActivity() {
                     })
                 },
                 onNavigateToNotification = {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         requestNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     }
                 },

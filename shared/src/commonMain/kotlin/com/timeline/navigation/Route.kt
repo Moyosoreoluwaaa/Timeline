@@ -13,4 +13,6 @@ sealed interface Route : NavKey {
     data object Timeline : Route
     @Serializable
     data object Settings : Route
+    @Serializable
+    data class Paywall(val isDealsVariant: Boolean = false) : Route
 }

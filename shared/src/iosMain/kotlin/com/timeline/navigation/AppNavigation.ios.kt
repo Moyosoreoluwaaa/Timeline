@@ -1,7 +1,8 @@
 package com.timeline.navigation
 
 import androidx.compose.runtime.*
-import com.timeline.TimelineScreen
+import com.timeline.ui.TimelineScreen
+import com.timeline.ui.PaywallScreen
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.PermissionViewModel
@@ -39,13 +40,22 @@ actual fun AppNavigation(
         Route.Timeline -> {
             TimelineScreen(
                 viewModel = timelineViewModel,
-                onNavigateToSettings = { currentRoute = Route.Settings }
+                onNavigateToSettings = { currentRoute = Route.Settings },
+                onNavigateToPaywall = { currentRoute = Route.Paywall(false) }
             )
         }
         Route.Settings -> {
             SettingsScreen(
                 viewModel = settingsViewModel,
+                onNavigateToPaywall = { isDeals -> currentRoute = Route.Paywall(isDeals) },
                 onBack = { currentRoute = Route.Timeline }
+            )
+        }
+        is Route.Paywall -> {
+            PaywallScreen(
+                onDismiss = { currentRoute = Route.Timeline }, // Simplification for iOS mock
+                onStartTrial = { },
+                isDealsVariant = currentRoute.isDealsVariant
             )
         }
         else -> {}

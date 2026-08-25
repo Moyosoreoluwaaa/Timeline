@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+import com.timeline.util.Constants
+
 interface ExclusionPolicy {
     fun isExcludedFlow(packageName: String): Flow<Boolean>
     suspend fun isExcluded(packageName: String): Boolean
@@ -20,14 +22,7 @@ class TimelineExclusionPolicy(
 ) : ExclusionPolicy {
     private val EXCLUDED_PACKAGES_KEY = stringSetPreferencesKey("excluded_packages")
 
-    private val hardcodedExclusions = setOf(
-        "com.timeline",
-        "android",
-        "com.android.systemui",
-        "com.google.android.apps.nexuslauncher",
-        "com.android.launcher3",
-        "com.transsion.XOSLauncher" // Added as per mockup observing launcher in focus
-    )
+    private val hardcodedExclusions = Constants.HARDCODED_EXCLUSIONS
 
     override fun isExcludedFlow(packageName: String): Flow<Boolean> {
         return dataStore.data.map { prefs ->

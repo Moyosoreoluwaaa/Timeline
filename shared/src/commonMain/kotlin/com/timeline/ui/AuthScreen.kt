@@ -15,6 +15,8 @@ import com.timeline.presentation.AuthEvent
 import com.timeline.presentation.AuthViewModel
 import com.timeline.ui.components.AuthForm
 import com.timeline.ui.components.AuthHeader
+import com.timeline.ui.theme.AppAlpha
+import com.timeline.ui.theme.AppColors
 
 @Composable
 fun AuthScreen(
@@ -33,7 +35,7 @@ fun AuthScreen(
 
     Box(
         modifier = Modifier.fillMaxSize().background(
-            brush = Brush.verticalGradient(colors = listOf(Color(0xFFE67E22), Color(0xFFF1C40F), Color(0xFF000000)))
+            brush = Brush.verticalGradient(colors = AppColors.BrandGradient)
         )
     ) {
         Column(
@@ -50,7 +52,7 @@ fun AuthScreen(
         }
 
         AnimatedVisibility(visible = state.isVerifying, enter = fadeIn(), exit = fadeOut()) {
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = AppAlpha.Scrim)), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color.White)
             }
         }

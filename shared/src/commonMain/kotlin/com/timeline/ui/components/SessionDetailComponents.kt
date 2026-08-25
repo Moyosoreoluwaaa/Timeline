@@ -15,14 +15,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.timeline.domain.Session
 import com.timeline.ui.AppIcon
 import com.timeline.ui.ScreenshotImage
+import com.timeline.ui.theme.AppAlpha
+import com.timeline.ui.theme.AppWeights
+import com.timeline.ui.theme.Dimensions
+import com.timeline.util.AppStrings
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
@@ -30,20 +34,21 @@ import kotlinx.datetime.toLocalDateTime
 fun SessionDetailHeader(
     session: Session,
     isExpanded: Boolean,
-    onToggleExpanded: () -> Unit
+    totalAppSessions: Int
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .zIndex(1f)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(16.dp),
+            .clip(MaterialTheme.shapes.medium)
+            .padding(Dimensions.PaddingMedium),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(Dimensions.IconLarge),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
@@ -53,7 +58,7 @@ fun SessionDetailHeader(
                     modifier = Modifier.fillMaxSize()
                 )
             }
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
             Column {
                 Text(
                     text = session.displayName ?: session.packageName,
@@ -66,10 +71,12 @@ fun SessionDetailHeader(
                 )
             }
         }
-        IconButton(onClick = onToggleExpanded) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                contentDescription = if (isExpanded) "Toggle Fullscreen" else "Expand"
+        
+        if (isExpanded) {
+            Text(
+                text = "$totalAppSessions ${if (totalAppSessions == 1) "session" else "sessions"}",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -85,44 +92,50 @@ fun SessionDetailFooter(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp)
-            .padding(bottom = 24.dp),
+            .navigationBarsPadding() // Keep controls safely above navigation gestures
+            .padding(horizontal = Dimensions.PaddingLarge)
+            .padding(bottom = Dimensions.PaddingLarge),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom
     ) {
         if (prevSession != null) {
             Column(
                 horizontalAlignment = Alignment.Start,
-                modifier = Modifier.clickable { onPrevClick() }
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable { onPrevClick() }
+                    .padding(Dimensions.PaddingSmall)
             ) {
-                Text("Prev", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.height(4.dp))
+                Text(AppStrings.SessionPrev, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Spacer(modifier = Modifier.height(Dimensions.Half))
                 AppIcon(
                     icon = prevSession.icon,
-                    contentDescription = "Previous",
-                    modifier = Modifier.size(34.dp)
+                    contentDescription = AppStrings.ContentDescPrevSession,
+                    modifier = Modifier.size(Dimensions.IconMedium)
                 )
             }
         } else {
-            Spacer(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.width(Dimensions.SpacingHuge))
         }
 
         if (nextSession != null) {
             Column(
                 horizontalAlignment = Alignment.End,
-                modifier = Modifier.clickable { onNextClick() }
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable { onNextClick() }
+                    .padding(Dimensions.PaddingSmall)
             ) {
-                Text("Next", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.height(4.dp))
+                Text(AppStrings.SessionNext, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Spacer(modifier = Modifier.height(Dimensions.Half))
                 AppIcon(
                     icon = nextSession.icon,
-                    contentDescription = "Next",
-                    modifier = Modifier.size(34.dp)
+                    contentDescription = AppStrings.ContentDescNextSession,
+                    modifier = Modifier.size(Dimensions.IconMedium)
                 )
             }
         } else {
-            Spacer(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.width(Dimensions.SpacingHuge))
         }
     }
 }
@@ -137,42 +150,45 @@ fun ExpandedSessionContent(
         allSessions.filter { it.packageName == currentSession.packageName }
     }
 
+    val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
                 alpha = progress
-                translationY = (1f - progress) * 100.dp.toPx()
+                translationY = (AppAlpha.Full - progress) * Dimensions.SpacingColossal.value
             },
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium),
         contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 8.dp,
-            bottom = 120.dp
+            start = Dimensions.PaddingMedium,
+            end = Dimensions.PaddingMedium,
+            top = Dimensions.PaddingSmall,
+            bottom = navBarPadding + (Dimensions.SpacingGiant * 2) // Dynamically adjusts list bottom offset
         )
     ) {
         items(appSessions) { session ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.SurfaceVariant)),
+                shape = MaterialTheme.shapes.medium
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
                     StatRow(session)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
+                    Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+
                     val segmentsWithScreenshots = remember(session) {
                         session.segments.filter { it.screenshotPath != null }
                     }
-                    
+
                     if (segmentsWithScreenshots.isNotEmpty()) {
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(vertical = 4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
+                            contentPadding = PaddingValues(vertical = Dimensions.Half)
                         ) {
                             items(segmentsWithScreenshots) { segment ->
-                                Column(modifier = Modifier.width(120.dp)) {
+                                Column(modifier = Modifier.width(Dimensions.SpacingMega)) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()
@@ -182,30 +198,30 @@ fun ExpandedSessionContent(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.secondary
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Spacer(modifier = Modifier.width(Dimensions.Half))
                                         Text(
                                             text = segment.activityDescription ?: "Activity",
                                             style = MaterialTheme.typography.labelSmall,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(1f)
+                                            modifier = Modifier.weight(AppWeights.Full)
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(Dimensions.Half))
                                     ScreenshotImage(
                                         path = segment.screenshotPath,
                                         contentDescription = null,
-                                        modifier = Modifier.fillMaxWidth().height(180.dp)
+                                        modifier = Modifier.fillMaxWidth().height(Dimensions.SpacingUltra)
                                     )
                                 }
                             }
                         }
                     } else {
                         Text(
-                            text = "No screenshots available",
+                            text = AppStrings.SessionNoScreenshots,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            modifier = Modifier.padding(vertical = Dimensions.PaddingSmall)
                         )
                     }
                 }
@@ -220,9 +236,9 @@ fun StatRow(session: Session) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        StatItem("Started", session.startTime.formatTime())
-        StatItem("Ended", session.endTime?.formatTime() ?: "--:--")
-        StatItem("Duration", "${session.durationMinutes}m")
+        StatItem(AppStrings.SessionStarted, session.startTime.formatTime())
+        StatItem(AppStrings.SessionEnded, session.endTime?.formatTime() ?: "--:--")
+        StatItem(AppStrings.SessionDuration, "${session.durationMinutes}m")
     }
 }
 

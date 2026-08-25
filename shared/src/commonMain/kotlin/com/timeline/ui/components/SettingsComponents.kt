@@ -3,6 +3,7 @@ package com.timeline.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -10,24 +11,33 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.timeline.presentation.SettingsState
+import com.timeline.ui.theme.AppAlpha
+import com.timeline.ui.theme.AppWeights
+import com.timeline.ui.theme.Dimensions
+import com.timeline.util.AppStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsTopBar(onBack: () -> Unit) {
     TopAppBar(
-        title = { Text("Settings", style = MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp)) },
+        title = { Text(AppStrings.SettingsTitle, style = MaterialTheme.typography.headlineLarge) },
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.clip(CircleShape)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.ContentDescBack)
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
     )
 }
 
@@ -38,23 +48,23 @@ fun TrackingSettingsSection(
     onScreenshotCaptureChange: (Boolean) -> Unit,
     onFloatingOverlayChange: (Boolean) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingCategory("TRACKING")
+    Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)) {
+        SettingCategory(AppStrings.SettingsCategoryTracking)
         SettingCard(
-            title = "Usage tracking",
-            description = "Record app usage activity.",
+            title = AppStrings.SettingsUsageTrackingTitle,
+            description = AppStrings.SettingsUsageTrackingDesc,
             trailing = { Switch(checked = state.isUsageTrackingEnabled, onCheckedChange = onUsageTrackingChange) }
         )
-        SettingCategory("CAPTURE")
+        SettingCategory(AppStrings.SettingsCategoryCapture)
         SettingCard(
-            title = "Screenshot capture",
-            description = "Save snapshots during sessions.",
+            title = AppStrings.SettingsScreenshotCaptureTitle,
+            description = AppStrings.SettingsScreenshotCaptureDesc,
             trailing = { Switch(checked = state.isScreenshotCaptureEnabled, onCheckedChange = onScreenshotCaptureChange) }
         )
-        SettingCategory("OVERLAY")
+        SettingCategory(AppStrings.SettingsCategoryOverlay)
         SettingCard(
-            title = "Floating overlay",
-            description = "Show minimal indicator.",
+            title = AppStrings.SettingsFloatingOverlayTitle,
+            description = AppStrings.SettingsFloatingOverlayDesc,
             trailing = { Switch(checked = state.isFloatingOverlayEnabled, onCheckedChange = onFloatingOverlayChange) }
         )
     }
@@ -66,10 +76,9 @@ fun SettingCategory(title: String) {
         text = title,
         style = MaterialTheme.typography.labelMedium.copy(
             color = MaterialTheme.colorScheme.secondary,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp
+            fontWeight = FontWeight.Bold
         ),
-        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+        modifier = Modifier.padding(start = Dimensions.Half, bottom = Dimensions.Half)
     )
 }
 
@@ -84,13 +93,14 @@ fun InfoCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.CardOverlay)),
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(Dimensions.PaddingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(AppWeights.Full)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
             }
@@ -114,15 +124,16 @@ fun SettingCard(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isExpandable) Modifier.clickable(onClick = onHeaderClick) else Modifier),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.CardOverlay)),
+        shape = MaterialTheme.shapes.medium
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(AppWeights.Full)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                 }
@@ -132,13 +143,13 @@ fun SettingCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (status != null) {
                             Text(status, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
                         }
                         if (isExpandable) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(Dimensions.PaddingMedium),
                                 tint = MaterialTheme.colorScheme.secondary
                             )
                         }
@@ -148,7 +159,10 @@ fun SettingCard(
             if (isExpandable) {
                 AnimatedVisibility(visible = isExpanded) {
                     Column {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = Dimensions.PaddingSmall * 2), // 16dp
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = AppAlpha.Scrim)
+                        )
                         content()
                     }
                 }

@@ -45,19 +45,19 @@ class PermissionViewModel(
             PermissionItem(
                 id = "usage",
                 title = "Usage access",
-                description = "Allows Everett to track app usage.",
+                description = "Allows Timeline to track app usage.",
                 isGranted = permissionManager.hasUsageStatsPermission()
             ),
             PermissionItem(
                 id = "overlay",
                 title = "Display over other apps",
-                description = "Allows Everett to capture screenshots in the background.",
+                description = "Allows Timeline to capture screenshots in the background.",
                 isGranted = permissionManager.hasOverlayPermission()
             ),
             PermissionItem(
                 id = "notifications",
                 title = "Notifications",
-                description = "Allows Everett to send notifications.",
+                description = "Allows Timeline to send notifications.",
                 isGranted = permissionManager.hasNotificationPermission()
             ),
             PermissionItem(

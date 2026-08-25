@@ -12,6 +12,8 @@ import android.provider.Settings
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.timeline.util.AppStrings
+import com.timeline.util.Constants
 
 class TrackingNotificationHelper(private val context: Context) {
 
@@ -20,9 +22,9 @@ class TrackingNotificationHelper(private val context: Context) {
     }
 
     fun buildNotification(): Notification =
-        NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("Everett Tracking Active")
-            .setContentText("Recording activity journal...")
+        NotificationCompat.Builder(context, Constants.TRACKING_CHANNEL_ID)
+            .setContentTitle(AppStrings.NotificationTrackingActiveTitle)
+            .setContentText(AppStrings.NotificationTrackingActiveContent)
             .setSmallIcon(R.drawable.ic_menu_mylocation)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
@@ -33,21 +35,21 @@ class TrackingNotificationHelper(private val context: Context) {
         val pendingIntent = PendingIntent.getActivity(
             context, 2, settingsIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("Screenshot capture stopped")
-            .setContentText("Tap to re-enable accessibility permission")
+        val notification = NotificationCompat.Builder(context, Constants.TRACKING_CHANNEL_ID)
+            .setContentTitle(AppStrings.NotificationAccessibilityLostTitle)
+            .setContentText(AppStrings.NotificationAccessibilityLostContent)
             .setSmallIcon(R.drawable.ic_dialog_alert)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_ACCESSIBILITY_LOST, notification)
+        NotificationManagerCompat.from(context).notify(Constants.ACCESSIBILITY_LOST_NOTIFICATION_ID, notification)
     }
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Timeline Tracking",
+            Constants.TRACKING_CHANNEL_ID,
+            "${AppStrings.AppName} Tracking",
             NotificationManager.IMPORTANCE_MIN
         )
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -55,8 +57,6 @@ class TrackingNotificationHelper(private val context: Context) {
     }
 
     companion object {
-        const val NOTIFICATION_ID = 1001
-        const val NOTIFICATION_ID_ACCESSIBILITY_LOST = 1002
-        private const val CHANNEL_ID = "tracking_channel"
+        const val NOTIFICATION_ID = Constants.TRACKING_NOTIFICATION_ID
     }
 }

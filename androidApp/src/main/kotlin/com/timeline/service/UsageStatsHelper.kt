@@ -6,6 +6,7 @@ import android.content.Context
 import co.touchlab.kermit.Logger
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.UserPreferences
+import com.timeline.util.Constants
 import kotlinx.coroutines.flow.first
 
 class UsageStatsHelper(
@@ -35,7 +36,7 @@ class UsageStatsHelper(
         checkAccessibilityStateChange(onAccessibilityLost)
 
         val endTime = System.currentTimeMillis()
-        val startTime = endTime - 10000 
+        val startTime = endTime - Constants.USAGE_STATS_LOOKBACK_MS 
 
         val events = usageStatsManager.queryEvents(startTime, endTime)
         val event = UsageEvents.Event()

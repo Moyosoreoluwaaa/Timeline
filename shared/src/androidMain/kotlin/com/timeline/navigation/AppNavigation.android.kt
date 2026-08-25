@@ -9,9 +9,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.timeline.TimelineScreen
+import com.timeline.ui.TimelineScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.PermissionScreen
+import com.timeline.ui.PaywallScreen
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.PermissionViewModel
@@ -85,17 +86,35 @@ actual fun AppNavigation(
                         viewModel = timelineViewModel,
                         onNavigateToSettings = {
                             backStack.add(Route.Settings)
+                        },
+                        onNavigateToPaywall = {
+                            backStack.add(Route.Paywall(isDealsVariant = false))
                         }
                     )
                 }
                 entry<Route.Settings> {
                     SettingsScreen(
-                        viewModel = settingsViewModel
-                    ) {
-                        if (backStack.size > 1) {
-                            backStack.removeAt(backStack.size - 1)
+                        viewModel = settingsViewModel,
+                        onNavigateToPaywall = { isDeals ->
+                            backStack.add(Route.Paywall(isDealsVariant = isDeals))
+                        },
+                        onBack = {
+                            if (backStack.size > 1) {
+                                backStack.removeAt(backStack.size - 1)
+                            }
                         }
-                    }
+                    )
+                }
+                entry<Route.Paywall> { route ->
+                    PaywallScreen(
+                        onDismiss = {
+                            if (backStack.size > 1) {
+                                backStack.removeAt(backStack.size - 1)
+                            }
+                        },
+                        onStartTrial = { /* subscription logic */ },
+                        isDealsVariant = route.isDealsVariant
+                    )
                 }
             }
         )

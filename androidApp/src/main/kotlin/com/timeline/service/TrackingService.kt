@@ -10,6 +10,7 @@ import co.touchlab.kermit.Logger
 import com.timeline.data.TimelineRepository
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.UserPreferences
+import com.timeline.util.Constants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -84,7 +85,7 @@ class TrackingService : Service() {
                         lastScreenshotTime = System.currentTimeMillis()
                     },
                     onPeriodicCheck = { currentApp ->
-                        if (sessionManager.currentSessionId != null && (System.currentTimeMillis() - lastScreenshotTime) >= 60000L) {
+                        if (sessionManager.currentSessionId != null && (System.currentTimeMillis() - lastScreenshotTime) >= Constants.SCREENSHOT_INTERVAL_MS) {
                             Logger.withTag("TrackingService").d { "Periodic screenshot trigger for $currentApp" }
                             lastScreenshotTime = System.currentTimeMillis()
                             sessionManager.enqueueScreenshot(sessionManager.currentSessionId!!, currentApp)
@@ -100,7 +101,7 @@ class TrackingService : Service() {
                         }
                     }
                 )
-                delay(5000.milliseconds)
+                delay(Constants.POLLING_INTERVAL_MS.milliseconds)
             }
         }
     }

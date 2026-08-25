@@ -1,8 +1,28 @@
 package com.timeline.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -10,18 +30,31 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.timeline.domain.Session
 import com.timeline.presentation.TimeFilter
 import com.timeline.ui.AppIcon
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import com.timeline.ui.theme.AppAlpha
+import com.timeline.ui.theme.AppWeights
+import com.timeline.ui.theme.Dimensions
+import com.timeline.util.AppStrings
+import com.timeline.util.TimeFormatter
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -29,39 +62,74 @@ import kotlin.time.Instant
 @Composable
 fun TimelineHeader(
     selectedDate: Instant?,
+    selectedFilter: TimeFilter,
+    showTimeFilters: Boolean,
     onToggleTimeFilters: () -> Unit,
+    onFilterSelected: (TimeFilter) -> Unit,
     onNavigateToSettings: () -> Unit,
     onSelectDateClick: () -> Unit
 ) {
-    TopAppBar(
-        title = {
-            Column {
-                Text("Timeline", style = MaterialTheme.typography.headlineMedium)
-                Row(
-                    modifier = Modifier.clickable { onSelectDateClick() },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Today", style = MaterialTheme.typography.titleMedium)
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    val dateText = remember(selectedDate) {
-                        val date = selectedDate ?: Clock.System.now()
-                        val local = date.toLocalDateTime(TimeZone.currentSystemDefault())
-                        "${local.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${local.day}, ${local.year}"
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = Dimensions.None
+    ) {
+        Column {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(AppStrings.TimelineTitle, style = MaterialTheme.typography.headlineMedium)
+                        Row(
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable { onSelectDateClick() }
+                                .padding(horizontal = Dimensions.PaddingSmall, vertical = Dimensions.Half),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(AppStrings.TimelineToday, style = MaterialTheme.typography.titleMedium)
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
+                            val dateText = remember(selectedDate) {
+                                val date = selectedDate ?: Clock.System.now()
+                                TimeFormatter.formatDate(date)
+                            }
+                            Text(dateText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        }
                     }
-                    Text(dateText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
-                }
-            }
-        },
-        actions = {
-            IconButton(onClick = onToggleTimeFilters) {
-                Icon(Icons.Default.DateRange, "Time of Day")
-            }
-            IconButton(onClick = onNavigateToSettings) {
-                Icon(Icons.Default.Settings, "Settings")
+                },
+                actions = {
+                    IconButton(onClick = onToggleTimeFilters) {
+                        Icon(Icons.Default.DateRange, AppStrings.TimelineTimeOfDay)
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, AppStrings.TimelineSettings)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
+            )
+
+            AnimatedVisibility(
+                visible = showTimeFilters,
+                enter = fadeIn(animationSpec = tween(Dimensions.FilterRevealDurationMs)) +
+                        expandVertically(
+                            animationSpec = tween(Dimensions.FilterRevealDurationMs),
+                            expandFrom = Alignment.Top
+                        ),
+                exit = fadeOut(animationSpec = tween(Dimensions.FilterHideDurationMs)) +
+                        shrinkVertically(
+                            animationSpec = tween(Dimensions.FilterHideDurationMs),
+                            shrinkTowards = Alignment.Top
+                        )
+            ) {
+                TimelineFilterSection(
+                    selectedFilter = selectedFilter,
+                    onFilterSelected = onFilterSelected
+                )
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -70,9 +138,12 @@ fun TimelineFilterSection(
     onFilterSelected: (TimeFilter) -> Unit
 ) {
     LazyRow(
-        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(end = 16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .padding(horizontal = Dimensions.PaddingMedium),
+        horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
+        contentPadding = PaddingValues(end = Dimensions.PaddingMedium)
     ) {
         items(TimeFilter.entries.size) { index ->
             val filter = TimeFilter.entries[index]
@@ -90,46 +161,47 @@ fun TimelineEntry(
     session: Session,
     isFirst: Boolean,
     isLast: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .padding(horizontal = Dimensions.PaddingMedium)
             .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Time
         val timeText = remember(session.startTime) {
-            val local = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault())
-            "${local.hour}:${local.minute.toString().padStart(2, '0')}"
+            TimeFormatter.formatTime(session.startTime)
         }
         Text(
             text = timeText,
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.width(40.dp)
+            modifier = Modifier.width(Dimensions.PaddingLarge * 2) // 48dp
         )
 
         // Line and Dot
         Column(
-            modifier = Modifier.fillMaxHeight().width(24.dp),
+            modifier = Modifier.fillMaxHeight().width(Dimensions.PaddingLarge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .width(1.dp)
-                    .weight(1f)
+                    .width(Dimensions.LineThickness)
+                    .weight(AppWeights.Full)
                     .background(if (isFirst) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
             )
             Surface(
-                modifier = Modifier.size(8.dp),
+                modifier = Modifier.size(Dimensions.PaddingSmall),
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary
             ) {}
             Box(
                 modifier = Modifier
-                    .width(1.dp)
-                    .weight(1f)
+                    .width(Dimensions.LineThickness)
+                    .weight(AppWeights.Full)
                     .background(if (isLast) Color.Transparent else MaterialTheme.colorScheme.outlineVariant)
             )
         }
@@ -137,19 +209,20 @@ fun TimelineEntry(
         // Card
         Card(
             modifier = Modifier
-                .weight(1f)
-                .padding(vertical = 8.dp)
+                .weight(AppWeights.Full)
+                .padding(vertical = Dimensions.PaddingSmall)
                 .clickable { onClick() },
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            )
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.CardOverlay)
+            ),
+            shape = MaterialTheme.shapes.medium
         ) {
             Row(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier.padding(Dimensions.PaddingMedium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier.size(Dimensions.IconMedium),
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surface
                 ) {
@@ -159,8 +232,8 @@ fun TimelineEntry(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+                Column(modifier = Modifier.weight(AppWeights.Full)) {
                     val displayName = session.displayName ?: session.packageName.split(".").last().replaceFirstChar { it.uppercase() }
                     Text(
                         text = displayName,
@@ -175,7 +248,7 @@ fun TimelineEntry(
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(Dimensions.PaddingMedium),
                     tint = MaterialTheme.colorScheme.outline
                 )
             }
@@ -184,43 +257,65 @@ fun TimelineEntry(
 }
 
 @Composable
-fun BottomSummary(sessions: List<Session>) {
+fun BottomSummary(
+    sessions: List<Session>,
+    onUpgradeClick: () -> Unit
+) {
     val totalMinutes = sessions.sumOf { it.durationMinutes }
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
 
     Surface(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .padding(horizontal = Dimensions.PaddingMedium, vertical = Dimensions.PaddingLarge)
             .navigationBarsPadding()
             .fillMaxWidth(),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
-        shadowElevation = 8.dp
+        shape =  MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        tonalElevation = Dimensions.ModalElevation,
+        shadowElevation = Dimensions.ModalElevation
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 24.dp, vertical = 12.dp),
+                .clip(MaterialTheme.shapes.medium)
+                .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingMedium),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Total usage", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable { onUpgradeClick() }
+                    .padding(Dimensions.Half)
+            ) {
+                Text(AppStrings.TimelineTotalUsage, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 Text("${hours}h ${minutes}m", style = MaterialTheme.typography.titleMedium)
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Sessions", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable { onUpgradeClick() }
+                    .padding(Dimensions.Half)
+            ) {
+                Text(AppStrings.TimelineSessionsCount, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                 Text(sessions.size.toString(), style = MaterialTheme.typography.titleMedium)
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Most used", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable { onUpgradeClick() }
+                    .padding(Dimensions.Half)
+            ) {
+                Text(AppStrings.TimelineMostUsed, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.Half)) {
                     sessions.take(3).forEach { session ->
                         AppIcon(
                             icon = session.icon,
                             contentDescription = session.displayName,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(Dimensions.PaddingLarge - Dimensions.PaddingSmall) // 16dp or 20dp? Let's use 16dp
                         )
                     }
                 }

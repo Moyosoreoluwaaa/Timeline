@@ -1,17 +1,24 @@
 package com.timeline.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.ui.components.*
+import com.timeline.ui.theme.AppWeights
+import com.timeline.ui.theme.Dimensions
+import com.timeline.util.AppStrings
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Instant
 
@@ -19,7 +26,8 @@ import kotlin.time.Instant
 @Composable
 fun TimelineScreen(
     viewModel: TimelineViewModel = koinViewModel(),
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToPaywall: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
@@ -56,58 +64,87 @@ fun TimelineScreen(
                         viewModel.onEvent(TimelineEvent.SelectDate(Instant.fromEpochMilliseconds(it)))
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(AppStrings.TimelineOk) }
             }
         ) { DatePicker(state = datePickerState) }
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.statusBars, // Applies status bar inset top-padding only
         topBar = {
             TimelineHeader(
                 selectedDate = state.selectedDate,
+                selectedFilter = state.timeFilter,
+                showTimeFilters = showTimeFilters,
                 onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
+                onFilterSelected = { viewModel.onEvent(TimelineEvent.FilterTime(it)) },
                 onNavigateToSettings = onNavigateToSettings,
                 onSelectDateClick = { showDatePicker = true }
             )
         }
     ) { padding ->
+        val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
         Box(
             modifier = Modifier
                 .padding(padding)
-                .consumeWindowInsets(padding)
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                if (showTimeFilters) {
-                    TimelineFilterSection(
-                        selectedFilter = state.timeFilter,
-                        onFilterSelected = { viewModel.onEvent(TimelineEvent.FilterTime(it)) }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                if (state.sessions.isEmpty()) {
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("No activity recorded", style = MaterialTheme.typography.bodyLarge)
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentPadding = PaddingValues(bottom = 100.dp)
-                    ) {
-                        items(state.sessions.size) { index ->
-                            val session = state.sessions[index]
-                            TimelineEntry(
-                                session = session,
-                                isFirst = index == 0,
-                                isLast = index == state.sessions.lastIndex
-                            ) { viewModel.onEvent(TimelineEvent.SelectSession(session)) }
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        if (state.sessions.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(AppWeights.Full)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    AppStrings.TimelineNoActivity,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .weight(AppWeights.Full)
+                                    .fillMaxWidth(),
+                                contentPadding = PaddingValues(
+                                    bottom = navBarPadding + (Dimensions.SpacingGiant * 2)
+                                )
+                            ) {
+                                itemsIndexed(
+                                    items = state.sessions,
+                                    key = { _, session -> session.id }
+                                ) { index, session ->
+                                    TimelineEntry(
+                                        session = session,
+                                        isFirst = index == 0,
+                                        isLast = index == state.sessions.lastIndex,
+                                        modifier = Modifier.animateItem()
+                                    ) { viewModel.onEvent(TimelineEvent.SelectSession(session)) }
+                                }
+                            }
                         }
                     }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding() // Ensures bottom summary bar floats above system nav gestures
+                    ) {
+                        BottomSummary(
+                            sessions = state.sessions,
+                            onUpgradeClick = onNavigateToPaywall
+                        )
+                    }
                 }
-            }
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                BottomSummary(state.sessions)
             }
         }
 
@@ -118,7 +155,8 @@ fun TimelineScreen(
 
             ModalBottomSheet(
                 onDismissRequest = { viewModel.onEvent(TimelineEvent.SelectSession(null)) },
-                sheetState = sheetState
+                sheetState = sheetState,
+                contentWindowInsets = { WindowInsets(0, 0, 0, 0) } // Prevents sheet from injecting dynamic bottom inset padding
             ) {
                 SessionDetailSheet(
                     session = state.selectedSession!!,
@@ -131,5 +169,6 @@ fun TimelineScreen(
                 )
             }
         }
+
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.timeline.navigation.AppNavigation
+import com.timeline.ui.theme.TimelineTheme
 
 @Composable
 fun App(
@@ -17,7 +18,7 @@ fun App(
     onNavigateToBatteryOptimization: () -> Unit,
     onStartService: () -> Unit
 ) {
-    MaterialTheme(colorScheme = darkColorScheme()) {
+    TimelineTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             AppNavigation(
                 onNavigateToUsageStats = onNavigateToUsageStats,

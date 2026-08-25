@@ -14,12 +14,12 @@ class AndroidAppInfoProvider(private val context: Context) : AppInfoProvider {
         return try {
             val appInfo = packageManager.getApplicationInfo(packageName, 0)
             val label = packageManager.getApplicationLabel(appInfo).toString()
-            Logger.d("AndroidAppInfoProvider") { "Resolved label for $packageName: $label" }
+            Logger.d(tag = "AndroidAppInfoProvider") { "Resolved label for $packageName: $label" }
             nameCache[packageName] = label
             label
         } catch (e: Exception) {
             val fallback = packageName.split(".").last().replaceFirstChar { it.uppercase() }
-            Logger.w("AndroidAppInfoProvider") { "Failed to get label for $packageName, using fallback: $fallback. Error: ${e.message}" }
+            Logger.w(tag = "AndroidAppInfoProvider") { "Failed to get label for $packageName, using fallback: $fallback. Error: ${e.message}" }
             fallback
         }
     }
@@ -28,11 +28,11 @@ class AndroidAppInfoProvider(private val context: Context) : AppInfoProvider {
         iconCache[packageName]?.let { return it }
         return try {
             val icon = packageManager.getApplicationIcon(packageName)
-            Logger.d("AndroidAppInfoProvider") { "Resolved icon for $packageName" }
+            Logger.d(tag = "AndroidAppInfoProvider") { "Resolved icon for $packageName" }
             iconCache[packageName] = icon
             icon
         } catch (e: Exception) {
-            Logger.w("AndroidAppInfoProvider") { "Failed to get icon for $packageName. Error: ${e.message}" }
+            Logger.w(tag = "AndroidAppInfoProvider") { "Failed to get icon for $packageName. Error: ${e.message}" }
             null
         }
     }
