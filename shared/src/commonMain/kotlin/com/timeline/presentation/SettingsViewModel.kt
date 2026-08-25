@@ -30,7 +30,6 @@ class SettingsViewModel(
             },
             isUsageTrackingEnabled = prefs.isUsageTrackingEnabled,
             isScreenshotCaptureEnabled = prefs.isScreenshotCaptureEnabled,
-            isFloatingOverlayEnabled = prefs.isFloatingOverlayEnabled,
             dataRetentionDays = prefs.dataRetentionDays
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState())
@@ -59,11 +58,6 @@ class SettingsViewModel(
             is SettingsEvent.SetScreenshotCapture -> {
                 viewModelScope.launch {
                     userPreferences.setScreenshotCaptureEnabled(event.enabled)
-                }
-            }
-            is SettingsEvent.SetFloatingOverlay -> {
-                viewModelScope.launch {
-                    userPreferences.setFloatingOverlayEnabled(event.enabled)
                 }
             }
             is SettingsEvent.SetDataRetention -> {

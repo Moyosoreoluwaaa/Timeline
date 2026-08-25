@@ -1,25 +1,51 @@
 package com.timeline.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ContactSupport
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.SettingsEvent
 import com.timeline.presentation.SettingsViewModel
-import com.timeline.ui.components.*
+import com.timeline.ui.components.InfoCard
+import com.timeline.ui.components.SettingCard
+import com.timeline.ui.components.SettingCategory
+import com.timeline.ui.components.SettingsTopBar
+import com.timeline.ui.components.UpgradeCard
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
@@ -34,7 +60,6 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var expandedSection by remember { mutableStateOf<String?>(null) }
-    var isYearlySelected by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) { viewModel.onEvent(SettingsEvent.LoadSettings) }
 
@@ -60,78 +85,37 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = Dimensions.PaddingMedium),
-                    verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium),
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
                     contentPadding = PaddingValues(
                         top = Dimensions.PaddingMedium,
                         bottom = navBarPadding + Dimensions.PaddingExtraLarge
                     )
                 ) {
                     item {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.SurfaceVariant))
-                                .padding(Dimensions.PaddingMedium)
-                                .clickable { onNavigateToPaywall(false) }
-                        ) {
-                            Text(
-                                text = "You're a free user, get more",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-                            
-                            PaywallFeatures()
-                            
-                            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                            
-                            PlanOption(
-                                title = AppStrings.PaywallMonthlyOption,
-                                subtitle = AppStrings.PaywallMonthlyBilling,
-                                selected = !isYearlySelected,
-                                onClick = { isYearlySelected = false }
-                            )
-                            
-                            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-
-                            PlanOption(
-                                title = AppStrings.PaywallYearlyOption,
-                                subtitle = AppStrings.PaywallYearlyBilling,
-                                selected = isYearlySelected,
-                                onClick = { isYearlySelected = true },
-                                trailing = { PromoBadge(AppStrings.PaywallSave50) }
-                            )
-
-                            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-
-                            Button(
-                                onClick = { onNavigateToPaywall(isYearlySelected) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(Dimensions.ButtonHeight),
-                                shape = MaterialTheme.shapes.medium
-                            ) {
-                                Text(
-                                    text = AppStrings.PaywallStartTrial,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+                        UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) })
                     }
 
+                    item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
+
+                    item { SettingCategory(AppStrings.SettingsCategoryTracking) }
                     item {
-                        TrackingSettingsSection(
-                            state = state,
-                            onUsageTrackingChange = { viewModel.onEvent(SettingsEvent.SetUsageTracking(it)) },
-                            onScreenshotCaptureChange = { viewModel.onEvent(SettingsEvent.SetScreenshotCapture(it)) },
-                            onFloatingOverlayChange = { viewModel.onEvent(SettingsEvent.SetFloatingOverlay(it)) }
+                        SettingCard(
+                            title = AppStrings.SettingsUsageTrackingTitle,
+                            description = AppStrings.SettingsUsageTrackingDesc,
+                            trailing = { Switch(checked = state.isUsageTrackingEnabled, onCheckedChange = { viewModel.onEvent(SettingsEvent.SetUsageTracking(it)) }) }
+                        )
+                    }
+                    item {
+                        SettingCard(
+                            title = AppStrings.SettingsScreenshotCaptureTitle,
+                            description = AppStrings.SettingsScreenshotCaptureDesc,
+                            trailing = { Switch(checked = state.isScreenshotCaptureEnabled, onCheckedChange = { viewModel.onEvent(SettingsEvent.SetScreenshotCapture(it)) }) }
                         )
                     }
 
-                    item { SettingCategory(AppStrings.SettingsCategoryPermissions) }
+                    item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
+
+                    item { SettingCategory(AppStrings.SettingsCategoryData) }
                     item {
                         SettingCard(
                             title = AppStrings.SettingsAppExclusionsTitle,
@@ -161,7 +145,6 @@ fun SettingsScreen(
                         }
                     }
 
-                    item { SettingCategory(AppStrings.SettingsCategoryData) }
                     item {
                         SettingCard(
                             title = AppStrings.SettingsDataRetentionTitle,
@@ -182,34 +165,53 @@ fun SettingsScreen(
                         }
                     }
 
+                    item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
+
                     item { SettingCategory(AppStrings.SettingsCategoryAbout) }
-                    item { InfoCard(title = AppStrings.SettingsAboutTimelineTitle, description = AppStrings.SettingsAboutTimelineDesc, icon = Icons.Default.Info) }
-                    item { InfoCard(title = AppStrings.SettingsAppVersionTitle, description = AppStrings.SettingsAppVersionValue, icon = Icons.Default.Info) }
+                    item { 
+                        InfoCard(
+                            title = AppStrings.SettingsAboutTimelineTitle, 
+                            description = AppStrings.SettingsAboutTimelineDesc, 
+                            icon = Icons.Default.Info
+                        ) 
+                    }
+
+                    item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 
                     item { SettingCategory(AppStrings.SettingsCategorySupport) }
-                    item { InfoCard(title = AppStrings.SettingsContactUsTitle, description = AppStrings.SettingsContactUsDesc, icon = Icons.AutoMirrored.Filled.ContactSupport) }
-                    item { InfoCard(title = AppStrings.SettingsReportBugsTitle, description = AppStrings.SettingsReportBugsDesc, icon = Icons.Default.BugReport) }
+                    item { 
+                        InfoCard(
+                            title = AppStrings.SettingsContactUsTitle, 
+                            description = AppStrings.SettingsContactUsDesc, 
+                            icon = Icons.AutoMirrored.Filled.ContactSupport
+                        ) 
+                    }
+                    item { 
+                        InfoCard(
+                            title = AppStrings.SettingsReportBugsTitle, 
+                            description = AppStrings.SettingsReportBugsDesc, 
+                            icon = Icons.Default.BugReport
+                        ) 
+                    }
+
+                    item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 
                     item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.SurfaceVariant)),
-                            shape = MaterialTheme.shapes.medium
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = Dimensions.PaddingLarge),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Row(modifier = Modifier.padding(Dimensions.PaddingMedium), verticalAlignment = Alignment.CenterVertically) {
-                                Column(modifier = Modifier.weight(AppWeights.Full)) {
-                                    Text(
-                                        text = AppStrings.SettingsLightweightMsg,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    Text(
-                                        text = AppStrings.SettingsNoContinuousMsg,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
-                                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                            }
+                            Text(
+                                text = "Version ${AppStrings.SettingsAppVersionValue}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            Spacer(modifier = Modifier.height(Dimensions.Quat))
+                            Text(
+                                text = AppStrings.SettingsMadeByMo,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = AppAlpha.Medium)
+                            )
                         }
                     }
                 }

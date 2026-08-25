@@ -9,7 +9,6 @@ data class PreferencesState(
     val isPermissionsCompleted: Boolean,
     val isUsageTrackingEnabled: Boolean,
     val isScreenshotCaptureEnabled: Boolean,
-    val isFloatingOverlayEnabled: Boolean,
     val dataRetentionDays: Int
 )
 
@@ -17,7 +16,6 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
     private val IS_PERMISSIONS_COMPLETED = booleanPreferencesKey("is_permissions_completed")
     private val IS_USAGE_TRACKING_ENABLED = booleanPreferencesKey("is_usage_tracking_enabled")
     private val IS_SCREENSHOT_CAPTURE_ENABLED = booleanPreferencesKey("is_screenshot_capture_enabled")
-    private val IS_FLOATING_OVERLAY_ENABLED = booleanPreferencesKey("is_floating_overlay_enabled")
     private val DATA_RETENTION_DAYS = intPreferencesKey("data_retention_days")
 
     val state: Flow<PreferencesState> = dataStore.data.map { prefs ->
@@ -25,7 +23,6 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
             isPermissionsCompleted = prefs[IS_PERMISSIONS_COMPLETED] ?: false,
             isUsageTrackingEnabled = prefs[IS_USAGE_TRACKING_ENABLED] ?: true,
             isScreenshotCaptureEnabled = prefs[IS_SCREENSHOT_CAPTURE_ENABLED] ?: true,
-            isFloatingOverlayEnabled = prefs[IS_FLOATING_OVERLAY_ENABLED] ?: false,
             dataRetentionDays = prefs[DATA_RETENTION_DAYS] ?: 30
         )
     }
@@ -40,10 +37,6 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setScreenshotCaptureEnabled(enabled: Boolean) {
         dataStore.edit { it[IS_SCREENSHOT_CAPTURE_ENABLED] = enabled }
-    }
-
-    suspend fun setFloatingOverlayEnabled(enabled: Boolean) {
-        dataStore.edit { it[IS_FLOATING_OVERLAY_ENABLED] = enabled }
     }
 
     suspend fun setDataRetentionDays(days: Int) {

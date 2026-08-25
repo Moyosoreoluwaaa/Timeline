@@ -44,7 +44,6 @@ object AppStrings {
     const val SettingsTitle = "Settings"
     const val SettingsCategoryTracking = "TRACKING"
     const val SettingsCategoryCapture = "CAPTURE"
-    const val SettingsCategoryOverlay = "OVERLAY"
     const val SettingsCategoryPermissions = "PERMISSIONS"
     const val SettingsCategoryData = "DATA"
     const val SettingsCategoryAbout = "ABOUT"
@@ -53,8 +52,6 @@ object AppStrings {
     const val SettingsUsageTrackingDesc = "Record app usage activity."
     const val SettingsScreenshotCaptureTitle = "Screenshot capture"
     const val SettingsScreenshotCaptureDesc = "Save snapshots during sessions."
-    const val SettingsFloatingOverlayTitle = "Floating overlay"
-    const val SettingsFloatingOverlayDesc = "Show minimal indicator."
     const val SettingsAppExclusionsTitle = "App Exclusions"
     const val SettingsAppExclusionsDesc = "Manage apps not to be recorded."
     const val SettingsDataRetentionTitle = "Data retention"
@@ -68,8 +65,7 @@ object AppStrings {
     const val SettingsContactUsDesc = "Get help or provide feedback."
     const val SettingsReportBugsTitle = "Report bugs"
     const val SettingsReportBugsDesc = "Help us improve by reporting issues."
-    const val SettingsLightweightMsg = "$AppName is lightweight and event-driven."
-    const val SettingsNoContinuousMsg = "No continuous tracking or background monitoring."
+    const val SettingsMadeByMo = "Made with love by Mo"
     
     // Notifications
     const val NotificationTrackingActiveTitle = "$AppName Tracking Active"

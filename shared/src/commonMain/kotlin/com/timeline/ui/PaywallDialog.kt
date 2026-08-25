@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -33,21 +34,34 @@ fun PaywallScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color.Black // Base color for 100% opacity
+        color = MaterialTheme.colorScheme.background
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            AppColors.BrandOrange,
-                            AppColors.BrandYellow,
-                            AppColors.BrandBlack
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Free-form radial gradient at the top with center offset
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.4f)
+            ) {
+                val center = Offset(x = constraints.maxWidth / 2f, y = 0f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    AppColors.BrandYellow,
+                                    AppColors.BrandBlack,
+                                    AppColors.BrandOrange,
+                                    Color.Transparent
+                                ),
+                                center = center,
+                                radius = constraints.maxWidth.toFloat()
+                            )
                         )
-                    )
                 )
-        ) {
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -61,7 +75,7 @@ fun PaywallScreen(
                     Text(
                         text = AppStrings.AppName,
                         style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
                     IconButton(
@@ -71,7 +85,7 @@ fun PaywallScreen(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = AppStrings.ContentDescClose,
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -83,21 +97,21 @@ fun PaywallScreen(
                 Text(
                     text = if (isDealsVariant) AppStrings.PaywallUnlockDeeper else AppStrings.PaywallUnlimitedInsights,
                     style = MaterialTheme.typography.headlineLarge,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start
                 )
                 Text(
                     text = if (isDealsVariant) AppStrings.PaywallGoBeyond else AppStrings.PaywallOneSimplePlan,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = AppAlpha.Subtitle),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Subtitle),
                     textAlign = TextAlign.Start
                 )
 
                 Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
 
                 if (!isDealsVariant) {
-                    // Variant 1: Features inside a dark card
+                    // Variant 1: Features inside a card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = AppColors.PaywallCardBackground),
@@ -107,7 +121,7 @@ fun PaywallScreen(
                             Text(
                                 text = AppStrings.PaywallTimelinePro,
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.White
+                                color = Color.Black
                             )
                             Text(
                                 text = AppStrings.PaywallMonthlyPrice,
@@ -129,7 +143,7 @@ fun PaywallScreen(
                     // Variant 2: Golden Limited Time Offer card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = AppColors.PaywallCardBackground.copy(alpha = 0.5f)),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                         shape = MaterialTheme.shapes.medium,
                         border = BorderStroke(Dimensions.LineThickness, AppColors.PaywallOfferGold)
                     ) {
@@ -153,7 +167,7 @@ fun PaywallScreen(
                             Text(
                                 text = AppStrings.PaywallThenPrice,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = AppAlpha.Medium)
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Medium)
                             )
                         }
                     }
@@ -187,8 +201,8 @@ fun PaywallScreen(
                         .fillMaxWidth()
                         .height(Dimensions.ButtonHeight),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = MaterialTheme.shapes.medium
                 ) {
@@ -204,7 +218,7 @@ fun PaywallScreen(
                 Text(
                     text = AppStrings.PaywallCancelAnytime,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = AppAlpha.Low),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low),
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )

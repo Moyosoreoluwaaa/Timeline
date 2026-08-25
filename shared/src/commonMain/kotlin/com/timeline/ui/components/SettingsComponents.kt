@@ -16,10 +16,60 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import com.timeline.presentation.SettingsState
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
+
+@Composable
+fun UpgradeCard(
+    onUpgradeClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .clickable { onUpgradeClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = AppAlpha.SurfaceVariant)
+        ),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
+            Text(
+                text = "You're a free user, get more",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            
+            PaywallFeatures()
+            
+            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+
+            val isDark = isSystemInDarkTheme()
+            Button(
+                onClick = onUpgradeClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(Dimensions.ButtonHeight),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color.White else Color.Black,
+                    contentColor = if (isDark) Color.Black else Color.White
+                ),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    text = AppStrings.PaywallStartTrial,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,35 +89,6 @@ fun SettingsTopBar(onBack: () -> Unit) {
             scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     )
-}
-
-@Composable
-fun TrackingSettingsSection(
-    state: SettingsState,
-    onUsageTrackingChange: (Boolean) -> Unit,
-    onScreenshotCaptureChange: (Boolean) -> Unit,
-    onFloatingOverlayChange: (Boolean) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)) {
-        SettingCategory(AppStrings.SettingsCategoryTracking)
-        SettingCard(
-            title = AppStrings.SettingsUsageTrackingTitle,
-            description = AppStrings.SettingsUsageTrackingDesc,
-            trailing = { Switch(checked = state.isUsageTrackingEnabled, onCheckedChange = onUsageTrackingChange) }
-        )
-        SettingCategory(AppStrings.SettingsCategoryCapture)
-        SettingCard(
-            title = AppStrings.SettingsScreenshotCaptureTitle,
-            description = AppStrings.SettingsScreenshotCaptureDesc,
-            trailing = { Switch(checked = state.isScreenshotCaptureEnabled, onCheckedChange = onScreenshotCaptureChange) }
-        )
-        SettingCategory(AppStrings.SettingsCategoryOverlay)
-        SettingCard(
-            title = AppStrings.SettingsFloatingOverlayTitle,
-            description = AppStrings.SettingsFloatingOverlayDesc,
-            trailing = { Switch(checked = state.isFloatingOverlayEnabled, onCheckedChange = onFloatingOverlayChange) }
-        )
-    }
 }
 
 @Composable

@@ -5,7 +5,6 @@ data class SettingsState(
     val availableApps: List<AppInfo> = emptyList(),
     val isUsageTrackingEnabled: Boolean = true,
     val isScreenshotCaptureEnabled: Boolean = true,
-    val isFloatingOverlayEnabled: Boolean = false,
     val dataRetentionDays: Int = 30
 )
 
@@ -20,7 +19,6 @@ sealed interface SettingsEvent {
     data class ToggleExclusion(val packageName: String) : SettingsEvent
     data class SetUsageTracking(val enabled: Boolean) : SettingsEvent
     data class SetScreenshotCapture(val enabled: Boolean) : SettingsEvent
-    data class SetFloatingOverlay(val enabled: Boolean) : SettingsEvent
     data class SetDataRetention(val days: Int) : SettingsEvent
 }
 

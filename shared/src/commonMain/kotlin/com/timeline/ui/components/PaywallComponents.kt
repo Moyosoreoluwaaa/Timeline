@@ -35,7 +35,7 @@ fun PaywallFeatures() {
 @Composable
 fun PaywallBadge(text: String) {
     Surface(
-        color = Color.White.copy(alpha = AppAlpha.SurfaceVariant),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.SurfaceVariant),
         shape = MaterialTheme.shapes.extraSmall,
         modifier = Modifier.padding(bottom = Dimensions.PaddingSmall)
     ) {
@@ -46,14 +46,14 @@ fun PaywallBadge(text: String) {
             Icon(
                 imageVector = Icons.Default.ElectricBolt,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(Dimensions.PaddingMedium)
             )
             Spacer(modifier = Modifier.width(Dimensions.Half))
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -69,14 +69,14 @@ fun FeatureItem(icon: ImageVector, text: String) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = AppColors.PaywallOfferGold,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(Dimensions.IconSmall)
         )
         Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }
@@ -93,9 +93,9 @@ fun PlanOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        color = if (selected) AppColors.PaywallOptionUnselected else Color.Transparent,
+        color = if (selected) AppColors.PaywallOptionSelected else AppColors.PaywallOptionUnselected,
         shape = MaterialTheme.shapes.medium,
-        border = if (selected) BorderStroke(Dimensions.Quat / 2, Color.White.copy(alpha = AppAlpha.Medium)) else null
+        border = if (selected) BorderStroke(Dimensions.Quat / 2, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier.padding(Dimensions.PaddingMedium),
@@ -105,7 +105,7 @@ fun PlanOption(
                 selected = selected,
                 onClick = null,
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = Color.White,
+                    selectedColor = if (selected) Color.White else Color.Gray,
                     unselectedColor = Color.Gray
                 )
             )
@@ -114,12 +114,12 @@ fun PlanOption(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
-                    color = Color.White
+                    color = if (selected) Color.White else Color.Black
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = AppAlpha.Medium)
+                    color = (if (selected) Color.White else Color.Black).copy(alpha = AppAlpha.Medium)
                 )
             }
             trailing?.invoke()

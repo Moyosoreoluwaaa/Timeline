@@ -1,13 +1,20 @@
 package com.timeline.ui
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.AuthEffect
@@ -16,7 +23,6 @@ import com.timeline.presentation.AuthViewModel
 import com.timeline.ui.components.AuthForm
 import com.timeline.ui.components.AuthHeader
 import com.timeline.ui.theme.AppAlpha
-import com.timeline.ui.theme.AppColors
 
 @Composable
 fun AuthScreen(
@@ -34,9 +40,7 @@ fun AuthScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(
-            brush = Brush.verticalGradient(colors = AppColors.BrandGradient)
-        )
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),

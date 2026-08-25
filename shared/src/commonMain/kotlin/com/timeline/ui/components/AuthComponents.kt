@@ -27,7 +27,7 @@ fun AuthHeader(onClose: () -> Unit) {
                 .padding(Dimensions.PaddingMedium)
                 .clip(CircleShape)
         ) {
-            Icon(Icons.Default.Close, contentDescription = AppStrings.ContentDescClose, tint = Color.White)
+            Icon(Icons.Default.Close, contentDescription = AppStrings.ContentDescClose, tint = MaterialTheme.colorScheme.onBackground)
         }
         Column(
             modifier = Modifier.padding(horizontal = Dimensions.PaddingExtraLarge),
@@ -36,7 +36,7 @@ fun AuthHeader(onClose: () -> Unit) {
             Text(
                 text = AppStrings.AppName,
                 style = MaterialTheme.typography.headlineLarge.copy(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier.align(Alignment.Start)
@@ -45,10 +45,10 @@ fun AuthHeader(onClose: () -> Unit) {
             Surface(
                 modifier = Modifier.size(Dimensions.IconHuge),
                 shape = MaterialTheme.shapes.medium,
-                color = Color.White.copy(alpha = AppAlpha.SurfaceVariant)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.SurfaceVariant)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("+", color = Color.White, style = MaterialTheme.typography.displaySmall)
+                    Text("+", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.displaySmall)
                 }
             }
         }
@@ -67,12 +67,12 @@ fun AuthForm(
     ) {
         Text(
             text = AppStrings.AuthWelcomeTitle,
-            style = MaterialTheme.typography.headlineMedium.copy(color = Color.White, fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium),
             textAlign = TextAlign.Center
         )
         Text(
             text = AppStrings.AuthWelcomeSubtitle,
-            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = AppAlpha.Subtitle)),
+            style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Subtitle)),
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
@@ -80,22 +80,22 @@ fun AuthForm(
         Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
         AuthButton(text = AppStrings.AuthSignInApple, icon = { PlaceholderIcons.AppleIcon() }, onClick = onSignInApple, enabled = !state.isLoading)
         Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.AuthOr, style = MaterialTheme.typography.bodySmall.copy(color = Color.White.copy(alpha = AppAlpha.Scrim)))
+        Text(text = AppStrings.AuthOr, style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Scrim)))
         Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
         TextField(
             value = "",
             onValueChange = {},
-            placeholder = { Text(AppStrings.AuthEmailPlaceholder, color = Color.White.copy(alpha = AppAlpha.Scrim)) },
+            placeholder = { Text(AppStrings.AuthEmailPlaceholder, color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Scrim)) },
             modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium),
             colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White.copy(alpha = AppAlpha.Divider),
-                focusedContainerColor = Color.White.copy(alpha = AppAlpha.SurfaceVariant),
+                unfocusedContainerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Divider),
+                focusedContainerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.SurfaceVariant),
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent
             )
         )
         Spacer(modifier = Modifier.height(Dimensions.SpacingHuge))
-        Text(text = AppStrings.AuthNoAccount, style = MaterialTheme.typography.bodySmall.copy(color = Color.White))
+        Text(text = AppStrings.AuthNoAccount, style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground))
     }
 }
 
@@ -114,8 +114,8 @@ fun AuthButton(
             .height(Dimensions.ButtonHeight),
         shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.White,
-            contentColor = Color.Black
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
         )
     ) {
         Row(

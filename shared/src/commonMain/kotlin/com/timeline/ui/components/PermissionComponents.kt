@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.timeline.presentation.PermissionItem
 import com.timeline.presentation.PermissionState
@@ -28,6 +27,7 @@ import com.timeline.ui.theme.AppColors
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun PermissionHeader(
@@ -42,7 +42,7 @@ fun PermissionHeader(
                 .padding(Dimensions.PaddingMedium)
                 .clip(CircleShape)
         ) {
-            Icon(Icons.Default.Close, contentDescription = AppStrings.ContentDescClose, tint = Color.White)
+            Icon(Icons.Default.Close, contentDescription = AppStrings.ContentDescClose, tint = MaterialTheme.colorScheme.onBackground)
         }
 
         Column(
@@ -53,7 +53,7 @@ fun PermissionHeader(
             Text(
                 text = AppStrings.AppName,
                 style = MaterialTheme.typography.headlineSmall.copy(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier.align(Alignment.Start)
@@ -85,29 +85,6 @@ fun PermissionHeader(
 }
 
 @Composable
-fun PermissionFooter(
-    allGranted: Boolean,
-    onStartTracking: () -> Unit
-) {
-    if (allGranted) {
-        Button(
-            onClick = onStartTracking,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(Dimensions.ButtonHeight)
-                .padding(bottom = Dimensions.PaddingLarge),
-            shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White,
-                contentColor = Color.Black
-            )
-        ) {
-            Text(AppStrings.PermissionStartButton, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-        }
-    }
-}
-
-@Composable
 fun PermissionCard(
     permission: PermissionItem,
     stackIndex: Int,
@@ -127,7 +104,7 @@ fun PermissionCard(
     LaunchedEffect(permission.isGranted) {
         if (permission.isGranted) {
             showCheck = true
-            delay(500)
+            delay(500.milliseconds)
             isCollapsing = true
         }
     }
@@ -151,7 +128,7 @@ fun PermissionCard(
                 }
                 .zIndex(zIndexValue),
             shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(containerColor = AppColors.CardBackground)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Box(modifier = Modifier.padding(Dimensions.PaddingLarge)) {
                 Column(
@@ -180,33 +157,34 @@ fun PermissionCard(
                                     "battery" -> "\uD83D\uDD0B"
                                     else -> "✨"
                                 },
-                                style = MaterialTheme.typography.headlineSmall
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                     Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-                    Text(text = permission.title, style = MaterialTheme.typography.titleLarge.copy(color = Color.White), textAlign = TextAlign.Center)
+                    Text(text = permission.title, style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface), textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-                    Text(text = permission.description, style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = AppAlpha.Medium)), textAlign = TextAlign.Center)
+                    Text(text = permission.description, style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = AppAlpha.Medium)), textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(Dimensions.PaddingExtraLarge))
                     Button(
                         onClick = onGrant,
                         enabled = isFront && !permission.isVerifying && !permission.isGranted,
                         modifier = Modifier.fillMaxWidth().height(Dimensions.ButtonHeight),
                         shape = MaterialTheme.shapes.medium,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
                     ) {
                         if (permission.isVerifying) {
-                            CircularProgressIndicator(modifier = Modifier.size(Dimensions.PaddingLarge), color = Color.Black)
+                            CircularProgressIndicator(modifier = Modifier.size(Dimensions.PaddingLarge), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Text(AppStrings.PermissionAllowButton, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                         }
                     }
                     Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                    Text(text = AppStrings.PermissionNotNowButton, style = MaterialTheme.typography.bodyMedium.copy(color = Color.White), modifier = Modifier.padding(vertical = Dimensions.PaddingSmall))
+                    Text(text = AppStrings.PermissionNotNowButton, style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface), modifier = Modifier.padding(vertical = Dimensions.PaddingSmall))
                 }
                 if (showCheck) {
-                    Box(modifier = Modifier.matchParentSize().background(Color.Black.copy(alpha = AppAlpha.CardOverlay)), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = AppAlpha.CardOverlay)), contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Green, modifier = Modifier.size(Dimensions.IconHuge))
                     }
                 }
