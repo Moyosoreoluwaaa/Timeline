@@ -5,8 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,9 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import com.timeline.presentation.SettingsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
@@ -38,10 +36,9 @@ fun UpgradeCard(
     ) {
         Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
             Text(
-                text = "You're a free user, get more",
+                text = AppStrings.SettingsUpgradeTitle,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             
@@ -63,8 +60,7 @@ fun UpgradeCard(
             ) {
                 Text(
                     text = AppStrings.PaywallStartTrial,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
         }
@@ -81,7 +77,7 @@ fun SettingsTopBar(onBack: () -> Unit) {
                 onClick = onBack,
                 modifier = Modifier.clip(CircleShape)
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = AppStrings.ContentDescBack)
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = AppStrings.ContentDescBack)
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -96,8 +92,7 @@ fun SettingCategory(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelMedium.copy(
-            color = MaterialTheme.colorScheme.secondary,
-            fontWeight = FontWeight.Bold
+            color = MaterialTheme.colorScheme.secondary
         ),
         modifier = Modifier.padding(start = Dimensions.Half, bottom = Dimensions.Half)
     )
@@ -122,7 +117,7 @@ fun InfoCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(AppWeights.Full)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
             }
             Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
@@ -155,7 +150,7 @@ fun SettingCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.weight(AppWeights.Full)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(title, style = MaterialTheme.typography.titleMedium)
                     Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                 }
                 if (trailing != null) {
@@ -168,9 +163,8 @@ fun SettingCard(
                         }
                         if (isExpandable) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                                 contentDescription = null,
-                                modifier = Modifier.size(Dimensions.PaddingMedium),
                                 tint = MaterialTheme.colorScheme.secondary
                             )
                         }

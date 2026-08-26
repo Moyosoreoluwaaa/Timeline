@@ -94,7 +94,7 @@ fun TimelineScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                    .clip(RoundedCornerShape(topStart = Dimensions.SpacingLarge, topEnd = Dimensions.SpacingLarge)),
                 color = MaterialTheme.colorScheme.surfaceContainerLowest
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {

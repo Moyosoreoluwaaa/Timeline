@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.timeline.presentation.AuthState
 import com.timeline.ui.theme.AppAlpha
@@ -35,10 +34,8 @@ fun AuthHeader(onClose: () -> Unit) {
         ) {
             Text(
                 text = AppStrings.AppName,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold
-                ),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(Dimensions.SpacingColossal)) // 96dp
@@ -67,7 +64,8 @@ fun AuthForm(
     ) {
         Text(
             text = AppStrings.AuthWelcomeTitle,
-            style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         Text(
@@ -124,7 +122,7 @@ fun AuthButton(
         ) {
             icon()
             Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
-            Text(text, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+            Text(text, style = MaterialTheme.typography.titleMedium)
         }
     }
 }

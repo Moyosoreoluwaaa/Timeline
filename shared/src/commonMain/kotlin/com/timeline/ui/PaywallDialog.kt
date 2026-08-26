@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import com.timeline.ui.components.FeatureItem
 import com.timeline.ui.components.PaywallBadge
+import com.timeline.ui.components.PaywallFeatures
 import com.timeline.ui.components.PlanOption
 import com.timeline.ui.components.PromoBadge
 import com.timeline.ui.theme.AppAlpha
@@ -51,7 +51,7 @@ fun PaywallScreen(
                             brush = Brush.radialGradient(
                                 colors = listOf(
                                     AppColors.BrandYellow,
-                                    AppColors.BrandBlack,
+                                    AppColors.BrandYellow,
                                     AppColors.BrandOrange,
                                     Color.Transparent
                                 ),
@@ -72,12 +72,18 @@ fun PaywallScreen(
             ) {
                 // Header
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = AppStrings.AppName,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.align(Alignment.CenterStart)
-                    )
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = AppStrings.AppName,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
+                        PaywallBadge(AppStrings.PaywallPro)
+                    }
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.align(Alignment.CenterEnd)
@@ -92,13 +98,10 @@ fun PaywallScreen(
 
                 Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
 
-                PaywallBadge(AppStrings.PaywallPro)
-
                 Text(
                     text = if (isDealsVariant) AppStrings.PaywallUnlockDeeper else AppStrings.PaywallUnlimitedInsights,
                     style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start
                 )
                 Text(
@@ -126,12 +129,12 @@ fun PaywallScreen(
                             Text(
                                 text = AppStrings.PaywallMonthlyPrice,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
+                                color = Color.Black.copy(alpha = AppAlpha.Medium)
                             )
                             
                             Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
                             
-                            PaywallFeatures()
+                            PaywallFeatures(contentColor = Color.Black)
                         }
                     }
                 } else {
@@ -153,16 +156,14 @@ fun PaywallScreen(
                         ) {
                             Text(
                                 text = AppStrings.PaywallLimitedTime,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.sp),
                                 color = AppColors.PaywallOfferGold,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = AppStrings.Paywall50Off,
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = AppColors.PaywallOfferGold,
-                                fontWeight = FontWeight.Bold
+                                color = AppColors.PaywallOfferGold
                             )
                             Text(
                                 text = AppStrings.PaywallThenPrice,
@@ -208,8 +209,7 @@ fun PaywallScreen(
                 ) {
                     Text(
                         text = AppStrings.PaywallStartTrial,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
 
@@ -225,12 +225,4 @@ fun PaywallScreen(
             }
         }
     }
-}
-
-@Composable
-private fun PaywallFeatures() {
-    FeatureItem(Icons.Default.CalendarMonth, AppStrings.PaywallUnlimitedHistory)
-    FeatureItem(Icons.Default.Mail, AppStrings.PaywallDailyMonthlyDigest)
-    FeatureItem(Icons.Default.BarChart, AppStrings.PaywallAdvancedInsights)
-    FeatureItem(Icons.Default.ElectricBolt, AppStrings.PaywallPrioritySupport)
 }

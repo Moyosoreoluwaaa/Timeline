@@ -15,9 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.zIndex
 import com.timeline.presentation.PermissionItem
@@ -52,10 +50,8 @@ fun PermissionHeader(
             Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
             Text(
                 text = AppStrings.AppName,
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold
-                ),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.align(Alignment.Start)
             )
             Spacer(modifier = Modifier.height(Dimensions.SpacingHuge)) // 48dp
@@ -73,10 +69,10 @@ fun PermissionHeader(
                     Surface(
                         modifier = Modifier.size(Dimensions.PaddingSmall),
                         shape = CircleShape,
-                        color = if (index < grantedCount) Color.Green else Color.Gray
+                        color = if (index < grantedCount) AppColors.Success else MaterialTheme.colorScheme.outlineVariant
                     ) {}
                     if (index < totalCount - 1) {
-                        Box(modifier = Modifier.width(Dimensions.PaddingLarge).height(Dimensions.Quat / 2).background(Color.Gray))
+                        Box(modifier = Modifier.width(Dimensions.PaddingLarge).height(Dimensions.Quat / 2).background(MaterialTheme.colorScheme.outlineVariant))
                     }
                 }
             }
@@ -177,7 +173,7 @@ fun PermissionCard(
                         if (permission.isVerifying) {
                             CircularProgressIndicator(modifier = Modifier.size(Dimensions.PaddingLarge), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
-                            Text(AppStrings.PermissionAllowButton, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                            Text(AppStrings.PermissionAllowButton, style = MaterialTheme.typography.titleMedium)
                         }
                     }
                     Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
@@ -185,7 +181,7 @@ fun PermissionCard(
                 }
                 if (showCheck) {
                     Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = AppAlpha.CardOverlay)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Green, modifier = Modifier.size(Dimensions.IconHuge))
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppColors.Success, modifier = Modifier.size(Dimensions.IconHuge))
                     }
                 }
             }

@@ -65,6 +65,7 @@ object AppStrings {
     const val SettingsContactUsDesc = "Get help or provide feedback."
     const val SettingsReportBugsTitle = "Report bugs"
     const val SettingsReportBugsDesc = "Help us improve by reporting issues."
+    const val SettingsUpgradeTitle = "You're a free user, get more"
     const val SettingsMadeByMo = "Made with love by Mo"
     
     // Notifications

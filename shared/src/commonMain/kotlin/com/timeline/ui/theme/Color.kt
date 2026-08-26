@@ -8,6 +8,8 @@ object AppColors {
     val BrandYellow = Color(0xFFF1C40F)
     val BrandCyan = Color(0xFF00FFFF)
     val BrandBlack = Color(0xFF000000)
+
+    val Success = Color(0xFF2ECC71)
     
     // Backgrounds
     val SurfaceDark = Color(0xFF1C1C1E)

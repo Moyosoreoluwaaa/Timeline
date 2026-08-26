@@ -15,7 +15,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.filled.*
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppColors
@@ -23,21 +22,26 @@ import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 
 @Composable
-fun PaywallFeatures() {
+fun PaywallFeatures(
+    contentColor: Color = MaterialTheme.colorScheme.onBackground
+) {
     Column {
-        FeatureItem(Icons.Default.CalendarMonth, AppStrings.PaywallUnlimitedHistory)
-        FeatureItem(Icons.Default.Mail, AppStrings.PaywallDailyMonthlyDigest)
-        FeatureItem(Icons.Default.BarChart, AppStrings.PaywallAdvancedInsights)
-        FeatureItem(Icons.Default.ElectricBolt, AppStrings.PaywallPrioritySupport)
+        FeatureItem(Icons.Default.CalendarMonth, AppStrings.PaywallUnlimitedHistory, contentColor)
+        FeatureItem(Icons.Default.Mail, AppStrings.PaywallDailyMonthlyDigest, contentColor)
+        FeatureItem(Icons.Default.BarChart, AppStrings.PaywallAdvancedInsights, contentColor)
+        FeatureItem(Icons.Default.ElectricBolt, AppStrings.PaywallPrioritySupport, contentColor)
     }
 }
 
 @Composable
-fun PaywallBadge(text: String) {
+fun PaywallBadge(
+    text: String,
+    modifier: Modifier = Modifier
+) {
     Surface(
         color = MaterialTheme.colorScheme.primary.copy(alpha = AppAlpha.SurfaceVariant),
         shape = MaterialTheme.shapes.extraSmall,
-        modifier = Modifier.padding(bottom = Dimensions.PaddingSmall)
+        modifier = modifier
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -53,15 +57,18 @@ fun PaywallBadge(text: String) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
 
 @Composable
-fun FeatureItem(icon: ImageVector, text: String) {
+fun FeatureItem(
+    icon: ImageVector,
+    text: String,
+    contentColor: Color = MaterialTheme.colorScheme.onBackground
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = Dimensions.Default)
@@ -76,7 +83,7 @@ fun FeatureItem(icon: ImageVector, text: String) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground
+            color = contentColor
         )
     }
 }
@@ -105,8 +112,8 @@ fun PlanOption(
                 selected = selected,
                 onClick = null,
                 colors = RadioButtonDefaults.colors(
-                    selectedColor = if (selected) Color.White else Color.Gray,
-                    unselectedColor = Color.Gray
+                    selectedColor = if (selected) Color.White else Color.Black,
+                    unselectedColor = Color.Black
                 )
             )
             Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
@@ -138,8 +145,7 @@ fun PromoBadge(text: String) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
-            fontWeight = FontWeight.Bold
+            color = Color.White
         )
     }
 }

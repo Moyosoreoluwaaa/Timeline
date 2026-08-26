@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -77,7 +78,8 @@ fun TimelineHeader(
             TopAppBar(
                 title = {
                     Column {
-                        Text(AppStrings.TimelineTitle, style = MaterialTheme.typography.headlineMedium)
+                        Text(AppStrings.TimelineTitle, style = MaterialTheme.typography.displayLarge,
+                            modifier = Modifier.padding(Dimensions.PaddingSmall))
                         Row(
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.small)
@@ -86,7 +88,7 @@ fun TimelineHeader(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(AppStrings.TimelineToday, style = MaterialTheme.typography.titleMedium)
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
                             Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
                             val dateText = remember(selectedDate) {
                                 val date = selectedDate ?: Clock.System.now()
@@ -178,7 +180,7 @@ fun TimelineEntry(
         }
         Text(
             text = timeText,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.width(Dimensions.PaddingLarge * 2) // 48dp
         )
 
@@ -218,11 +220,11 @@ fun TimelineEntry(
             shape = MaterialTheme.shapes.medium
         ) {
             Row(
-                modifier = Modifier.padding(Dimensions.PaddingMedium),
+                modifier = Modifier.padding(Dimensions.PaddingSmall),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    modifier = Modifier.size(Dimensions.IconMedium),
+                    modifier = Modifier.size(Dimensions.IconLarge),
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surface
                 ) {
@@ -242,14 +244,8 @@ fun TimelineEntry(
                 }
                 Text(
                     text = "${session.durationMinutes}m",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary
-                )
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.PaddingMedium),
-                    tint = MaterialTheme.colorScheme.outline
                 )
             }
         }
@@ -267,7 +263,7 @@ fun BottomSummary(
 
     Surface(
         modifier = Modifier
-            .padding(horizontal = Dimensions.PaddingMedium, vertical = Dimensions.PaddingLarge)
+            .padding(Dimensions.PaddingMedium)
             .navigationBarsPadding()
             .fillMaxWidth(),
         shape =  MaterialTheme.shapes.medium,
@@ -277,14 +273,16 @@ fun BottomSummary(
     ) {
         Row(
             modifier = Modifier
+                .height(IntrinsicSize.Max)
                 .clip(MaterialTheme.shapes.medium)
-                .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingMedium),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingSmall),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
+                    .fillMaxHeight()
                     .clip(MaterialTheme.shapes.small)
                     .clickable { onUpgradeClick() }
                     .padding(Dimensions.Half)
@@ -294,7 +292,9 @@ fun BottomSummary(
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
+                    .fillMaxHeight()
                     .clip(MaterialTheme.shapes.small)
                     .clickable { onUpgradeClick() }
                     .padding(Dimensions.Half)
@@ -304,7 +304,9 @@ fun BottomSummary(
             }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
+                    .fillMaxHeight()
                     .clip(MaterialTheme.shapes.small)
                     .clickable { onUpgradeClick() }
                     .padding(Dimensions.Half)
@@ -315,7 +317,7 @@ fun BottomSummary(
                         AppIcon(
                             icon = session.icon,
                             contentDescription = session.displayName,
-                            modifier = Modifier.size(Dimensions.PaddingLarge - Dimensions.PaddingSmall) // 16dp or 20dp? Let's use 16dp
+                            modifier = Modifier.size(Dimensions.IconMedium)
                         )
                     }
                 }

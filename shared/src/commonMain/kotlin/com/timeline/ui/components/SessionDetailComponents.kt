@@ -106,12 +106,12 @@ fun SessionDetailFooter(
                     .clickable { onPrevClick() }
                     .padding(Dimensions.PaddingSmall)
             ) {
-                Text(AppStrings.SessionPrev, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Text(AppStrings.SessionPrev, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.height(Dimensions.Half))
                 AppIcon(
                     icon = prevSession.icon,
                     contentDescription = AppStrings.ContentDescPrevSession,
-                    modifier = Modifier.size(Dimensions.IconMedium)
+                    modifier = Modifier.size(Dimensions.IconLarge)
                 )
             }
         } else {
@@ -126,12 +126,12 @@ fun SessionDetailFooter(
                     .clickable { onNextClick() }
                     .padding(Dimensions.PaddingSmall)
             ) {
-                Text(AppStrings.SessionNext, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                Text(AppStrings.SessionNext, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.height(Dimensions.Half))
                 AppIcon(
                     icon = nextSession.icon,
                     contentDescription = AppStrings.ContentDescNextSession,
-                    modifier = Modifier.size(Dimensions.IconMedium)
+                    modifier = Modifier.size(Dimensions.IconLarge)
                 )
             }
         } else {
@@ -245,7 +245,7 @@ fun StatRow(session: Session) {
 @Composable
 fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(value, style = MaterialTheme.typography.titleMedium)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
     }
 }
