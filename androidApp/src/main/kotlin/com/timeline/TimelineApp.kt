@@ -5,6 +5,7 @@ import androidx.work.Configuration
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.koin.KermitKoinLogger
 import com.timeline.di.initKoin
+import com.timeline.domain.configureRevenueCat
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 
@@ -18,6 +19,9 @@ class TimelineApp : Application(), Configuration.Provider {
             // Phase 1: Logging integration with Koin
             logger(KermitKoinLogger(Logger.withTag("koin")))
         }
+
+        // Initialize RevenueCat
+        configureRevenueCat()
 
         Logger.d { "TimelineApp initialized with Koin in process: ${getAppProcessName()}" }
     }

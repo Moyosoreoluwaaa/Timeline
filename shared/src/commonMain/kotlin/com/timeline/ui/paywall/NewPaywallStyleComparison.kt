@@ -1,19 +1,7 @@
-// File: NewPaywallStyleComparison.kt
 package com.timeline.ui.paywall
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -21,30 +9,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.timeline.presentation.PaywallEvent
+import com.timeline.presentation.PaywallState
 import com.timeline.ui.theme.Dimensions
-import com.timeline.ui.theme.TimelineTheme
 import com.timeline.util.AppStrings
 
 private data class ComparisonRow(val label: String, val inFree: Boolean, val inPro: Boolean)
 
 @Composable
 fun NewPaywallStyleComparison(
-    onDismiss: () -> Unit,
-    onStartTrial: (isYearly: Boolean) -> Unit
+    state: PaywallState,
+    onEvent: (PaywallEvent) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var isYearlySelected by remember { mutableStateOf(true) }
+    var selectedPackage by remember(state.offerings) { 
+        mutableStateOf(state.yearlyPackage ?: state.monthlyPackage) 
+    }
     val colors = NewPaywallPalette.colors
 
     NewPaywallGradientBackdrop(
@@ -72,43 +59,52 @@ fun NewPaywallStyleComparison(
             ComparisonTable()
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = colors.cardSurface,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier.padding(Dimensions.PaddingMedium),
-                    verticalAlignment = Alignment.CenterVertically
+            selectedPackage?.let { pkg ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        val other = if (pkg.identifier == state.yearlyPackage?.identifier) state.monthlyPackage else state.yearlyPackage
+                        other?.let { selectedPackage = it }
+                    },
+                    color = colors.cardSurface,
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = AppStrings.PaywallYearlyOption,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = colors.onBackground
-                        )
-                        Text(
-                            text = AppStrings.PaywallYearlyBilling,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onBackgroundMuted
-                        )
+                    Row(
+                        modifier = Modifier.padding(Dimensions.PaddingMedium),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = pkg.storeProduct.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = colors.onBackground
+                            )
+                            Text(
+                                text = pkg.storeProduct.price.formatted,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onBackgroundMuted
+                            )
+                        }
+                        if (pkg.identifier == state.yearlyPackage?.identifier) {
+                            SpikedSave20SealBadge()
+                        }
                     }
-                    SpikedSave20SealBadge()
                 }
             }
+            
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             Text(
-                text = if (isYearlySelected) "Switch to monthly billing" else "Switch to yearly billing (save 20%)",
+                text = if (selectedPackage?.identifier == state.yearlyPackage?.identifier) "Switch to monthly billing" else "Switch to yearly billing (save 20%)",
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.onBackgroundMuted,
-                modifier = Modifier.clickable { isYearlySelected = !isYearlySelected }
+                modifier = Modifier.clickable { 
+                    val other = if (selectedPackage?.identifier == state.yearlyPackage?.identifier) state.monthlyPackage else state.yearlyPackage
+                    other?.let { selectedPackage = it }
+                }
             )
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
             NewPaywallPrimaryButton(AppStrings.PaywallStartTrial) {
-                onStartTrial(
-                    isYearlySelected
-                )
+                selectedPackage?.let { onEvent(PaywallEvent.PurchasePackage(it)) }
             }
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             NewPaywallFooterDisclaimer()
@@ -193,26 +189,6 @@ private fun ComparisonMark(
                 tint = colors.crossMuted,
                 modifier = Modifier.size(18.dp)
             )
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Comparison Dark")
-@Composable
-private fun NewPaywallStyleComparisonDarkPreview() {
-    TimelineTheme(darkTheme = true) {
-        NewPaywallPalette.ProvideNewPaywallColors(darkTheme = true) {
-            NewPaywallStyleComparison(onDismiss = {}, onStartTrial = {})
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Comparison Light")
-@Composable
-private fun NewPaywallStyleComparisonLightPreview() {
-    TimelineTheme(darkTheme = false) {
-        NewPaywallPalette.ProvideNewPaywallColors(darkTheme = false) {
-            NewPaywallStyleComparison(onDismiss = {}, onStartTrial = {})
         }
     }
 }

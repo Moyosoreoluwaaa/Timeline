@@ -1,4 +1,3 @@
-// File: NewPaywallStyleFeatureGrid.kt
 package com.timeline.ui.paywall
 
 import androidx.compose.foundation.background
@@ -19,18 +18,22 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.revenuecat.purchases.kmp.models.Package
+import com.timeline.presentation.PaywallEvent
+import com.timeline.presentation.PaywallState
 import com.timeline.ui.theme.Dimensions
-import com.timeline.ui.theme.TimelineTheme
 import com.timeline.util.AppStrings
 
 @Composable
 fun NewPaywallStyleFeatureGrid(
-    onDismiss: () -> Unit,
-    onStartTrial: (isYearly: Boolean) -> Unit
+    state: PaywallState,
+    onEvent: (PaywallEvent) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var isYearlySelected by remember { mutableStateOf(true) }
+    var selectedPackage by remember(state.offerings) { 
+        mutableStateOf(state.yearlyPackage ?: state.monthlyPackage) 
+    }
 
     NewPaywallGradientBackdrop(
         topColor = NewPaywallPalette.GradientCyan,
@@ -66,34 +69,39 @@ fun NewPaywallStyleFeatureGrid(
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
 
             BillingToggle(
-                isYearlySelected = isYearlySelected,
-                onSelect = { isYearlySelected = it }
+                packages = state.currentOffering?.availablePackages ?: emptyList(),
+                selectedPackage = selectedPackage,
+                onSelect = { selectedPackage = it }
             )
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
 
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = if (isYearlySelected) "$19.99" else "$3.99",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = NewPaywallPalette.OnBackground,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(Dimensions.Half))
-                Text(
-                    text = if (isYearlySelected) "/ year, after free trial" else "/ month",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = NewPaywallPalette.OnBackgroundMuted,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-                if (isYearlySelected) {
-                    Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
-                    Save20PillBadge()
+            selectedPackage?.let { pkg ->
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = pkg.storeProduct.price.formatted,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = NewPaywallPalette.OnBackground,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(Dimensions.Half))
+                    Text(
+                        text = if (pkg.identifier == state.yearlyPackage?.identifier) "/ year" else "/ month",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = NewPaywallPalette.OnBackgroundMuted,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    if (pkg.identifier == state.yearlyPackage?.identifier) {
+                        Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
+                        Save20PillBadge()
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-            NewPaywallPrimaryButton(AppStrings.PaywallStartTrial) { onStartTrial(isYearlySelected) }
+            NewPaywallPrimaryButton(AppStrings.PaywallStartTrial) { 
+                selectedPackage?.let { onEvent(PaywallEvent.PurchasePackage(it)) }
+            }
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             NewPaywallFooterDisclaimer()
         }
@@ -172,39 +180,35 @@ private fun FeatureGrid(features: List<Pair<ImageVector, String>>) {
 }
 
 @Composable
-private fun BillingToggle(isYearlySelected: Boolean, onSelect: (Boolean) -> Unit) {
+private fun BillingToggle(
+    packages: List<Package>, 
+    selectedPackage: Package?, 
+    onSelect: (Package) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(NewPaywallPalette.CardSurface, RoundedCornerShape(50)),
     ) {
-        listOf(false, true).forEach { yearly ->
-            val selected = yearly == isYearlySelected
+        packages.forEach { pkg ->
+            val selected = pkg.identifier == selectedPackage?.identifier
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .padding(Dimensions.Quat)
                     .clip(RoundedCornerShape(50))
                     .background(if (selected) NewPaywallPalette.OnBackground else Color.Transparent)
-                    .clickable { onSelect(yearly) }
+                    .clickable { onSelect(pkg) }
                     .padding(vertical = Dimensions.PaddingSmall),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (yearly) AppStrings.PaywallYearlyOption else AppStrings.PaywallMonthlyOption,
+                    text = pkg.storeProduct.title,
                     style = MaterialTheme.typography.labelLarge,
                     color = if (selected) NewPaywallPalette.Background else NewPaywallPalette.OnBackgroundMuted,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun NewPaywallStyleFeatureGridPreview() {
-    TimelineTheme {
-        NewPaywallStyleFeatureGrid(onDismiss = {}, onStartTrial = {})
     }
 }

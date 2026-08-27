@@ -42,6 +42,7 @@ koin = "4.2.2"
 navigation3 = "1.2.0-alpha07"
 ksp = "2.3.11"
 kotlinx-serialization = "1.7.3"
+purchases = "3.6.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -99,6 +100,9 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", ver
 # --- navigation ---
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+purchases-kmp-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases" }
+purchases-kmp-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases" }
+purchases-android-ui = { module = "com.revenuecat.purchases:purchases-ui", version = "8.10.1" }
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

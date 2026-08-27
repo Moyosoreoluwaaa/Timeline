@@ -56,6 +56,7 @@ import com.timeline.util.AppStrings
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToPaywall: (isDeals: Boolean) -> Unit = {},
+    onNavigateToCustomerCenter: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -116,6 +117,13 @@ fun SettingsScreen(
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 
                     item { SettingCategory(AppStrings.SettingsCategoryData) }
+                    item {
+                        SettingCard(
+                            title = "Manage Subscription",
+                            description = "View and manage your active plans.",
+                            onClick = onNavigateToCustomerCenter
+                        )
+                    }
                     item {
                         SettingCard(
                             title = AppStrings.SettingsAppExclusionsTitle,

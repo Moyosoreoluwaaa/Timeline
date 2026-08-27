@@ -4,19 +4,23 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.timeline.presentation.PermissionItem
 import com.timeline.presentation.PermissionState
@@ -24,56 +28,45 @@ import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppColors
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun PermissionHeader(
-    onClose: () -> Unit,
     state: PermissionState
 ) {
-    Box(modifier = Modifier.fillMaxWidth()) {
-        IconButton(
-            onClick = onClose,
+    Column(
+        modifier = Modifier.padding(horizontal = Dimensions.PaddingLarge),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
+        Text(
+            text = AppStrings.AppName,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(modifier = Modifier.height(Dimensions.SpacingHuge))
+        Row(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(Dimensions.PaddingMedium)
-                .clip(CircleShape)
+                .fillMaxWidth()
+                .padding(vertical = Dimensions.PaddingSmall),
+            horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.Close, contentDescription = AppStrings.ContentDescClose, tint = MaterialTheme.colorScheme.onBackground)
-        }
-
-        Column(
-            modifier = Modifier.padding(horizontal = Dimensions.PaddingLarge),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-            Text(
-                text = AppStrings.AppName,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.align(Alignment.Start)
-            )
-            Spacer(modifier = Modifier.height(Dimensions.SpacingHuge)) // 48dp
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.small)
-                    .padding(vertical = Dimensions.PaddingSmall),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val grantedCount = state.permissions.count { it.isGranted }
-                val totalCount = state.permissions.size
-                repeat(totalCount) { index ->
-                    Surface(
-                        modifier = Modifier.size(Dimensions.PaddingSmall),
-                        shape = CircleShape,
-                        color = if (index < grantedCount) AppColors.Success else MaterialTheme.colorScheme.outlineVariant
-                    ) {}
-                    if (index < totalCount - 1) {
-                        Box(modifier = Modifier.width(Dimensions.PaddingLarge).height(Dimensions.Quat / 2).background(MaterialTheme.colorScheme.outlineVariant))
-                    }
+            state.permissions.forEach { permission ->
+                if (permission.isGranted) {
+                    Box(
+                        modifier = Modifier
+                            .size(Dimensions.Default)
+                            .clip(CircleShape)
+                            .border(width = Dimensions.LineThickness, color = MaterialTheme.colorScheme.primary, shape = CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(Dimensions.Default)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = AppAlpha.Subtitle))
+                    )
                 }
             }
         }
@@ -85,48 +78,55 @@ fun PermissionCard(
     permission: PermissionItem,
     stackIndex: Int,
     totalRemaining: Int,
-    onGrant: () -> Unit
+    onGrant: () -> Unit,
+    onAnimationFinished: () -> Unit = {}
 ) {
-    val isFront = stackIndex == 0
-    val targetScale = 1f - (stackIndex * 0.05f)
-    val targetOffset = -(Dimensions.PaddingLarge * stackIndex)
-    val scale by animateFloatAsState(targetValue = targetScale, label = "Scale")
-    val offset by animateDpAsState(targetValue = targetOffset, label = "Offset")
     val zIndexValue = (totalRemaining - stackIndex).toFloat()
+    
+    // Front card (stackIndex 0) is the shortest
+    // Back cards are taller
+    val heightFraction = 0.65f + (stackIndex * 0.08f)
 
-    var showCheck by remember { mutableStateOf(false) }
     var isCollapsing by remember { mutableStateOf(false) }
 
     LaunchedEffect(permission.isGranted) {
         if (permission.isGranted) {
-            showCheck = true
-            delay(500.milliseconds)
             isCollapsing = true
         }
     }
 
     val collapseProgress by animateFloatAsState(
         targetValue = if (isCollapsing) 0f else 1f,
-        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "Collapse",
+        finishedListener = { if (it == 0f) onAnimationFinished() }
     )
 
     if (collapseProgress > 0f) {
+        val orangeGradient = Brush.linearGradient(
+            0.0f to AppColors.BrandOrange,
+            0.2f to AppColors.BrandOrange,
+            0.201f to Color.Transparent,
+            1f to Color.Transparent,
+            start = Offset(0f, 0f),
+            end = Offset(400f, 400f)
+        )
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = Dimensions.PaddingLarge)
-                .offset(y = offset)
+                .fillMaxHeight(heightFraction)
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationY = (AppAlpha.Full - collapseProgress) * Dimensions.SlideDownOffset
+                    translationY = (1f - collapseProgress) * 2000f
                     alpha = collapseProgress
+                    shadowElevation = (totalRemaining - stackIndex) * 8f
                 }
                 .zIndex(zIndexValue),
-            shape = MaterialTheme.shapes.large,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, orangeGradient)
         ) {
-            Box(modifier = Modifier.padding(Dimensions.PaddingLarge)) {
+            Box(modifier = Modifier.fillMaxSize().padding(Dimensions.PaddingLarge)) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -162,10 +162,12 @@ fun PermissionCard(
                     Text(text = permission.title, style = MaterialTheme.typography.titleLarge.copy(color = MaterialTheme.colorScheme.onSurface), textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
                     Text(text = permission.description, style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface.copy(alpha = AppAlpha.Medium)), textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingExtraLarge))
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
                     Button(
                         onClick = onGrant,
-                        enabled = isFront && !permission.isVerifying && !permission.isGranted,
+                        enabled = stackIndex == 0 && !permission.isVerifying && !permission.isGranted,
                         modifier = Modifier.fillMaxWidth().height(Dimensions.ButtonHeight),
                         shape = MaterialTheme.shapes.medium,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
@@ -176,13 +178,21 @@ fun PermissionCard(
                             Text(AppStrings.PermissionAllowButton, style = MaterialTheme.typography.titleMedium)
                         }
                     }
+                    
                     Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                    Text(text = AppStrings.PermissionNotNowButton, style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface), modifier = Modifier.padding(vertical = Dimensions.PaddingSmall))
-                }
-                if (showCheck) {
-                    Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = AppAlpha.CardOverlay)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = AppColors.Success, modifier = Modifier.size(Dimensions.IconHuge))
+                    
+                    Button(
+                        onClick = { /* Not now */ },
+                        modifier = Modifier.fillMaxWidth().height(Dimensions.ButtonHeight),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Text(text = AppStrings.PermissionNotNowButton, style = MaterialTheme.typography.titleMedium)
                     }
+                    Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
                 }
             }
         }

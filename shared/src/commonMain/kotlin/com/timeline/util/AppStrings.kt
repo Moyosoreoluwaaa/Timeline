@@ -17,7 +17,6 @@ object AppStrings {
     const val PermissionAlmostThereTitle = "Almost there"
     const val PermissionAllSetSubtitle = "Everything is ready for your timeline."
     const val PermissionAlmostThereSubtitle = "To show you real insights, we need\naccess to how you use your apps."
-    const val PermissionStartButton = "Start Activity"
     const val PermissionAllowButton = "Allow Access"
     const val PermissionNotNowButton = "Not Now"
     

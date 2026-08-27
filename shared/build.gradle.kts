@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalKotlinGradlePluginApi::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -7,10 +10,12 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.androidxRoom)
     alias(libs.plugins.ksp)
-    kotlin("plugin.serialization") version "2.0.21" // Matching current kotlin version if possible
+    kotlin("plugin.serialization") version "2.0.21" 
 }
 
 kotlin {
+    applyDefaultHierarchyTemplate()
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -43,18 +48,8 @@ kotlin {
     }
     
     sourceSets {
-        androidMain.dependencies {
-            implementation(libs.compose.uiToolingPreview)
-            implementation(libs.compose.uiTooling)
-            implementation(libs.accompanist.drawablepainter)
-
-            // periodic purge sweep (14-day cache eviction)
-            implementation(libs.androidx.work.runtime)
-
-            // navigation
-            implementation(libs.androidx.navigation3.runtime)
-            implementation(libs.androidx.navigation3.ui)
-        }
+        val commonMain = named("commonMain").get()
+        
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -69,6 +64,10 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.androidx.navigation3.runtime)
 
+            // RevenueCat KMP
+            api(libs.purchases.kmp.core)
+            api(libs.purchases.kmp.ui)
+
             // dependency injection
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
@@ -82,6 +81,18 @@ kotlin {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.androidx.datastore.preferences)
         }
+
+        named("androidMain").configure {
+            dependencies {
+                implementation(libs.compose.uiToolingPreview)
+                implementation(libs.compose.uiTooling)
+                implementation(libs.accompanist.drawablepainter)
+                implementation(libs.androidx.work.runtime)
+                implementation(libs.androidx.navigation3.runtime)
+                implementation(libs.androidx.navigation3.ui)
+            }
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }

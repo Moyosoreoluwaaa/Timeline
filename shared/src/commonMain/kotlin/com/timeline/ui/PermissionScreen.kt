@@ -12,7 +12,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.*
 import com.timeline.ui.components.PermissionHeader
 import com.timeline.ui.theme.AppAlpha
-import com.timeline.ui.theme.AppWeights
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,47 +51,66 @@ fun PermissionScreen(
 
     PermissionScreenContent(
         state = state,
-        onEvent = viewModel::onEvent
+        onEvent = viewModel::onEvent,
+        onLastAnimationFinished = {
+            viewModel.onEvent(PermissionEvent.StartTracking)
+        }
     )
 }
 
 @Composable
 private fun PermissionScreenContent(
     state: PermissionState,
-    onEvent: (PermissionEvent) -> Unit
+    onEvent: (PermissionEvent) -> Unit,
+    onLastAnimationFinished: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = Dimensions.PaddingLarge),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            PermissionHeader(onClose = { /* Handle close */ }, state = state)
+            PermissionHeader(state = state)
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
 
-            Text(
-                text = if (state.allGranted) AppStrings.PermissionAllSetTitle else AppStrings.PermissionAlmostThereTitle,
-                style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.onBackground),
-                modifier = Modifier.align(Alignment.Start)
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimensions.PaddingLarge)
+            ) {
+                Text(
+                    text = if (state.allGranted) AppStrings.PermissionAllSetTitle else AppStrings.PermissionAlmostThereTitle,
+                    style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.onBackground),
+                )
 
-            Text(
-                text = if (state.allGranted) AppStrings.PermissionAllSetSubtitle else AppStrings.PermissionAlmostThereSubtitle,
-                style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Subtitle)),
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Spacer(modifier = Modifier.height(Dimensions.SpacingHuge)) // 48dp
-
-            Box(modifier = Modifier.fillMaxWidth().weight(AppWeights.Full), contentAlignment = Alignment.BottomCenter) {
-                PermissionStack(
-                    state = state,
-                    onEvent = onEvent
+                Text(
+                    text = if (state.allGranted) AppStrings.PermissionAllSetSubtitle else AppStrings.PermissionAlmostThereSubtitle,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Subtitle)),
                 )
             }
-            Spacer(modifier = Modifier.height(Dimensions.IconLarge)) // 48dp
+
+            Spacer(modifier = Modifier.height(Dimensions.SpacingHuge))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = Dimensions.PaddingLarge)
+                ) {
+                    PermissionStack(
+                        state = state,
+                        onEvent = onEvent,
+                        onLastAnimationFinished = onLastAnimationFinished
+                    )
+                }
+            }
         }
     }
 }
@@ -97,17 +118,34 @@ private fun PermissionScreenContent(
 @Composable
 private fun PermissionStack(
     state: PermissionState,
-    onEvent: (PermissionEvent) -> Unit
+    onEvent: (PermissionEvent) -> Unit,
+    onLastAnimationFinished: () -> Unit
 ) {
-    val remainingPermissions = state.permissions.filter { !it.isGranted }
-    remainingPermissions.asReversed().forEachIndexed { index, permission ->
-        val stackIndex = remainingPermissions.size - 1 - index
-        com.timeline.ui.components.PermissionCard(
-            permission = permission,
-            stackIndex = stackIndex,
-            totalRemaining = remainingPermissions.size,
-            onGrant = { onEvent(PermissionEvent.GrantPermission(permission.id)) }
-        )
+    var hiddenIds by remember { mutableStateOf(state.permissions.filter { it.isGranted }.map { it.id }.toSet()) }
+
+    val visiblePermissions = state.permissions.filter { !hiddenIds.contains(it.id) }
+    
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        visiblePermissions.forEachIndexed { index, permission ->
+            val stackIndex = index
+            key(permission.id) {
+                com.timeline.ui.components.PermissionCard(
+                    permission = permission,
+                    stackIndex = stackIndex,
+                    totalRemaining = visiblePermissions.size,
+                    onGrant = { onEvent(PermissionEvent.GrantPermission(permission.id)) },
+                    onAnimationFinished = {
+                        hiddenIds = hiddenIds + permission.id
+                        if (state.allGranted && (hiddenIds.size >= state.permissions.size)) {
+                            onLastAnimationFinished()
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -140,7 +178,8 @@ private fun PermissionScreenPreview() {
     TimelineTheme {
         PermissionScreenContent(
             state = sampleState,
-            onEvent = {}
+            onEvent = {},
+            onLastAnimationFinished = {}
         )
     }
 }

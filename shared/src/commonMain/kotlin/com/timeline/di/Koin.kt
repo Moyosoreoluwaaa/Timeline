@@ -5,10 +5,13 @@ import com.timeline.data.TimelineRepositoryImpl
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.TimelineExclusionPolicy
 import com.timeline.domain.UserPreferences
+import com.timeline.domain.SubscriptionManager
+import com.timeline.domain.RevenueCatSubscriptionManager
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
+import com.timeline.presentation.PaywallViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
@@ -23,10 +26,12 @@ val appModule = module {
     singleOf(::TimelineRepositoryImpl) { bind<TimelineRepository>() }
     single<ExclusionPolicy> { TimelineExclusionPolicy(get()) }
     singleOf(::UserPreferences)
+    singleOf(::RevenueCatSubscriptionManager) { bind<SubscriptionManager>() }
     viewModelOf(::TimelineViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AuthViewModel)
     viewModelOf(::PermissionViewModel)
+    viewModelOf(::PaywallViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

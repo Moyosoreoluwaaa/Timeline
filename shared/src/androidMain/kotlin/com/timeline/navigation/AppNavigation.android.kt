@@ -12,10 +12,13 @@ import androidx.navigation3.ui.NavDisplay
 import com.timeline.ui.TimelineScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.PermissionScreen
-import com.timeline.ui.PaywallScreen
+import com.timeline.ui.paywall.NewPaywallScreen
+import com.timeline.ui.paywall.NewPaywallStyle
+import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.PermissionViewModel
+import com.timeline.presentation.PaywallViewModel
 import com.timeline.domain.UserPreferences
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
@@ -98,6 +101,9 @@ actual fun AppNavigation(
                         onNavigateToPaywall = { isDeals ->
                             backStack.add(Route.Paywall(isDealsVariant = isDeals))
                         },
+                        onNavigateToCustomerCenter = {
+                            backStack.add(Route.CustomerCenter)
+                        },
                         onBack = {
                             if (backStack.size > 1) {
                                 backStack.removeAt(backStack.size - 1)
@@ -105,15 +111,30 @@ actual fun AppNavigation(
                         }
                     )
                 }
+                entry<Route.CustomerCenter> {
+                    CustomerCenter(
+                        onDismiss = {
+                            if (backStack.size > 1) {
+                                backStack.removeAt(backStack.size - 1)
+                            }
+                        }
+                    )
+                }
                 entry<Route.Paywall> { route ->
-                    PaywallScreen(
+                    val paywallViewModel: PaywallViewModel = koinViewModel()
+                    NewPaywallScreen(
+                        viewModel = paywallViewModel,
+                        style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
                         onDismiss = {
                             if (backStack.size > 1) {
                                 backStack.removeAt(backStack.size - 1)
                             }
                         },
-                        onStartTrial = { /* subscription logic */ },
-                        isDealsVariant = route.isDealsVariant
+                        onPurchaseSuccess = {
+                            if (backStack.size > 1) {
+                                backStack.removeAt(backStack.size - 1)
+                            }
+                        }
                     )
                 }
             }

@@ -39,6 +39,9 @@ dependencies {
     implementation(libs.kermit)
     implementation(libs.kermit.koin)
 
+    // RevenueCat (Native Android components for Manifest)
+    implementation(libs.purchases.android.ui)
+
     // dependency injection
     implementation(libs.koin.android)
     implementation(libs.koin.compose)

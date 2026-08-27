@@ -10,14 +10,26 @@ import androidx.compose.ui.graphics.Color
 private val DarkColorScheme = darkColorScheme(
     primary = AppColors.BrandOrange,
     secondary = AppColors.BrandYellow,
-    tertiary = Color.Cyan, // Placeholder or supplemental
+    tertiary = Color.Cyan,
     background = AppColors.BrandBlack,
     surface = AppColors.SurfaceDark,
+    surfaceVariant = Color(0xFF3E3E42),
     onPrimary = Color.Black,
     onSecondary = Color.Black,
     onTertiary = Color.Black,
     onBackground = Color.White,
     onSurface = Color.White,
+    onSurfaceVariant = Color.White,
+    outline = Color(0xFF8E8E93),
+    outlineVariant = Color(0xFF48484A),
+    surfaceContainerLow = Color(0xFF2C2C2E),
+    surfaceContainer = Color(0xFF3A3A3C),
+    surfaceContainerHigh = Color(0xFF48484A),
+    surfaceContainerHighest = Color(0xFF636366),
+    primaryContainer = AppColors.BrandOrange.copy(alpha = 0.2f),
+    onPrimaryContainer = AppColors.BrandOrange,
+    secondaryContainer = AppColors.BrandYellow.copy(alpha = 0.2f),
+    onSecondaryContainer = AppColors.BrandYellow,
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -26,11 +38,23 @@ private val LightColorScheme = lightColorScheme(
     tertiary = Color.Cyan,
     background = Color.White,
     surface = Color.White,
+    surfaceVariant = Color(0xFFF2F2F7),
     onPrimary = Color.White,
     onSecondary = Color.Black,
     onTertiary = Color.Black,
     onBackground = Color.Black,
     onSurface = Color.Black,
+    onSurfaceVariant = Color.Gray,
+    outline = Color(0xFFC7C7CC),
+    outlineVariant = Color(0xFFE5E5EA),
+    surfaceContainerLow = Color(0xFFF9F9F9),
+    surfaceContainer = Color(0xFFF2F2F7),
+    surfaceContainerHigh = Color(0xFFEBEBF0),
+    surfaceContainerHighest = Color(0xFFFAF6F6),
+    primaryContainer = AppColors.BrandOrange.copy(alpha = 0.1f),
+    onPrimaryContainer = AppColors.BrandOrange,
+    secondaryContainer = AppColors.BrandYellow.copy(alpha = 0.1f),
+    onSecondaryContainer = Color.Black,
 )
 
 @Composable

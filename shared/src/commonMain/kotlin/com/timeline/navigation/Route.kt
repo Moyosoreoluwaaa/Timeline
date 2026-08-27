@@ -14,5 +14,7 @@ sealed interface Route : NavKey {
     @Serializable
     data object Settings : Route
     @Serializable
+    data object CustomerCenter : Route
+    @Serializable
     data class Paywall(val isDealsVariant: Boolean = false) : Route
 }

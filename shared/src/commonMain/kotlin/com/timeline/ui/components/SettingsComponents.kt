@@ -131,15 +131,17 @@ fun SettingCard(
     description: String,
     status: String? = null,
     trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
     isExpandable: Boolean = false,
     isExpanded: Boolean = false,
     onHeaderClick: () -> Unit = {},
     content: @Composable () -> Unit = {}
 ) {
+    val finalOnClick = onClick ?: if (isExpandable) onHeaderClick else null
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (isExpandable) Modifier.clickable(onClick = onHeaderClick) else Modifier),
+            .then(if (finalOnClick != null) Modifier.clickable(onClick = finalOnClick) else Modifier),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.CardOverlay)),
         shape = MaterialTheme.shapes.medium
     ) {

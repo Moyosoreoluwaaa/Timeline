@@ -215,7 +215,7 @@ fun TimelineEntry(
                 .padding(vertical = Dimensions.PaddingSmall)
                 .clickable { onClick() },
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.CardOverlay)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.Divider)
             ),
             shape = MaterialTheme.shapes.medium
         ) {

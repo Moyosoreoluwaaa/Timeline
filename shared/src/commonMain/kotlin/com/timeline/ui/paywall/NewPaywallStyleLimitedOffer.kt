@@ -1,16 +1,8 @@
-// File: NewPaywallStyleLimitedOffer.kt
 package com.timeline.ui.paywall
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -19,29 +11,28 @@ import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.timeline.presentation.PaywallEvent
+import com.timeline.presentation.PaywallState
 import com.timeline.ui.theme.Dimensions
-import com.timeline.ui.theme.TimelineTheme
 import com.timeline.util.AppStrings
 
 @Composable
 fun NewPaywallStyleLimitedOffer(
-    onDismiss: () -> Unit,
-    onStartTrial: (isYearly: Boolean) -> Unit
+    state: PaywallState,
+    onEvent: (PaywallEvent) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var isYearlySelected by remember { mutableStateOf(false) }
+    var selectedPackage by remember(state.offerings) { 
+        mutableStateOf(state.yearlyPackage ?: state.monthlyPackage) 
+    }
     val colors = NewPaywallPalette.colors
 
     NewPaywallGradientBackdrop(
@@ -104,7 +95,7 @@ fun NewPaywallStyleLimitedOffer(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = AppStrings.PaywallThenPrice,
+                        text = state.yearlyPackage?.storeProduct?.price?.formatted ?: AppStrings.PaywallThenPrice,
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onBackgroundMuted
                     )
@@ -113,45 +104,25 @@ fun NewPaywallStyleLimitedOffer(
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
 
-            NewPaywallPlanRow(
-                title = AppStrings.PaywallMonthlyOption,
-                subtitle = AppStrings.PaywallMonthlyBilling,
-                selected = !isYearlySelected,
-                onClick = { isYearlySelected = false }
-            )
-            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-            NewPaywallPlanRow(
-                title = AppStrings.PaywallYearlyOption,
-                subtitle = AppStrings.PaywallYearlyBilling,
-                selected = isYearlySelected,
-                onClick = { isYearlySelected = true },
-                trailing = { PointyHexagonBadge() }
-            )
+            state.currentOffering?.availablePackages?.forEach { rcPackage ->
+                NewPaywallPlanRow(
+                    title = rcPackage.storeProduct.title,
+                    subtitle = rcPackage.storeProduct.price.formatted,
+                    selected = selectedPackage?.identifier == rcPackage.identifier,
+                    onClick = { selectedPackage = rcPackage },
+                    trailing = if (rcPackage.identifier == state.yearlyPackage?.identifier) {
+                        { PointyHexagonBadge() }
+                    } else null
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            }
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-            NewPaywallPrimaryButton(AppStrings.PaywallStartTrial) { onStartTrial(isYearlySelected) }
+            NewPaywallPrimaryButton(AppStrings.PaywallStartTrial) { 
+                selectedPackage?.let { onEvent(PaywallEvent.PurchasePackage(it)) }
+            }
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             NewPaywallFooterDisclaimer()
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Limited Offer Dark")
-@Composable
-private fun NewPaywallStyleLimitedOfferDarkPreview() {
-    TimelineTheme(darkTheme = true) {
-        NewPaywallPalette.ProvideNewPaywallColors(darkTheme = true) {
-            NewPaywallStyleLimitedOffer(onDismiss = {}, onStartTrial = {})
-        }
-    }
-}
-
-@Preview(showBackground = true, name = "Limited Offer Light")
-@Composable
-private fun NewPaywallStyleLimitedOfferLightPreview() {
-    TimelineTheme(darkTheme = false) {
-        NewPaywallPalette.ProvideNewPaywallColors(darkTheme = false) {
-            NewPaywallStyleLimitedOffer(onDismiss = {}, onStartTrial = {})
         }
     }
 }
