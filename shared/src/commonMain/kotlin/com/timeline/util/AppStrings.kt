@@ -14,11 +14,32 @@ object AppStrings {
     
     // Permission Screen
     const val PermissionAllSetTitle = "You're all set!"
-    const val PermissionAlmostThereTitle = "Almost there"
+    const val PermissionAlmostThereTitle = "Almost there..."
     const val PermissionAllSetSubtitle = "Everything is ready for your timeline."
-    const val PermissionAlmostThereSubtitle = "To show you real insights, we need\naccess to how you use your apps."
+    const val PermissionAlmostThereSubtitle = "To show you real insights, we need access to how you use your apps."
     const val PermissionAllowButton = "Allow Access"
     const val PermissionNotNowButton = "Not Now"
+
+    // Permission Details
+    const val PermissionUsageTitle = "Usage access"
+    const val PermissionUsageDesc = "Analyze how you spend time."
+    const val PermissionUsageIllustration = "illustrations/usage_access.png"
+
+    const val PermissionOverlayTitle = "Display over other apps"
+    const val PermissionOverlayDesc = "Enable background screen capture support."
+    const val PermissionOverlayIllustration = "illustrations/overlay.png"
+
+    const val PermissionNotificationsTitle = "Notifications"
+    const val PermissionNotificationsDesc = "Deliver important alerts and reminders."
+    const val PermissionNotificationsIllustration = "illustrations/notifications.png"
+
+    const val PermissionAccessibilityTitle = "Accessibility Service"
+    const val PermissionAccessibilityDesc = "Powers advanced automated activity tracking."
+    const val PermissionAccessibilityIllustration = "illustrations/accessibility.png"
+
+    const val PermissionBatteryTitle = "Battery Optimization"
+    const val PermissionBatteryDesc = "Prevents background service interruptions."
+    const val PermissionBatteryIllustration = "illustrations/battery.png"
     
     // Timeline Screen
     const val TimelineTitle = "Timeline"

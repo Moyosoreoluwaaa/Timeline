@@ -3,13 +3,18 @@ package com.timeline.domain
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesDelegate
 import com.revenuecat.purchases.kmp.models.*
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
+    
+    private val logger = Logger.withTag("RevenueCatSubscriptionManager")
+
     private val _customerInfo = MutableStateFlow<CustomerInfo?>(null)
     override val customerInfo: StateFlow<CustomerInfo?> = _customerInfo.asStateFlow()
 
@@ -19,40 +24,83 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
     private val _isPro = MutableStateFlow(false)
     override val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
 
+    private val _isPurchasing = MutableStateFlow(false)
+    override val isPurchasing: StateFlow<Boolean> = _isPurchasing.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    override val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    override val error: StateFlow<String?> = _error.asStateFlow()
+
     override suspend fun initialize() {
+        logger.d { "Initializing RevenueCat Subscription Manager" }
+        logger.d { "Current API Key being used: $revenueCatApiKey" }
+        logger.d { "Target Entitlement ID: $revenueCatEntitlementId" }
+        
         Purchases.sharedInstance.delegate = this
         refreshCustomerInfo()
-        loadOfferings()
+        fetchOfferings()
     }
 
     private suspend fun refreshCustomerInfo() {
         try {
-            updateCustomerInfo(Purchases.sharedInstance.awaitCustomerInfo())
-        } catch (e: Exception) { /* handle */ }
+            val info = Purchases.sharedInstance.awaitCustomerInfo()
+            updateCustomerInfo(info)
+        } catch (e: Exception) {
+            logger.e(e) { "Failed to refresh customer info" }
+        }
     }
 
-    private suspend fun loadOfferings() {
+    override suspend fun fetchOfferings() {
         try {
-            _offerings.value = Purchases.sharedInstance.awaitOfferings()
-        } catch (e: Exception) { /* handle */ }
+            _isRefreshing.value = true
+            _error.value = null
+            val fetchedOfferings = Purchases.sharedInstance.awaitOfferings()
+            _offerings.value = fetchedOfferings
+            logger.d { "Fetched offerings: ${fetchedOfferings.all.size}" }
+        } catch (e: Exception) {
+            logger.e(e) { "Failed to fetch offerings" }
+            _error.value = e.message
+        } finally {
+            _isRefreshing.value = false
+        }
     }
 
     override suspend fun purchase(rcPackage: Package): Result<CustomerInfo> {
+        if (_isPurchasing.value) return Result.failure(Exception("Purchase already in progress"))
+        
         return try {
+            _isPurchasing.value = true
+            _error.value = null
+            logger.d { "Starting purchase for package: ${rcPackage.identifier}" }
+            
             val info = Purchases.sharedInstance.awaitPurchase(rcPackage)
             updateCustomerInfo(info)
             Result.success(info)
         } catch (e: Exception) {
+            if (e.message == "User cancelled") {
+                logger.d { "Purchase cancelled by user" }
+            } else {
+                logger.e(e) { "Purchase failed" }
+                _error.value = e.message
+            }
             Result.failure(e)
+        } finally {
+            _isPurchasing.value = false
         }
     }
 
     override suspend fun restore(): Result<CustomerInfo> {
         return try {
+            _error.value = null
+            logger.d { "Restoring purchases" }
             val info = Purchases.sharedInstance.awaitRestore()
             updateCustomerInfo(info)
             Result.success(info)
         } catch (e: Exception) {
+            logger.e(e) { "Restore failed" }
+            _error.value = e.message
             Result.failure(e)
         }
     }
@@ -62,7 +110,9 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
 
     private fun updateCustomerInfo(info: CustomerInfo) {
         _customerInfo.value = info
-        _isPro.value = info.entitlements.active.containsKey("timeline_pro")
+        val proActive = info.entitlements.active.containsKey(revenueCatEntitlementId)
+        _isPro.value = proActive
+        logger.d { "Customer info updated. isPro: $proActive" }
     }
 
     override fun onCustomerInfoUpdated(customerInfo: CustomerInfo) {
@@ -73,24 +123,31 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
         product: StoreProduct,
         startPurchase: (onError: (PurchasesError, Boolean) -> Unit, onSuccess: (StoreTransaction, CustomerInfo) -> Unit) -> Unit
     ) {
-        startPurchase({ _, _ -> }, { _, info -> updateCustomerInfo(info) })
+        startPurchase(
+            { error, userCancelled -> 
+                logger.e { "Promo purchase failed: ${error.message}, cancelled: $userCancelled" }
+            }, 
+            { _, info -> 
+                updateCustomerInfo(info) 
+            }
+        )
     }
 }
 
-// --- Coroutine bridges: purchases-kmp-core is callback-based; wrap each call once here ---
+// --- Coroutine bridges ---
 
 private suspend fun Purchases.awaitCustomerInfo(): CustomerInfo =
     suspendCancellableCoroutine { continuation ->
         getCustomerInfo(
             onSuccess = { continuation.resume(it) },
-            onError = { error -> continuation.resumeWith(Result.failure(Exception(error.message))) }
+            onError = { error -> continuation.resumeWithException(Exception(error.message)) }
         )
     }
 
 private suspend fun Purchases.awaitOfferings(): Offerings =
     suspendCancellableCoroutine { continuation ->
         getOfferings(
-            onError = { error -> continuation.resumeWith(Result.failure(Exception(error.message))) },
+            onError = { error -> continuation.resumeWithException(Exception(error.message)) },
             onSuccess = { continuation.resume(it) }
         )
     }
@@ -99,7 +156,13 @@ private suspend fun Purchases.awaitPurchase(rcPackage: Package): CustomerInfo =
     suspendCancellableCoroutine { continuation ->
         purchase(
             packageToPurchase = rcPackage,
-            onError = { error, _ -> continuation.resumeWith(Result.failure(Exception(error.message))) },
+            onError = { error, userCancelled -> 
+                if (userCancelled) {
+                    continuation.resumeWithException(Exception("User cancelled"))
+                } else {
+                    continuation.resumeWithException(Exception(error.message))
+                }
+            },
             onSuccess = { _, customerInfo -> continuation.resume(customerInfo) }
         )
     }
@@ -107,7 +170,7 @@ private suspend fun Purchases.awaitPurchase(rcPackage: Package): CustomerInfo =
 private suspend fun Purchases.awaitRestore(): CustomerInfo =
     suspendCancellableCoroutine { continuation ->
         restorePurchases(
-            onError = { error -> continuation.resumeWith(Result.failure(Exception(error.message))) },
+            onError = { error -> continuation.resumeWithException(Exception(error.message)) },
             onSuccess = { continuation.resume(it) }
         )
     }

@@ -1,3 +1,7 @@
+*.aab
+*.json
+**/SecretConstants.kt
+**/sample_app/
 *.iml
 .kotlin
 .gradle

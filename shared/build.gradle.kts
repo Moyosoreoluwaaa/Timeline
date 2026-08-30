@@ -63,6 +63,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.androidx.navigation3.runtime)
+            implementation(libs.coil.compose)
 
             // RevenueCat KMP
             api(libs.purchases.kmp.core)

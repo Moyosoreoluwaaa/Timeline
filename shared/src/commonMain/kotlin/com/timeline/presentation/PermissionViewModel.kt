@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
+import com.timeline.util.AppStrings
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,39 +42,48 @@ class PermissionViewModel(
     }
 
     private fun checkPermissions() {
-        val permissions = listOf(
+        val allPermissions = listOf(
             PermissionItem(
                 id = "usage",
-                title = "Usage access",
-                description = "Allows Timeline to track app usage.",
-                isGranted = permissionManager.hasUsageStatsPermission()
+                title = AppStrings.PermissionUsageTitle,
+                description = AppStrings.PermissionUsageDesc,
+                isGranted = permissionManager.hasUsageStatsPermission(),
+                illustration = AppStrings.PermissionUsageIllustration
             ),
             PermissionItem(
                 id = "overlay",
-                title = "Display over other apps",
-                description = "Allows Timeline to capture screenshots in the background.",
-                isGranted = permissionManager.hasOverlayPermission()
+                title = AppStrings.PermissionOverlayTitle,
+                description = AppStrings.PermissionOverlayDesc,
+                isGranted = permissionManager.hasOverlayPermission(),
+                illustration = AppStrings.PermissionOverlayIllustration
             ),
             PermissionItem(
                 id = "notifications",
-                title = "Notifications",
-                description = "Allows Timeline to send notifications.",
-                isGranted = permissionManager.hasNotificationPermission()
+                title = AppStrings.PermissionNotificationsTitle,
+                description = AppStrings.PermissionNotificationsDesc,
+                isGranted = permissionManager.hasNotificationPermission(),
+                illustration = AppStrings.PermissionNotificationsIllustration
             ),
             PermissionItem(
                 id = "accessibility",
-                title = "Accessibility Service",
-                description = "Required for advanced activity tracking.",
-                isGranted = permissionManager.hasAccessibilityPermission()
+                title = AppStrings.PermissionAccessibilityTitle,
+                description = AppStrings.PermissionAccessibilityDesc,
+                isGranted = permissionManager.hasAccessibilityPermission(),
+                illustration = AppStrings.PermissionAccessibilityIllustration
             ),
             PermissionItem(
                 id = "battery",
-                title = "Battery Optimization",
-                description = "Prevents the system from revoking permissions.",
-                isGranted = permissionManager.isBatteryOptimizationDisabled()
+                title = AppStrings.PermissionBatteryTitle,
+                description = AppStrings.PermissionBatteryDesc,
+                isGranted = permissionManager.isBatteryOptimizationDisabled(),
+                illustration = AppStrings.PermissionBatteryIllustration
             )
         )
-        
+
+        // To re-enable removed permissions, add "overlay" or "battery" back to this list
+        val activePermissionIds = listOf("usage", "notifications", "accessibility")
+        val permissions = allPermissions.filter { it.id in activePermissionIds }
+
         _state.update { it.copy(
             permissions = permissions,
             allGranted = permissions.all { p -> p.isGranted }

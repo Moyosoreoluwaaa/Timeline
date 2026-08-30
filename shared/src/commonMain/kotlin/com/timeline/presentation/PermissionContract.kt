@@ -5,7 +5,8 @@ data class PermissionItem(
     val title: String,
     val description: String,
     val isGranted: Boolean = false,
-    val isVerifying: Boolean = false
+    val isVerifying: Boolean = false,
+    val illustration: Any? = null
 )
 
 data class PermissionState(

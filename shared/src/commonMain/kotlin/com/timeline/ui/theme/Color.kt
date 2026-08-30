@@ -33,4 +33,13 @@ object AppColors {
     // Gradients
     val BrandGradient = listOf(BrandOrange, BrandYellow, BrandBlack)
     val BadgeGradient = listOf(PaywallBadgeOrange, PaywallBadgePurple)
+
+    fun forPermission(id: String): Color = when (id) {
+        "usage" -> PermissionUsage
+        "overlay" -> PermissionOverlay
+        "notifications" -> PermissionNotifications
+        "accessibility" -> PermissionAccessibility
+        "battery" -> PermissionBattery
+        else -> PermissionDefault
+    }
 }
