@@ -34,8 +34,22 @@ object Dimensions {
     val LineThickness = 1.dp
     val ButtonHeight = 56.dp
 
+    // Permission Specific
+    val PermissionCardCorner = 28.dp
+    val PermissionChipCorner = 16.dp
+    val PermissionIconSize = 28.dp
+    val PermissionActiveIconSize = 96.dp
+    val PermissionActiveIconInnerSize = 48.dp
+    val PermissionIllustrationSize = 120.dp
+    const val PermissionCardHeightBase = 0.65f
+    const val PermissionCardHeightStep = 0.08f
+
     // Animation constants
     const val SlideDownOffset = 500f
     const val FilterRevealDurationMs = 220
     const val FilterHideDurationMs = 150
+    const val PermissionCollapseDurationMs = 600
+    const val PermissionSettledDelayMs = 450L
+    const val PermissionSlideOffset = 2000f
+    val PermissionStackElevation = 8.dp
 }
