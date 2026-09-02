@@ -18,4 +18,7 @@ interface SubscriptionManager {
     suspend fun purchase(rcPackage: Package): Result<CustomerInfo>
     suspend fun restore(): Result<CustomerInfo>
     fun checkEntitlement(entitlementId: String): Boolean
+
+    suspend fun logIn(userId: String): Result<CustomerInfo>
+    suspend fun logOut(): Result<CustomerInfo>
 }

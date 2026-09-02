@@ -9,7 +9,8 @@ data class PreferencesState(
     val isPermissionsCompleted: Boolean,
     val isUsageTrackingEnabled: Boolean,
     val isScreenshotCaptureEnabled: Boolean,
-    val dataRetentionDays: Int
+    val dataRetentionDays: Int,
+    val isLoggedIn: Boolean
 )
 
 class UserPreferences(private val dataStore: DataStore<Preferences>) {
@@ -17,13 +18,15 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
     private val IS_USAGE_TRACKING_ENABLED = booleanPreferencesKey("is_usage_tracking_enabled")
     private val IS_SCREENSHOT_CAPTURE_ENABLED = booleanPreferencesKey("is_screenshot_capture_enabled")
     private val DATA_RETENTION_DAYS = intPreferencesKey("data_retention_days")
+    private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
 
     val state: Flow<PreferencesState> = dataStore.data.map { prefs ->
         PreferencesState(
             isPermissionsCompleted = prefs[IS_PERMISSIONS_COMPLETED] ?: false,
             isUsageTrackingEnabled = prefs[IS_USAGE_TRACKING_ENABLED] ?: true,
             isScreenshotCaptureEnabled = prefs[IS_SCREENSHOT_CAPTURE_ENABLED] ?: true,
-            dataRetentionDays = prefs[DATA_RETENTION_DAYS] ?: 30
+            dataRetentionDays = prefs[DATA_RETENTION_DAYS] ?: 30,
+            isLoggedIn = prefs[IS_LOGGED_IN] ?: false
         )
     }
 
@@ -41,5 +44,9 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setDataRetentionDays(days: Int) {
         dataStore.edit { it[DATA_RETENTION_DAYS] = days }
+    }
+
+    suspend fun setLoggedIn(loggedIn: Boolean) {
+        dataStore.edit { it[IS_LOGGED_IN] = loggedIn }
     }
 }

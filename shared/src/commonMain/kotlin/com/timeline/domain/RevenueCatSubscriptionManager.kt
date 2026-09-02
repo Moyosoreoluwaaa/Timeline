@@ -3,13 +3,11 @@ package com.timeline.domain
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesDelegate
 import com.revenuecat.purchases.kmp.models.*
+import com.revenuecat.purchases.kmp.ktx.*
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
     
@@ -75,9 +73,9 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
             _error.value = null
             logger.d { "Starting purchase for package: ${rcPackage.identifier}" }
             
-            val info = Purchases.sharedInstance.awaitPurchase(rcPackage)
-            updateCustomerInfo(info)
-            Result.success(info)
+            val purchaseResult = Purchases.sharedInstance.awaitPurchase(rcPackage)
+            updateCustomerInfo(purchaseResult.customerInfo)
+            Result.success(purchaseResult.customerInfo)
         } catch (e: Exception) {
             if (e.message == "User cancelled") {
                 logger.d { "Purchase cancelled by user" }
@@ -101,6 +99,30 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
         } catch (e: Exception) {
             logger.e(e) { "Restore failed" }
             _error.value = e.message
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun logIn(userId: String): Result<CustomerInfo> {
+        return try {
+            logger.i { "Logging in to RevenueCat with UID: $userId" }
+            val result = Purchases.sharedInstance.awaitLogIn(userId)
+            updateCustomerInfo(result.customerInfo)
+            Result.success(result.customerInfo)
+        } catch (e: Exception) {
+            logger.e(e) { "RevenueCat login failed" }
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun logOut(): Result<CustomerInfo> {
+        return try {
+            logger.i { "Logging out from RevenueCat" }
+            val info = Purchases.sharedInstance.awaitLogOut()
+            updateCustomerInfo(info)
+            Result.success(info)
+        } catch (e: Exception) {
+            logger.e(e) { "RevenueCat logout failed" }
             Result.failure(e)
         }
     }
@@ -133,44 +155,3 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
         )
     }
 }
-
-// --- Coroutine bridges ---
-
-private suspend fun Purchases.awaitCustomerInfo(): CustomerInfo =
-    suspendCancellableCoroutine { continuation ->
-        getCustomerInfo(
-            onSuccess = { continuation.resume(it) },
-            onError = { error -> continuation.resumeWithException(Exception(error.message)) }
-        )
-    }
-
-private suspend fun Purchases.awaitOfferings(): Offerings =
-    suspendCancellableCoroutine { continuation ->
-        getOfferings(
-            onError = { error -> continuation.resumeWithException(Exception(error.message)) },
-            onSuccess = { continuation.resume(it) }
-        )
-    }
-
-private suspend fun Purchases.awaitPurchase(rcPackage: Package): CustomerInfo =
-    suspendCancellableCoroutine { continuation ->
-        purchase(
-            packageToPurchase = rcPackage,
-            onError = { error, userCancelled -> 
-                if (userCancelled) {
-                    continuation.resumeWithException(Exception("User cancelled"))
-                } else {
-                    continuation.resumeWithException(Exception(error.message))
-                }
-            },
-            onSuccess = { _, customerInfo -> continuation.resume(customerInfo) }
-        )
-    }
-
-private suspend fun Purchases.awaitRestore(): CustomerInfo =
-    suspendCancellableCoroutine { continuation ->
-        restorePurchases(
-            onError = { error -> continuation.resumeWithException(Exception(error.message)) },
-            onSuccess = { continuation.resume(it) }
-        )
-    }

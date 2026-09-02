@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -15,6 +16,8 @@ import com.timeline.ui.PermissionScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
+import com.timeline.ui.auth.LoginScreen
+import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.PermissionViewModel
@@ -30,12 +33,15 @@ actual fun AppNavigation(
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
     onNavigateToBatteryOptimization: () -> Unit,
-    onStartService: () -> Unit
+    onStartService: () -> Unit,
+    onExitApp: () -> Unit
 ) {
     val timelineViewModel: TimelineViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
     val permissionViewModel: PermissionViewModel = koinViewModel()
+    val authViewModel: AuthViewModel = koinViewModel()
     val userPreferences: UserPreferences = koinInject()
+    val context = LocalContext.current
     
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
     val permState by permissionViewModel.state.collectAsStateWithLifecycle()
@@ -43,13 +49,26 @@ actual fun AppNavigation(
     val backStack = remember { mutableStateListOf<NavKey>() }
 
     // Smart navigation logic
-    LaunchedEffect(prefsState == null) {
-        if (backStack.isEmpty() && prefsState != null) {
-            val needsOnboarding = prefsState?.isPermissionsCompleted != true || !permState.allGranted
-            if (needsOnboarding) {
-                backStack.add(Route.Permission)
-            } else {
-                backStack.add(Route.Timeline)
+    LaunchedEffect(prefsState, backStack.lastOrNull()) {
+        val state = prefsState ?: return@LaunchedEffect
+        val isLoggedIn = state.isLoggedIn
+        val currentRoute = backStack.lastOrNull()
+        
+        if (!isLoggedIn) {
+            if (currentRoute != Route.Auth) {
+                backStack.clear()
+                backStack.add(Route.Auth)
+            }
+        } else {
+            // Logged in: if we are on Auth screen or have an empty backstack, go to main app
+            if (currentRoute == null || currentRoute == Route.Auth) {
+                val needsOnboarding = state.isPermissionsCompleted != true || !permState.allGranted
+                backStack.clear()
+                if (needsOnboarding) {
+                    backStack.add(Route.Permission)
+                } else {
+                    backStack.add(Route.Timeline)
+                }
             }
         }
     }
@@ -67,9 +86,21 @@ actual fun AppNavigation(
             onBack = { 
                 if (backStack.size > 1) {
                     backStack.removeAt(backStack.size - 1)
+                } else if (backStack.lastOrNull() == Route.Auth) {
+                    onExitApp()
                 }
             },
             entryProvider = entryProvider {
+                entry<Route.Auth> {
+                    LoginScreen(
+                        viewModel = authViewModel,
+                        platformContext = context,
+                        onLoginSuccess = {
+                            // The LaunchedEffect above will automatically redirect 
+                            // as soon as the 'isLoggedIn' preference updates to true.
+                        }
+                    )
+                }
                 entry<Route.Permission> {
                     PermissionScreen(
                         viewModel = permissionViewModel,
@@ -103,6 +134,9 @@ actual fun AppNavigation(
                         },
                         onNavigateToCustomerCenter = {
                             backStack.add(Route.CustomerCenter)
+                        },
+                        onNavigateToAuth = {
+                            backStack.add(Route.Auth)
                         },
                         onBack = {
                             if (backStack.size > 1) {

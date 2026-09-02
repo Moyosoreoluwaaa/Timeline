@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ContactSupport
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.SettingsEvent
 import com.timeline.presentation.SettingsViewModel
@@ -57,6 +58,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToPaywall: (isDeals: Boolean) -> Unit = {},
     onNavigateToCustomerCenter: () -> Unit = {},
+    onNavigateToAuth: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -94,6 +96,24 @@ fun SettingsScreen(
                 ) {
                     item {
                         UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) })
+                    }
+
+                    item {
+                        if (state.isLoggedIn) {
+                            InfoCard(
+                                title = "Sign Out",
+                                description = "Sign out from your account.",
+                                icon = Icons.AutoMirrored.Filled.Logout,
+                                onClick = { viewModel.onEvent(SettingsEvent.Logout) }
+                            )
+                        } else {
+                            InfoCard(
+                                title = "Sign In",
+                                description = "Sign in to sync your data across devices.",
+                                icon = Icons.AutoMirrored.Filled.Login,
+                                onClick = onNavigateToAuth
+                            )
+                        }
                     }
 
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }

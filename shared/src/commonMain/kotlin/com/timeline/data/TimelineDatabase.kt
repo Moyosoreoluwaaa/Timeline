@@ -13,6 +13,7 @@ import kotlinx.datetime.Instant
 @Entity(tableName = "sessions")
 data class SessionEntity(
     @PrimaryKey val id: String,
+    val userId: String? = null,
     val packageName: String,
     val startTime: Long,
     val endTime: Long?,
@@ -37,6 +38,9 @@ interface SessionDao {
 
     @Query("SELECT * FROM sessions WHERE packageName = :packageName ORDER BY startTime DESC")
     fun getSessionsByPackage(packageName: String): Flow<List<SessionEntity>>
+
+    @Query("UPDATE sessions SET userId = :userId WHERE userId IS NULL")
+    suspend fun associateAnonymousSessions(userId: String)
 }
 
 @Database(entities = [SessionEntity::class], version = 1)

@@ -7,8 +7,10 @@ import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
+import com.timeline.ui.auth.LoginScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
+import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PaywallViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -19,15 +21,23 @@ actual fun AppNavigation(
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
     onNavigateToBatteryOptimization: () -> Unit,
-    onStartService: () -> Unit
+    onStartService: () -> Unit,
+    onExitApp: () -> Unit
 ) {
     val timelineViewModel: TimelineViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
     val permissionViewModel: PermissionViewModel = koinViewModel()
+    val authViewModel: AuthViewModel = koinViewModel()
 
     var currentRoute by remember { mutableStateOf<Route>(Route.Permission) }
 
     when (currentRoute) {
+        Route.Auth -> {
+            LoginScreen(
+                viewModel = authViewModel,
+                onLoginSuccess = { currentRoute = Route.Timeline }
+            )
+        }
         Route.Permission -> {
             PermissionScreen(
                 viewModel = permissionViewModel,
@@ -50,6 +60,7 @@ actual fun AppNavigation(
             SettingsScreen(
                 viewModel = settingsViewModel,
                 onNavigateToPaywall = { isDeals -> currentRoute = Route.Paywall(isDeals) },
+                onNavigateToAuth = { /* TODO */ },
                 onBack = { currentRoute = Route.Timeline }
             )
         }

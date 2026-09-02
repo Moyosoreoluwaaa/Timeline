@@ -10,7 +10,8 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.androidxRoom)
     alias(libs.plugins.ksp)
-    kotlin("plugin.serialization") version "2.0.21" 
+    kotlin("plugin.serialization") version "2.0.21"
+    alias(libs.plugins.googleGmsGoogleServices)
 }
 
 kotlin {
@@ -91,6 +92,12 @@ kotlin {
                 implementation(libs.androidx.work.runtime)
                 implementation(libs.androidx.navigation3.runtime)
                 implementation(libs.androidx.navigation3.ui)
+                
+                // Auth & Credentials
+                implementation(libs.firebase.auth)
+                implementation(libs.androidx.credentials)
+                implementation(libs.androidx.credentials.play.services.auth)
+                implementation(libs.googleid)
             }
         }
 

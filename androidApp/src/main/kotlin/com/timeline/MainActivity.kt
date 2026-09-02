@@ -65,6 +65,9 @@ class MainActivity : ComponentActivity() {
                 },
                 onStartService = {
                     startForegroundService(Intent(this@MainActivity, TrackingService::class.java))
+                },
+                onExitApp = {
+                    finish()
                 }
             )
         }

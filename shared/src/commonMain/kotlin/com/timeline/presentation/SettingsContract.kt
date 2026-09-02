@@ -5,7 +5,8 @@ data class SettingsState(
     val availableApps: List<AppInfo> = emptyList(),
     val isUsageTrackingEnabled: Boolean = true,
     val isScreenshotCaptureEnabled: Boolean = true,
-    val dataRetentionDays: Int = 30
+    val dataRetentionDays: Int = 30,
+    val isLoggedIn: Boolean = false
 )
 
 data class AppInfo(
@@ -20,6 +21,7 @@ sealed interface SettingsEvent {
     data class SetUsageTracking(val enabled: Boolean) : SettingsEvent
     data class SetScreenshotCapture(val enabled: Boolean) : SettingsEvent
     data class SetDataRetention(val days: Int) : SettingsEvent
+    data object Logout : SettingsEvent
 }
 
 sealed interface SettingsEffect {

@@ -1,6 +1,7 @@
 package com.timeline.data
 
 import com.timeline.domain.Session
+import com.timeline.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -9,9 +10,13 @@ interface TimelineRepository {
     fun getApplicationTimeline(packageName: String): Flow<List<Session>>
     suspend fun getSession(id: String): Session?
     suspend fun saveSession(session: Session)
+    suspend fun associateAnonymousSessions(userId: String)
 }
 
-class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
+class TimelineRepositoryImpl(
+    private val dao: SessionDao,
+    private val authRepository: AuthRepository
+) : TimelineRepository {
     override fun getTimeline(): Flow<List<Session>> = 
         dao.getAllSessions().map { entities -> entities.map { it.toDomain() } }
 
@@ -23,6 +28,10 @@ class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
 
     override suspend fun saveSession(session: Session) {
         dao.insertSession(session.toEntity())
+    }
+
+    override suspend fun associateAnonymousSessions(userId: String) {
+        dao.associateAnonymousSessions(userId)
     }
 
     private fun SessionEntity.toDomain(): Session = Session(
@@ -37,6 +46,7 @@ class TimelineRepositoryImpl(private val dao: SessionDao) : TimelineRepository {
 
     private fun Session.toEntity(): SessionEntity = SessionEntity(
         id = id,
+        userId = authRepository.getCurrentUser()?.uid,
         packageName = packageName,
         startTime = startTime.toEpochMilliseconds(),
         endTime = endTime?.toEpochMilliseconds(),

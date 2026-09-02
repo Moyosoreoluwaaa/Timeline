@@ -3,7 +3,6 @@ package com.timeline
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.timeline.navigation.AppNavigation
@@ -16,7 +15,8 @@ fun App(
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
     onNavigateToBatteryOptimization: () -> Unit,
-    onStartService: () -> Unit
+    onStartService: () -> Unit,
+    onExitApp: () -> Unit
 ) {
     TimelineTheme {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -26,7 +26,8 @@ fun App(
                 onNavigateToNotification = onNavigateToNotification,
                 onNavigateToAccessibility = onNavigateToAccessibility,
                 onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
-                onStartService = onStartService
+                onStartService = onStartService,
+                onExitApp = onExitApp
             )
         }
     }

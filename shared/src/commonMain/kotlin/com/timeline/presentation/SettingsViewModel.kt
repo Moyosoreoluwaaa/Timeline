@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.UserPreferences
+import com.timeline.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val exclusionPolicy: ExclusionPolicy,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _availableApps = MutableStateFlow<List<AppBasicInfo>>(emptyList())
@@ -30,7 +32,8 @@ class SettingsViewModel(
             },
             isUsageTrackingEnabled = prefs.isUsageTrackingEnabled,
             isScreenshotCaptureEnabled = prefs.isScreenshotCaptureEnabled,
-            dataRetentionDays = prefs.dataRetentionDays
+            dataRetentionDays = prefs.dataRetentionDays,
+            isLoggedIn = prefs.isLoggedIn
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState())
 
@@ -63,6 +66,12 @@ class SettingsViewModel(
             is SettingsEvent.SetDataRetention -> {
                 viewModelScope.launch {
                     userPreferences.setDataRetentionDays(event.days)
+                }
+            }
+            SettingsEvent.Logout -> {
+                viewModelScope.launch {
+                    authRepository.signOut()
+                    userPreferences.setLoggedIn(false)
                 }
             }
         }
