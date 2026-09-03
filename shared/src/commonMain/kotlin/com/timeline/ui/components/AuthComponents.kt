@@ -17,17 +17,8 @@ import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 
 @Composable
-fun AuthHeader(onClose: () -> Unit) {
+fun AuthHeader() {
     Box(modifier = Modifier.fillMaxWidth()) {
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(Dimensions.PaddingMedium)
-                .clip(CircleShape)
-        ) {
-            Icon(Icons.Default.Close, contentDescription = AppStrings.ContentDescClose, tint = MaterialTheme.colorScheme.onBackground)
-        }
         Column(
             modifier = Modifier.padding(horizontal = Dimensions.PaddingExtraLarge),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -76,24 +67,11 @@ fun AuthForm(
         Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
         AuthButton(text = AppStrings.AuthSignInGoogle, icon = { PlaceholderIcons.GoogleIcon() }, onClick = onSignInGoogle, enabled = !state.isLoading)
         Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        AuthButton(text = AppStrings.AuthSignInApple, icon = { PlaceholderIcons.AppleIcon() }, onClick = onSignInApple, enabled = !state.isLoading)
+//        Text(text = AppStrings.AuthOr, style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Scrim)))
+        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+//        AuthButton(text = AppStrings.AuthSignInApple, icon = { PlaceholderIcons.AppleIcon() }, onClick = onSignInApple, enabled = !state.isLoading)
         Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.AuthOr, style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Scrim)))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        TextField(
-            value = "",
-            onValueChange = {},
-            placeholder = { Text(AppStrings.AuthEmailPlaceholder, color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Scrim)) },
-            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium),
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Divider),
-                focusedContainerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.SurfaceVariant),
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent
-            )
-        )
         Spacer(modifier = Modifier.height(Dimensions.SpacingHuge))
-        Text(text = AppStrings.AuthNoAccount, style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onBackground))
     }
 }
 

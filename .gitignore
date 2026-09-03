@@ -1,5 +1,5 @@
 *.aab
-*.json
+google-services.json
 **/SecretConstants.kt
 **/sample_app/
 *.iml

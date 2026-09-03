@@ -13,10 +13,10 @@ import androidx.navigation3.ui.NavDisplay
 import com.timeline.ui.TimelineScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.PermissionScreen
+import com.timeline.ui.AuthScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
-import com.timeline.ui.auth.LoginScreen
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
@@ -92,10 +92,10 @@ actual fun AppNavigation(
             },
             entryProvider = entryProvider {
                 entry<Route.Auth> {
-                    LoginScreen(
+                    AuthScreen(
                         viewModel = authViewModel,
                         platformContext = context,
-                        onLoginSuccess = {
+                        onAuthSuccess = {
                             // The LaunchedEffect above will automatically redirect 
                             // as soon as the 'isLoggedIn' preference updates to true.
                         }

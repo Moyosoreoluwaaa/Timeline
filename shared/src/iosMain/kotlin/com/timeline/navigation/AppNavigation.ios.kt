@@ -7,7 +7,7 @@ import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
-import com.timeline.ui.auth.LoginScreen
+import com.timeline.ui.AuthScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import com.timeline.presentation.AuthViewModel
@@ -33,9 +33,9 @@ actual fun AppNavigation(
 
     when (currentRoute) {
         Route.Auth -> {
-            LoginScreen(
+            AuthScreen(
                 viewModel = authViewModel,
-                onLoginSuccess = { currentRoute = Route.Timeline }
+                onAuthSuccess = { currentRoute = Route.Timeline }
             )
         }
         Route.Permission -> {
