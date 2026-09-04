@@ -7,6 +7,7 @@ interface NotificationManager {
     suspend fun setEmail(email: String)
     suspend fun setSmsNumber(number: String)
     suspend fun setTag(key: String, value: String)
+    fun hasPermission(): Boolean
 }
 
 class NoOpNotificationManager : NotificationManager {
@@ -16,4 +17,5 @@ class NoOpNotificationManager : NotificationManager {
     override suspend fun setEmail(email: String) {}
     override suspend fun setSmsNumber(number: String) {}
     override suspend fun setTag(key: String, value: String) {}
+    override fun hasPermission(): Boolean = false
 }

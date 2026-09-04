@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
+import com.timeline.domain.NotificationManager
 import com.timeline.util.AppStrings
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,8 +16,11 @@ import kotlinx.coroutines.launch
 
 class PermissionViewModel(
     private val permissionManager: PermissionManager,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val notificationManager: NotificationManager,
+    private val logger: Logger
 ) : ViewModel() {
+    private val tagLogger = logger.withTag("PermissionViewModel")
     private val _state = MutableStateFlow(PermissionState())
     val state = _state.asStateFlow()
 
@@ -84,9 +89,14 @@ class PermissionViewModel(
         val activePermissionIds = listOf("usage", "notifications", "accessibility")
         val permissions = allPermissions.filter { it.id in activePermissionIds }
 
+        val allGranted = permissions.all { p -> p.isGranted }
+
+        tagLogger.d { "Checking permissions. All granted: $allGranted" }
+        tagLogger.d { "OneSignal notification permission: ${notificationManager.hasPermission()}" }
+
         _state.update { it.copy(
             permissions = permissions,
-            allGranted = permissions.all { p -> p.isGranted }
+            allGranted = allGranted
         ) }
     }
 

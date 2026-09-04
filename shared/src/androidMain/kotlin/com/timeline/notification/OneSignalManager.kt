@@ -41,6 +41,10 @@ class OneSignalManager(private val context: Context) : NotificationManager {
         OneSignal.User.addTag(key, value)
     }
 
+    override fun hasPermission(): Boolean {
+        return OneSignal.Notifications.permission
+    }
+
     fun setLogLevel(level: LogLevel) {
         OneSignal.Debug.logLevel = level
     }

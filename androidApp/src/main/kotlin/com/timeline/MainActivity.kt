@@ -11,14 +11,19 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
-import com.timeline.notification.OneSignalObserver
+import co.touchlab.kermit.Logger
+import com.timeline.domain.NotificationManager
 import com.timeline.service.TrackingService
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+    private val notificationManager: NotificationManager by inject()
+
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        // Permissions will be checked again by PermissionViewModel on app resume or manual refresh
+        Logger.d(tag = "MainActivity") { "System notification permission granted: $isGranted" }
+        Logger.d(tag = "MainActivity") { "OneSignal notification permission state (via interface): ${notificationManager.hasPermission()}" }
     }
 
     @SuppressLint("BatteryLife")
@@ -40,8 +45,6 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
-
-        OneSignalObserver.setup(this)
 
         setContent {
             App(
