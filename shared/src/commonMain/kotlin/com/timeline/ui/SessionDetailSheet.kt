@@ -1,6 +1,7 @@
 package com.timeline.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.timeline.domain.Session
 import com.timeline.presentation.TimelineEvent
+import com.timeline.presentation.TimelineState
 import com.timeline.ui.components.*
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
@@ -23,29 +25,25 @@ import com.timeline.util.AppStrings
 
 @Composable
 fun SessionDetailSheet(
-    session: Session,
-    allSessions: List<Session>,
-    isExpanded: Boolean,
+    state: TimelineState,
     expansionProgress: Float,
     prevSession: Session?,
     nextSession: Session?,
     onEvent: (TimelineEvent) -> Unit
 ) {
-    val totalAppSessions = remember(session.packageName, allSessions) {
-        allSessions.count { it.packageName == session.packageName }
-    }
-
+    val session = state.selectedSession ?: return
+    
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (isExpanded) Modifier.fillMaxHeight() else Modifier)
+            .then(if (state.isSheetExpanded) Modifier.fillMaxHeight() else Modifier)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             SessionDetailHeader(
                 session = session,
-                isExpanded = isExpanded,
-                totalAppSessions = totalAppSessions
+                isExpanded = state.isSheetExpanded,
+                totalAppSessions = state.relatedSessions.size
             )
 
             Surface(
@@ -81,15 +79,16 @@ fun SessionDetailSheet(
                                         modifier = Modifier
                                             .width(Dimensions.SpacingMega)
                                             .height(Dimensions.SpacingUltra)
+                                            .clickable { onEvent(TimelineEvent.ShowFullScreenImage(segment.screenshotPath)) }
                                     )
                                 }
                             }
                         }
 
                         ExpandedSessionContent(
-                            currentSession = session,
-                            allSessions = allSessions,
-                            progress = expansionProgress
+                            appSessions = state.relatedSessions,
+                            progress = expansionProgress,
+                            onImageClick = { onEvent(TimelineEvent.ShowFullScreenImage(it)) }
                         )
                     }
 

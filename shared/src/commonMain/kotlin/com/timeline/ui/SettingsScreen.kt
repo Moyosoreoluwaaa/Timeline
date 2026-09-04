@@ -40,8 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Icon
+import com.timeline.domain.model.TrialStatus
 import com.timeline.presentation.SettingsEvent
 import com.timeline.presentation.SettingsViewModel
+import com.timeline.ui.AppIcon
 import com.timeline.ui.components.InfoCard
 import com.timeline.ui.components.SettingCard
 import com.timeline.ui.components.SettingCategory
@@ -101,14 +108,14 @@ fun SettingsScreen(
                     item {
                         if (state.isLoggedIn) {
                             InfoCard(
-                                title = "Sign Out",
+                                title = "Sign out of your account",
                                 description = "Sign out from your account.",
                                 icon = Icons.AutoMirrored.Filled.Logout,
                                 onClick = { viewModel.onEvent(SettingsEvent.Logout) }
                             )
                         } else {
                             InfoCard(
-                                title = "Sign In",
+                                title = "Sign in to sync your data",
                                 description = "Sign in to sync your data across devices.",
                                 icon = Icons.AutoMirrored.Filled.Login,
                                 onClick = onNavigateToAuth
@@ -139,18 +146,25 @@ fun SettingsScreen(
                     item { SettingCategory(AppStrings.SettingsCategoryData) }
                     item {
                         SettingCard(
-                            title = "Manage Subscription",
+                            title = "Manage your active subscription",
                             description = "View and manage your active plans.",
                             onClick = onNavigateToCustomerCenter
                         )
                     }
                     item {
+                        val isFeatureLocked = state.trialStatus != TrialStatus.ACTIVE && !state.isPro
                         SettingCard(
                             title = AppStrings.SettingsAppExclusionsTitle,
-                            description = AppStrings.SettingsAppExclusionsDesc,
-                            isExpandable = true,
-                            isExpanded = expandedSection == "permissions",
-                            onHeaderClick = { expandedSection = if (expandedSection == "permissions") null else "permissions" }
+                            description = if (isFeatureLocked) "Unlock with Trial or Pro" else AppStrings.SettingsAppExclusionsDesc,
+                            isExpandable = !isFeatureLocked,
+                            isExpanded = expandedSection == "permissions" && !isFeatureLocked,
+                            onHeaderClick = { 
+                                if (isFeatureLocked) onNavigateToPaywall(false)
+                                else expandedSection = if (expandedSection == "permissions") null else "permissions" 
+                            },
+                            trailing = {
+                                if (isFeatureLocked) Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                            }
                         ) {
                             Column(modifier = Modifier.padding(top = Dimensions.PaddingSmall)) {
                                 state.availableApps.forEach { app ->
@@ -159,14 +173,31 @@ fun SettingsScreen(
                                             .fillMaxWidth()
                                             .clip(MaterialTheme.shapes.small)
                                             .padding(vertical = Dimensions.Half),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Column(modifier = Modifier.weight(AppWeights.Full)) {
-                                            Text(app.name, style = MaterialTheme.typography.bodyLarge)
-                                            Text(app.packageName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                                        Surface(
+                                            modifier = Modifier.size(Dimensions.IconMedium),
+                                            shape = MaterialTheme.shapes.extraSmall,
+                                            color = MaterialTheme.colorScheme.surfaceVariant
+                                        ) {
+                                            AppIcon(
+                                                icon = app.icon,
+                                                contentDescription = app.name,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
                                         }
-                                        Switch(checked = app.isExcluded, onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleExclusion(app.packageName)) })
+                                        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+                                        Text(
+                                            text = app.name,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.weight(AppWeights.Full),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Switch(
+                                            checked = app.isExcluded,
+                                            onCheckedChange = { viewModel.onEvent(SettingsEvent.ToggleExclusion(app.packageName)) }
+                                        )
                                     }
                                 }
                             }
@@ -174,20 +205,32 @@ fun SettingsScreen(
                     }
 
                     item {
+                        val isFeatureLocked = state.trialStatus != TrialStatus.ACTIVE && !state.isPro
                         SettingCard(
                             title = AppStrings.SettingsDataRetentionTitle,
-                            description = AppStrings.SettingsDataRetentionDesc.replace("%d", state.dataRetentionDays.toString()),
+                            description = if (isFeatureLocked) "Up to 7 days (Locked)" else AppStrings.SettingsDataRetentionDesc.replace("%d", state.dataRetentionDays.toString()),
                             isExpandable = true,
                             isExpanded = expandedSection == "data",
-                            onHeaderClick = { expandedSection = if (expandedSection == "data") null else "data" }
+                            onHeaderClick = { expandedSection = if (expandedSection == "data") null else "data" },
+                            trailing = {
+                                if (isFeatureLocked) Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                            }
                         ) {
                             Column(modifier = Modifier.padding(top = Dimensions.PaddingSmall)) {
-                                Text(AppStrings.SettingsDataRetentionSelect, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    if (isFeatureLocked) "Free users are capped at 7 days. Upgrade to extend."
+                                    else AppStrings.SettingsDataRetentionSelect, 
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                                 Slider(
                                     value = state.dataRetentionDays.toFloat(),
-                                    onValueChange = { viewModel.onEvent(SettingsEvent.SetDataRetention(it.toInt())) },
-                                    valueRange = 1f..365f,
-                                    steps = 364
+                                    onValueChange = { 
+                                        val newValue = if (isFeatureLocked) it.toInt().coerceAtMost(7) else it.toInt()
+                                        viewModel.onEvent(SettingsEvent.SetDataRetention(newValue)) 
+                                    },
+                                    valueRange = 1f..if (isFeatureLocked) 7f else 365f,
+                                    steps = if (isFeatureLocked) 6 else 364,
+                                    enabled = !isFeatureLocked || state.dataRetentionDays > 1 // Allow reducing but not increasing beyond 7 if locked
                                 )
                             }
                         }

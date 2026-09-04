@@ -19,11 +19,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.random.Random
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -34,8 +32,10 @@ class TimelineViewModel(
 ) : ViewModel() {
 
     private val _refreshTrigger = MutableStateFlow(0)
-    private val _selectedDate = MutableStateFlow<Instant?>(null)
+    private val _selectedDate = MutableStateFlow<Instant>(Clock.System.now())
+    private val _selectedPackageName = MutableStateFlow<String?>(null)
     private val _selectedSession = MutableStateFlow<Session?>(null)
+    private val _fullScreenImagePath = MutableStateFlow<String?>(null)
     private val _isSheetExpanded = MutableStateFlow(false)
     private val _timeFilter = MutableStateFlow(TimeFilter.ALL)
     private val _isLoading = MutableStateFlow(false)
@@ -44,29 +44,38 @@ class TimelineViewModel(
         repository.getTimeline(),
         exclusionPolicy.getExcludedPackages(),
         _selectedDate,
+        _selectedPackageName,
         _selectedSession,
+        _fullScreenImagePath,
         _isSheetExpanded,
         _timeFilter,
         _isLoading
     ) { args: Array<Any?> ->
         val sessions = args[0] as List<Session>
         val excluded = args[1] as Set<String>
-        val date = args[2] as Instant?
-        val session = args[3] as Session?
-        val expanded = args[4] as Boolean
-        val filter = args[5] as TimeFilter
-        val loading = args[6] as Boolean
+        val date = args[2] as Instant
+        val packageName = args[3] as String?
+        val session = args[4] as Session?
+        val fullScreenImage = args[5] as String?
+        val expanded = args[6] as Boolean
+        val filter = args[7] as TimeFilter
+        val loading = args[8] as Boolean
 
-        val filteredSessions = sessions
-            .filter { it.packageName !in excluded }
-            .filter { applyDateFilter(it, date) }
-            .filter { applyTimeFilter(it, filter) }
+        val filteredSessions = filterSessions(sessions, excluded, date, filter, packageName)
+        val summary = calculateSummary(filteredSessions)
+        val related = if (session != null) {
+            sessions.filter { it.packageName == session.packageName && applyDateFilter(it, date) }
+        } else emptyList()
 
         TimelineState(
             sessions = filteredSessions,
+            summary = summary,
             isLoading = loading,
             selectedDate = date,
+            selectedPackageName = packageName,
             selectedSession = session,
+            relatedSessions = related,
+            fullScreenImagePath = fullScreenImage,
             isSheetExpanded = expanded,
             timeFilter = filter
         )
@@ -80,7 +89,37 @@ class TimelineViewModel(
                     )
                 } else session
             }
-            emit(s.copy(sessions = enrichedSessions))
+            val enrichedRelated = s.relatedSessions.map { session ->
+                if (session.displayName == null) {
+                    session.copy(
+                        displayName = appInfoProvider.getAppName(session.packageName),
+                        icon = appInfoProvider.getAppIcon(session.packageName)
+                    )
+                } else session
+            }
+            val enrichedSelected = s.selectedSession?.let { session ->
+                if (session.displayName == null) {
+                    session.copy(
+                        displayName = appInfoProvider.getAppName(session.packageName),
+                        icon = appInfoProvider.getAppIcon(session.packageName)
+                    )
+                } else session
+            }
+
+            val enrichedSummary = s.summary.copy(
+                mostUsedApps = s.summary.mostUsedApps.map { app ->
+                    app.copy(
+                        displayName = app.displayName ?: appInfoProvider.getAppName(app.packageName),
+                        icon = app.icon ?: appInfoProvider.getAppIcon(app.packageName)
+                    )
+                }
+            )
+            emit(s.copy(
+                sessions = enrichedSessions,
+                relatedSessions = enrichedRelated,
+                selectedSession = enrichedSelected,
+                summary = enrichedSummary
+            ))
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineState())
 
@@ -93,11 +132,60 @@ class TimelineViewModel(
             is TimelineEvent.Refresh -> _refreshTrigger.value++
             is TimelineEvent.GenerateDummyData -> generateDummyData()
             is TimelineEvent.SelectDate -> _selectedDate.value = event.date
+            is TimelineEvent.SelectPackage -> _selectedPackageName.value = event.packageName
             is TimelineEvent.SelectSession -> _selectedSession.value = event.session
+            is TimelineEvent.ShowFullScreenImage -> _fullScreenImagePath.value = event.path
+            is TimelineEvent.DismissFullScreenImage -> _fullScreenImagePath.value = null
             is TimelineEvent.ToggleSheet -> _isSheetExpanded.value = event.expanded
             is TimelineEvent.FilterTime -> _timeFilter.value = event.filter
             is TimelineEvent.SelectPreviousSession -> navigateSession(-1)
             is TimelineEvent.SelectNextSession -> navigateSession(1)
+        }
+    }
+
+    private fun filterSessions(
+        sessions: List<Session>,
+        excluded: Set<String>,
+        date: Instant,
+        filter: TimeFilter,
+        packageName: String?
+    ): List<Session> {
+        return sessions
+            .filter { it.packageName !in excluded }
+            .filter { applyDateFilter(it, date) }
+            .filter { applyTimeFilter(it, filter) }
+            .filter { packageName == null || it.packageName == packageName }
+    }
+
+    private fun calculateSummary(sessions: List<Session>): TimelineSummary {
+        val totalMinutes = sessions.sumOf { it.durationMinutes }
+        val mostUsed = sessions
+            .groupBy { it.packageName }
+            .map { (pkg, appSessions) ->
+                AppSummary(
+                    packageName = pkg,
+                    displayName = appSessions.firstOrNull()?.displayName,
+                    icon = appSessions.firstOrNull()?.icon,
+                    totalTimeMinutes = appSessions.sumOf { it.durationMinutes }
+                )
+            }
+            .sortedByDescending { it.totalTimeMinutes }
+            .take(3)
+
+        return TimelineSummary(
+            totalHours = totalMinutes / 60,
+            totalMinutes = totalMinutes % 60,
+            sessionCount = sessions.size,
+            mostUsedApps = mostUsed
+        )
+    }
+
+    /**
+     * Future-proofing: Groups usage by hour segments for stacked charts or flow charts.
+     */
+    private fun groupUsageByTime(sessions: List<Session>): Map<Int, List<Session>> {
+        return sessions.groupBy {
+            it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour
         }
     }
 
@@ -123,13 +211,7 @@ class TimelineViewModel(
         }
     }
 
-    private fun applyDateFilter(session: Session, selectedDate: Instant?): Boolean {
-        if (selectedDate == null) {
-            // Default to today if no date selected? 
-            // Or if null, show all?
-            // Usually timeline is per day.
-            return true 
-        }
+    private fun applyDateFilter(session: Session, selectedDate: Instant): Boolean {
         val sessionDate = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
         val filterDate = selectedDate.toLocalDateTime(TimeZone.currentSystemDefault()).date
         return sessionDate == filterDate

@@ -43,36 +43,36 @@ fun SessionDetailHeader(
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clip(MaterialTheme.shapes.medium)
             .padding(Dimensions.PaddingMedium),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                modifier = Modifier.size(Dimensions.IconLarge),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                AppIcon(
-                    icon = session.icon,
-                    contentDescription = session.displayName,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-            Column {
-                Text(
-                    text = session.displayName ?: session.packageName,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = "${session.durationMinutes}m",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
+        Surface(
+            modifier = Modifier.size(Dimensions.IconLarge),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            AppIcon(
+                icon = session.icon,
+                contentDescription = session.displayName,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+        Column(modifier = Modifier.weight(AppWeights.Full)) {
+            Text(
+                text = session.displayName ?: session.packageName,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = "${session.durationMinutes}m",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
         
         if (isExpanded) {
+            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
             Text(
                 text = "$totalAppSessions ${if (totalAppSessions == 1) "session" else "sessions"}",
                 style = MaterialTheme.typography.labelLarge,
@@ -142,14 +142,10 @@ fun SessionDetailFooter(
 
 @Composable
 fun ExpandedSessionContent(
-    currentSession: Session,
-    allSessions: List<Session>,
-    progress: Float
+    appSessions: List<Session>,
+    progress: Float,
+    onImageClick: (String?) -> Unit
 ) {
-    val appSessions = remember(currentSession.packageName, allSessions) {
-        allSessions.filter { it.packageName == currentSession.packageName }
-    }
-
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     LazyColumn(
@@ -164,7 +160,7 @@ fun ExpandedSessionContent(
             start = Dimensions.PaddingMedium,
             end = Dimensions.PaddingMedium,
             top = Dimensions.PaddingSmall,
-            bottom = navBarPadding + (Dimensions.SpacingGiant * 2) // Dynamically adjusts list bottom offset
+            bottom = navBarPadding + (Dimensions.SpacingGiant * 2)
         )
     ) {
         items(appSessions) { session ->
@@ -188,7 +184,11 @@ fun ExpandedSessionContent(
                             contentPadding = PaddingValues(vertical = Dimensions.Half)
                         ) {
                             items(segmentsWithScreenshots) { segment ->
-                                Column(modifier = Modifier.width(Dimensions.SpacingMega)) {
+                                Column(
+                                    modifier = Modifier
+                                        .width(Dimensions.SpacingMega)
+                                        .clickable { onImageClick(segment.screenshotPath) }
+                                ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()

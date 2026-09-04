@@ -27,6 +27,7 @@ import kotlin.time.Instant
 fun TimelineScreen(
     viewModel: TimelineViewModel = koinViewModel(),
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToMetrics: () -> Unit = {},
     onNavigateToPaywall: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -55,7 +56,9 @@ fun TimelineScreen(
     }
 
     if (showDatePicker) {
-        val datePickerState = rememberDatePickerState()
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.selectedDate?.toEpochMilliseconds()
+        )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
@@ -79,6 +82,7 @@ fun TimelineScreen(
                 onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
                 onFilterSelected = { viewModel.onEvent(TimelineEvent.FilterTime(it)) },
                 onNavigateToSettings = onNavigateToSettings,
+                onNavigateToMetrics = onNavigateToMetrics,
                 onSelectDateClick = { showDatePicker = true }
             )
         }
@@ -137,10 +141,10 @@ fun TimelineScreen(
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .navigationBarsPadding() // Ensures bottom summary bar floats above system nav gestures
+                            .navigationBarsPadding()
                     ) {
                         BottomSummary(
-                            sessions = state.sessions,
+                            summary = state.summary,
                             onUpgradeClick = onNavigateToPaywall
                         )
                     }
@@ -156,12 +160,10 @@ fun TimelineScreen(
             ModalBottomSheet(
                 onDismissRequest = { viewModel.onEvent(TimelineEvent.SelectSession(null)) },
                 sheetState = sheetState,
-                contentWindowInsets = { WindowInsets(0, 0, 0, 0) } // Prevents sheet from injecting dynamic bottom inset padding
+                contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
             ) {
                 SessionDetailSheet(
-                    session = state.selectedSession!!,
-                    allSessions = state.sessions,
-                    isExpanded = state.isSheetExpanded,
+                    state = state,
                     expansionProgress = expansionProgress,
                     prevSession = prevSession,
                     nextSession = nextSession,
@@ -170,5 +172,9 @@ fun TimelineScreen(
             }
         }
 
+        FullScreenImageOverlay(
+            path = state.fullScreenImagePath,
+            onDismiss = { viewModel.onEvent(TimelineEvent.DismissFullScreenImage) }
+        )
     }
 }

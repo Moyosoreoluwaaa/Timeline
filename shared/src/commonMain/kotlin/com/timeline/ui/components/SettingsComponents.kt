@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.ui.text.style.TextOverflow
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
@@ -116,10 +117,13 @@ fun InfoCard(
             modifier = Modifier.padding(Dimensions.PaddingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(AppWeights.Full)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(AppWeights.Full),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
         }
     }
@@ -151,10 +155,13 @@ fun SettingCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(AppWeights.Full)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium)
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
-                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(AppWeights.Full),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (trailing != null) {
                     trailing()
                 } else {

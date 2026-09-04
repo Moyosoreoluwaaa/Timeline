@@ -1,17 +1,22 @@
 package com.timeline.presentation
 
+import com.timeline.domain.model.TrialStatus
+
 data class SettingsState(
     val excludedPackages: Set<String> = emptySet(),
     val availableApps: List<AppInfo> = emptyList(),
     val isUsageTrackingEnabled: Boolean = true,
     val isScreenshotCaptureEnabled: Boolean = true,
     val dataRetentionDays: Int = 30,
-    val isLoggedIn: Boolean = false
+    val isLoggedIn: Boolean = false,
+    val isPro: Boolean = false,
+    val trialStatus: TrialStatus = TrialStatus.NOT_STARTED
 )
 
 data class AppInfo(
     val packageName: String,
     val name: String,
+    val icon: Any? = null,
     val isExcluded: Boolean
 )
 
