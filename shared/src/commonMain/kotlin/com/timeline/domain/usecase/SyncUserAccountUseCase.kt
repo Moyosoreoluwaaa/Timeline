@@ -13,7 +13,7 @@ class SyncUserAccountUseCase(
 ) {
     private val logger = Logger.withTag("SyncUserAccountUseCase")
 
-    suspend operator fun invoke(userId: String): Result<Unit> {
+    suspend operator fun invoke(userId: String, email: String? = null): Result<Unit> {
         return try {
             logger.i { "Starting account sync for user: $userId" }
             
@@ -22,6 +22,10 @@ class SyncUserAccountUseCase(
             
             // 2. Sync with OneSignal
             notificationManager.login(userId)
+            email?.let { 
+                logger.i { "Syncing email with OneSignal" }
+                notificationManager.setEmail(it) 
+            }
 
             // 3. Migrate local anonymous data
             migrateGuestDataUseCase(userId)

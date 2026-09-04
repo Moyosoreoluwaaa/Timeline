@@ -63,7 +63,7 @@ class AuthViewModel(
         signInWithGoogleUseCase(idToken)
             .onSuccess { user ->
                 tagLogger.i { "Firebase Auth success, starting account sync" }
-                syncUserAccountUseCase(user.uid)
+                syncUserAccountUseCase(user.uid, user.email)
                     .onSuccess {
                         tagLogger.i { "Account sync complete" }
                         // Keep isLoading = true to prevent the button from flashing

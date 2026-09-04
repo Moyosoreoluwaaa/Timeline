@@ -92,6 +92,11 @@ android {
         debug {
             signingConfig = signingConfigs.getByName("debug")
         }
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -108,12 +113,7 @@ android {
                                     project.hasProperty("RELEASE_STORE_PASSWORD") &&
                                     project.hasProperty("RELEASE_KEY_ALIAS") &&
                                     project.hasProperty("RELEASE_KEY_PASSWORD")
-            
-            signingConfig = if (isSigningConfigured) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
