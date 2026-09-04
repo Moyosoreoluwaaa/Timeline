@@ -12,6 +12,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.timeline.ui.TimelineScreen
 import com.timeline.ui.SettingsScreen
+import com.timeline.ui.MetricsScreen
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.AuthScreen
 import com.timeline.ui.paywall.NewPaywallScreen
@@ -120,6 +121,21 @@ actual fun AppNavigation(
                         viewModel = timelineViewModel,
                         onNavigateToSettings = {
                             backStack.add(Route.Settings)
+                        },
+                        onNavigateToMetrics = {
+                            backStack.add(Route.Metrics)
+                        },
+                        onNavigateToPaywall = {
+                            backStack.add(Route.Paywall(isDealsVariant = false))
+                        }
+                    )
+                }
+                entry<Route.Metrics> {
+                    MetricsScreen(
+                        onBack = {
+                            if (backStack.size > 1) {
+                                backStack.removeAt(backStack.size - 1)
+                            }
                         },
                         onNavigateToPaywall = {
                             backStack.add(Route.Paywall(isDealsVariant = false))

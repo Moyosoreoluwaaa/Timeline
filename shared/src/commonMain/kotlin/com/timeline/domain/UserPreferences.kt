@@ -10,7 +10,8 @@ data class PreferencesState(
     val isUsageTrackingEnabled: Boolean,
     val isScreenshotCaptureEnabled: Boolean,
     val dataRetentionDays: Int,
-    val isLoggedIn: Boolean
+    val isLoggedIn: Boolean,
+    val trialStartedAt: Long? // null = not started
 )
 
 class UserPreferences(private val dataStore: DataStore<Preferences>) {
@@ -19,6 +20,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
     private val IS_SCREENSHOT_CAPTURE_ENABLED = booleanPreferencesKey("is_screenshot_capture_enabled")
     private val DATA_RETENTION_DAYS = intPreferencesKey("data_retention_days")
     private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
+    private val TRIAL_STARTED_AT = longPreferencesKey("trial_started_at")
 
     val state: Flow<PreferencesState> = dataStore.data.map { prefs ->
         PreferencesState(
@@ -26,8 +28,13 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
             isUsageTrackingEnabled = prefs[IS_USAGE_TRACKING_ENABLED] ?: true,
             isScreenshotCaptureEnabled = prefs[IS_SCREENSHOT_CAPTURE_ENABLED] ?: true,
             dataRetentionDays = prefs[DATA_RETENTION_DAYS] ?: 30,
-            isLoggedIn = prefs[IS_LOGGED_IN] ?: false
+            isLoggedIn = prefs[IS_LOGGED_IN] ?: false,
+            trialStartedAt = prefs[TRIAL_STARTED_AT]
         )
+    }
+
+    suspend fun startTrial(timestamp: Long) {
+        dataStore.edit { it[TRIAL_STARTED_AT] = timestamp }
     }
 
     suspend fun setPermissionsCompleted(completed: Boolean) {

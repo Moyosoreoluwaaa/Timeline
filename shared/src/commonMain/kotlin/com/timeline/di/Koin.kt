@@ -9,6 +9,7 @@ import com.timeline.domain.SubscriptionManager
 import com.timeline.domain.RevenueCatSubscriptionManager
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
+import com.timeline.presentation.MetricsViewModel
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.presentation.PaywallViewModel
@@ -41,6 +42,7 @@ val appModule = module {
     factoryOf(::SyncUserAccountUseCase)
 
     viewModelOf(::TimelineViewModel)
+    viewModelOf(::MetricsViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AuthViewModel)
     viewModelOf(::PermissionViewModel)
