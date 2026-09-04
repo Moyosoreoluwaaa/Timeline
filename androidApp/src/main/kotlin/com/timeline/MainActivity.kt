@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
+import com.timeline.notification.OneSignalObserver
 import com.timeline.service.TrackingService
 
 class MainActivity : ComponentActivity() {
@@ -39,6 +40,8 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
+
+        OneSignalObserver.setup(this)
 
         setContent {
             App(

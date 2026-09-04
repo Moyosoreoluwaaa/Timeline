@@ -3,6 +3,8 @@ package com.timeline.domain
 import android.content.Context
 import android.content.pm.PackageManager
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class AndroidAppInfoProvider(private val context: Context) : AppInfoProvider {
     private val packageManager: PackageManager = context.packageManager
@@ -34,6 +36,23 @@ class AndroidAppInfoProvider(private val context: Context) : AppInfoProvider {
         } catch (e: Exception) {
             Logger.w(tag = "AndroidAppInfoProvider") { "Failed to get icon for $packageName. Error: ${e.message}" }
             null
+        }
+    }
+
+    override suspend fun getInstalledApps(): List<AppMetadata> = withContext(Dispatchers.IO) {
+        try {
+            packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+                .filter { it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM == 0 } // Filter out system apps
+                .map { appInfo ->
+                    AppMetadata(
+                        packageName = appInfo.packageName,
+                        name = packageManager.getApplicationLabel(appInfo).toString()
+                    )
+                }
+                .sortedBy { it.name }
+        } catch (e: Exception) {
+            Logger.e(tag = "AndroidAppInfoProvider") { "Failed to fetch installed apps: ${e.message}" }
+            emptyList()
         }
     }
 }

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.UserPreferences
+import com.timeline.domain.NotificationManager
+import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +17,9 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val exclusionPolicy: ExclusionPolicy,
     private val userPreferences: UserPreferences,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val notificationManager: NotificationManager,
+    private val appInfoProvider: AppInfoProvider
 ) : ViewModel() {
 
     private val _availableApps = MutableStateFlow<List<AppBasicInfo>>(emptyList())
@@ -40,13 +44,10 @@ class SettingsViewModel(
     fun onEvent(event: SettingsEvent) {
         when (event) {
             SettingsEvent.LoadSettings -> {
-                // In a real app, we'd query installed apps via a platform-specific provider
-                _availableApps.value = listOf(
-                    AppBasicInfo("com.android.chrome", "Chrome"),
-                    AppBasicInfo("com.google.android.youtube", "YouTube"),
-                    AppBasicInfo("com.whatsapp", "WhatsApp"),
-                    AppBasicInfo("com.instagram.android", "Instagram")
-                )
+                viewModelScope.launch {
+                    val apps = appInfoProvider.getInstalledApps()
+                    _availableApps.value = apps.map { AppBasicInfo(it.packageName, it.name) }
+                }
             }
             is SettingsEvent.ToggleExclusion -> {
                 viewModelScope.launch {
@@ -71,6 +72,7 @@ class SettingsViewModel(
             SettingsEvent.Logout -> {
                 viewModelScope.launch {
                     authRepository.signOut()
+                    notificationManager.logout()
                     userPreferences.setLoggedIn(false)
                 }
             }

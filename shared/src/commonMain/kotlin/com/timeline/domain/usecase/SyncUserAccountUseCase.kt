@@ -2,12 +2,14 @@ package com.timeline.domain.usecase
 
 import com.timeline.domain.SubscriptionManager
 import com.timeline.domain.UserPreferences
+import com.timeline.domain.NotificationManager
 import co.touchlab.kermit.Logger
 
 class SyncUserAccountUseCase(
     private val subscriptionManager: SubscriptionManager,
     private val migrateGuestDataUseCase: MigrateGuestDataUseCase,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val notificationManager: NotificationManager
 ) {
     private val logger = Logger.withTag("SyncUserAccountUseCase")
 
@@ -18,10 +20,13 @@ class SyncUserAccountUseCase(
             // 1. Sync with RevenueCat
             subscriptionManager.logIn(userId)
             
-            // 2. Migrate local anonymous data
+            // 2. Sync with OneSignal
+            notificationManager.login(userId)
+
+            // 3. Migrate local anonymous data
             migrateGuestDataUseCase(userId)
 
-            // 3. Mark as logged in
+            // 4. Mark as logged in
             userPreferences.setLoggedIn(true)
             
             logger.i { "Account sync completed successfully" }

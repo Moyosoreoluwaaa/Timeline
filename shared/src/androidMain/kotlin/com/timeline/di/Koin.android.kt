@@ -13,6 +13,8 @@ import com.timeline.domain.repository.AuthRepository
 import com.timeline.domain.auth.AuthUiHelper
 import com.timeline.data.repository.AuthRepositoryImpl
 import com.timeline.util.auth.AndroidAuthUiHelper
+import com.timeline.notification.OneSignalManager
+import com.timeline.domain.NotificationManager
 import com.google.firebase.auth.FirebaseAuth
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.bind
@@ -32,4 +34,7 @@ actual val platformModule: Module = module {
     single { FirebaseAuth.getInstance() }
     singleOf(::AuthRepositoryImpl) { bind<AuthRepository>() }
     singleOf(::AndroidAuthUiHelper) { bind<AuthUiHelper>() }
+    
+    // Notifications
+    singleOf(::OneSignalManager) { bind<NotificationManager>() }
 }

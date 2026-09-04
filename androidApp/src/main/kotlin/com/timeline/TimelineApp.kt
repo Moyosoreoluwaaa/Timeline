@@ -5,11 +5,16 @@ import androidx.work.Configuration
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.koin.KermitKoinLogger
 import com.timeline.di.initKoin
+import com.timeline.domain.NotificationManager
 import com.timeline.domain.configureRevenueCat
+import com.timeline.domain.SecretConstants
+import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 
 class TimelineApp : Application(), Configuration.Provider {
+    private val notificationManager: NotificationManager by inject()
+
     override fun onCreate() {
         super.onCreate()
         
@@ -19,6 +24,9 @@ class TimelineApp : Application(), Configuration.Provider {
             // Phase 1: Logging integration with Koin
             logger(KermitKoinLogger(Logger.withTag("koin")))
         }
+
+        // Initialize OneSignal
+        notificationManager.initialize(SecretConstants.ONESIGNAL_APP_ID)
 
         // Initialize RevenueCat
         configureRevenueCat()

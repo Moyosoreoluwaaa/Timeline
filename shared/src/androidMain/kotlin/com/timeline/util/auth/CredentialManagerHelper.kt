@@ -3,7 +3,9 @@ package com.timeline.util.auth
 import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -44,6 +46,8 @@ class CredentialManagerHelper(
         googleIdTokenCredential.idToken
     }.onFailure { e ->
         val errorMessage = when (e) {
+            is GetCredentialCancellationException -> "Sign-in was cancelled by the user."
+            is NoCredentialException -> "No Google accounts found on this device or sign-in is unavailable. Please check your internet and device settings."
             is GetCredentialException -> "Credential Manager error (${e.type}): ${e.message}"
             else -> "Unexpected auth error: ${e.message}"
         }

@@ -11,7 +11,7 @@ object AppStrings {
     const val AuthOr = "or"
     const val AuthEmailPlaceholder = "Email address"
     const val AuthNoAccount = "Don't have an account? Sign up"
-    
+
     // Permission Screen
     const val PermissionAllSetTitle = "You're all set!"
     const val PermissionAlmostThereTitle = "Almost there..."
@@ -59,7 +59,7 @@ object AppStrings {
     const val SessionPrev = "Prev"
     const val SessionNext = "Next"
     const val SessionNoScreenshots = "No screenshots available"
-    
+
     // Settings
     const val SettingsTitle = "Settings"
     const val SettingsCategoryTracking = "TRACKING"
