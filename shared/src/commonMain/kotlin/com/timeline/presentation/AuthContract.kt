@@ -8,7 +8,7 @@ data class AuthState(
 )
 
 sealed interface AuthEvent {
-    data object SignInWithGoogle : AuthEvent
+    data class SignInWithGoogle(val context: Any) : AuthEvent
     data class GoogleIdTokenReceived(val idToken: String) : AuthEvent
     data class AuthError(val message: String) : AuthEvent
     data object SignInWithApple : AuthEvent

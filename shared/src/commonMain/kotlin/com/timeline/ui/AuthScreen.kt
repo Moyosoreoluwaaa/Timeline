@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,9 +26,7 @@ import com.timeline.presentation.AuthViewModel
 import com.timeline.ui.components.AuthForm
 import com.timeline.ui.components.AuthHeader
 import com.timeline.ui.theme.AppAlpha
-import com.timeline.domain.auth.AuthUiHelper
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 @Composable
@@ -40,8 +37,6 @@ fun AuthScreen(
     onExitApp: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    val authUiHelper: AuthUiHelper = koinInject()
 
     LaunchedEffect(Unit) {
         viewModel.effects.collectLatest { effect ->
@@ -63,19 +58,10 @@ fun AuthScreen(
             AuthForm(
                 state = state,
                 onSignInGoogle = {
-                    viewModel.onEvent(AuthEvent.SignInWithGoogle)
-                    scope.launch {
-                        platformContext?.let { ctx ->
-                            authUiHelper.getGoogleIdToken(ctx)
-                                .onSuccess { token ->
-                                    viewModel.onEvent(AuthEvent.GoogleIdTokenReceived(token))
-                                }
-                                .onFailure { error ->
-                                    viewModel.onEvent(AuthEvent.AuthError(error.message ?: "Cancelled"))
-                                }
-                        } ?: run {
-                            viewModel.onEvent(AuthEvent.AuthError("No platform context"))
-                        }
+                    platformContext?.let { ctx ->
+                        viewModel.onEvent(AuthEvent.SignInWithGoogle(ctx))
+                    } ?: run {
+                        viewModel.onEvent(AuthEvent.AuthError("No platform context"))
                     }
                 },
                 onSignInApple = { /* TODO */ }
