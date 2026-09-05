@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Bedtime
@@ -28,34 +27,6 @@ import com.timeline.ui.components.DonutChart
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 import org.koin.compose.viewmodel.koinViewModel
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MetricsScreen(
-    onBack: () -> Unit = {},
-    onNavigateToPaywall: () -> Unit = {}
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(AppStrings.InsightsOverview) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = AppStrings.ContentDescBack)
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
-        Box(modifier = Modifier.padding(padding)) {
-            MetricsScreenContent(
-                scrollState = scrollState,
-                onNavigateToPaywall = onNavigateToPaywall
-            )
-        }
-    }
-}
 
 @Composable
 fun MetricsScreenContent(
@@ -100,11 +71,17 @@ fun MetricsScreenContent(
                         value = state.topAppDisplayName,
                         subValue = state.topAppUsageTime,
                         icon = {
-                            AppIcon(
-                                icon = state.topAppIcon,
-                                contentDescription = state.topAppDisplayName,
-                                modifier = Modifier.size(Dimensions.IconMedium)
-                            )
+                            Surface(
+                                modifier = Modifier.size(Dimensions.IconLarge),
+                                shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                AppIcon(
+                                    icon = state.topAppIcon,
+                                    contentDescription = state.topAppDisplayName,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
                         }
                     )
                     SmallInsightCard(
@@ -117,16 +94,12 @@ fun MetricsScreenContent(
                                 Icons.Rounded.CalendarToday,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(Dimensions.IconMedium)
+                                modifier = Modifier.size(Dimensions.IconLarge)
                             )
                         }
                     )
                 }
             }
-        }
-
-        if (state.trialStatus == TrialStatus.EXPIRED || state.trialStatus == TrialStatus.NOT_STARTED) {
-            // Locked overlay logic...
         }
     }
 }

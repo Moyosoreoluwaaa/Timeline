@@ -37,7 +37,9 @@ data class MetricsState(
     val longestSessionAppName: String = "",
     val longestSessionTime: String = "",
     val heaviestDayName: String = "",
-    val heaviestDayUsageTime: String = ""
+    val heaviestDayUsageTime: String = "",
+    val lowestDayName: String = "",
+    val lowestDayUsageTime: String = ""
 )
 
 enum class MetricsPeriod {

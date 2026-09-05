@@ -113,8 +113,8 @@ fun TrendsScreenContent(scrollState: LazyListState) {
                             Text("Lowest", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
                         }
                         Spacer(modifier = Modifier.height(Dimensions.Half))
-                        Text("Tuesday", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("2h 47m", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                        Text(state.lowestDayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(state.lowestDayUsageTime, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                     }
                 }
             }
@@ -150,28 +150,6 @@ fun TrendsScreenContent(scrollState: LazyListState) {
                     }
                 }
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TrendsScreen() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(AppStrings.InsightsTrends, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) },
-                actions = {
-                    TextButton(onClick = {}) {
-                        Text("7 Days", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
-        Box(modifier = Modifier.padding(padding)) {
-            TrendsScreenContent(scrollState = scrollState)
         }
     }
 }

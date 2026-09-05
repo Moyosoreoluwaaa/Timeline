@@ -3,18 +3,22 @@ package com.timeline.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.timeline.data.TimelineRepository
+import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.Session
 import com.timeline.domain.UserPreferences
 import com.timeline.domain.model.TrialStatus
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.datetime.*
 import kotlin.time.Clock
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MetricsViewModel(
     private val repository: TimelineRepository,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val appInfoProvider: AppInfoProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MetricsState())
@@ -42,28 +46,32 @@ class MetricsViewModel(
             repository.getTimeline(),
             _state.map { it.selectedPeriod }.distinctUntilChanged()
         ) { sessions, period ->
-            val filteredSessions = filterSessionsByPeriod(sessions, period)
-            val daily = aggregateDailyUsage(filteredSessions, period)
-            val stacked = aggregateStackedUsage(filteredSessions, period)
-            val trends = aggregateTrends(filteredSessions)
+            val currentSessions = filterSessionsByPeriod(sessions, period, 0)
+            val previousSessions = filterSessionsByPeriod(sessions, period, 1)
             
-            val totalUsageCurrent = filteredSessions.sumOf { it.durationMinutes }
-            val usageChange = 12 // Simulated for now
-            val isIncreasing = true
+            val totalUsageCurrent = currentSessions.sumOf { it.durationMinutes }
+            val totalUsagePrevious = previousSessions.sumOf { it.durationMinutes }
             
-            val mostUsedApp = filteredSessions.groupBy { it.packageName }
+            val usageChange = if (totalUsagePrevious > 0) {
+                ((totalUsageCurrent - totalUsagePrevious).toFloat() / totalUsagePrevious.toFloat() * 100).toInt()
+            } else 0
+            
+            val isIncreasing = totalUsageCurrent >= totalUsagePrevious
+            
+            val daily = aggregateDailyUsage(currentSessions, period)
+            val stacked = aggregateStackedUsage(currentSessions, period)
+            val trends = aggregateTrends(currentSessions, period)
+            
+            val mostUsedApp = currentSessions.groupBy { it.packageName }
                 .maxByOrNull { it.value.sumOf { s -> s.durationMinutes } }
             
             val mostActiveDay = daily.maxByOrNull { it.totalMinutes }
+            val leastActiveDay = daily.filter { it.totalMinutes > 0 }.minByOrNull { it.totalMinutes }
             
-            val nightUsage = filteredSessions.filter { 
-                it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour >= 19 
-            }.sumOf { it.durationMinutes }
-            val nightPercentage = if (totalUsageCurrent > 0) (nightUsage * 100 / totalUsageCurrent).toInt() else 0
+            val peakHour = calculatePeakHour(currentSessions)
             
-            val longestSession = filteredSessions.maxByOrNull { it.durationMinutes }
-            
-            val topAppsList = filteredSessions.groupBy { it.packageName }.map { (pkg, pkgSessions) ->
+            val totalMinutes = currentSessions.sumOf { it.durationMinutes }
+            val topAppsList = currentSessions.groupBy { it.packageName }.map { (pkg, pkgSessions) ->
                 val pkgMinutes = pkgSessions.sumOf { it.durationMinutes }
                 AppTimeShare(
                     packageName = pkg,
@@ -71,53 +79,154 @@ class MetricsViewModel(
                     icon = pkgSessions.firstOrNull()?.icon,
                     color = getPackageColor(pkg),
                     minutes = pkgMinutes,
-                    percentage = if (totalUsageCurrent > 0) pkgMinutes.toFloat() / totalUsageCurrent.toFloat() else 0f
+                    percentage = if (totalMinutes > 0) pkgMinutes.toFloat() / totalMinutes.toFloat() else 0f
                 )
             }.sortedByDescending { it.minutes }
 
-            _state.update { it.copy(
+            val nightUsage = currentSessions.filter { 
+                it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour >= 19 
+            }.sumOf { it.durationMinutes }
+            val nightPercentage = if (totalMinutes > 0) (nightUsage * 100 / totalMinutes).toInt() else 0
+            
+            val longestSession = currentSessions.maxByOrNull { it.durationMinutes }
+            
+            val categoryInsight = calculateCategoryInsight(currentSessions)
+
+            MetricsState(
                 dailyUsage = daily,
                 appUsageStacked = stacked,
                 usageTrends = trends,
-                usageChangePercentage = "$usageChange%",
+                usageChangePercentage = "${if (usageChange < 0) -usageChange else usageChange}%",
                 isUsageIncreasing = isIncreasing,
                 biggestPatternTitle = "Your biggest pattern",
-                biggestPatternDescription = "You use your phone most after 7 PM.",
+                biggestPatternDescription = if (nightPercentage > 30) "You use your phone most after 7 PM." else "Your usage is evenly distributed.",
                 biggestPatternPercentage = nightPercentage,
-                topAppDisplayName = (mostUsedApp?.value?.firstOrNull()?.displayName ?: mostUsedApp?.key?.split(".")?.last() ?: "").capitalizeName(),
+                topAppDisplayName = (mostUsedApp?.value?.firstOrNull()?.displayName ?: mostUsedApp?.key?.split(".")?.last() ?: "None").capitalizeName(),
                 topAppUsageTime = "${(mostUsedApp?.value?.sumOf { it.durationMinutes } ?: 0) / 60}h ${(mostUsedApp?.value?.sumOf { it.durationMinutes } ?: 0) % 60}m",
                 topAppIcon = mostUsedApp?.value?.firstOrNull()?.icon,
-                mostActiveDayName = mostActiveDay?.day ?: "",
-                mostActiveDayUsageTime = "${mostActiveDay?.totalMinutes?.div(60)}h ${mostActiveDay?.totalMinutes?.rem(60)}m",
-                appCount = filteredSessions.distinctBy { it.packageName }.size,
+                mostActiveDayName = getFullDayName(mostActiveDay?.day),
+                mostActiveDayUsageTime = "${mostActiveDay?.totalMinutes?.div(60) ?: 0}h ${mostActiveDay?.totalMinutes?.rem(60) ?: 0}m",
+                appCount = currentSessions.distinctBy { it.packageName }.size,
                 topApps = topAppsList,
-                categoryInsightText = "video apps this period",
+                categoryInsightText = categoryInsight,
                 usageMoreThanLastWeek = isIncreasing,
-                peakActiveHour = 9, // Simulated
+                peakActiveHour = peakHour,
                 longestSessionAppName = (longestSession?.displayName ?: longestSession?.packageName?.split(".")?.last() ?: "").capitalizeName(),
-                longestSessionTime = "${longestSession?.durationMinutes}m",
-                heaviestDayName = mostActiveDay?.day ?: "",
-                heaviestDayUsageTime = "${mostActiveDay?.totalMinutes?.div(60)}h ${mostActiveDay?.totalMinutes?.rem(60)}m"
+                longestSessionTime = "${longestSession?.durationMinutes ?: 0}m",
+                heaviestDayName = getFullDayName(mostActiveDay?.day),
+                heaviestDayUsageTime = "${mostActiveDay?.totalMinutes?.div(60) ?: 0}h ${mostActiveDay?.totalMinutes?.rem(60) ?: 0}m",
+                lowestDayName = getFullDayName(leastActiveDay?.day),
+                lowestDayUsageTime = "${leastActiveDay?.totalMinutes?.div(60) ?: 0}h ${leastActiveDay?.totalMinutes?.rem(60) ?: 0}m",
+                selectedPeriod = period
+            )
+        }.flatMapLatest { s ->
+            flow {
+                val enrichedTopApps = s.topApps.map { app ->
+                    app.copy(
+                        displayName = appInfoProvider.getAppName(app.packageName).capitalizeName(),
+                        icon = appInfoProvider.getAppIcon(app.packageName)
+                    )
+                }
+                
+                val topAppPkg = s.topApps.firstOrNull()?.packageName
+                val enrichedTopAppName = topAppPkg?.let { appInfoProvider.getAppName(it).capitalizeName() } ?: s.topAppDisplayName
+                val enrichedTopAppIcon = topAppPkg?.let { appInfoProvider.getAppIcon(it) } ?: s.topAppIcon
+
+                emit(s.copy(
+                    topApps = enrichedTopApps,
+                    topAppDisplayName = enrichedTopAppName,
+                    topAppIcon = enrichedTopAppIcon
+                ))
+            }
+        }.onEach { newState ->
+            _state.update { newState.copy(
+                trialStatus = it.trialStatus,
+                trialTimeRemaining = it.trialTimeRemaining,
+                isAppsListExpanded = it.isAppsListExpanded
             ) }
         }.launchIn(viewModelScope)
     }
 
-    private fun filterSessionsByPeriod(sessions: List<Session>, period: MetricsPeriod): List<Session> {
+    private fun filterSessionsByPeriod(sessions: List<Session>, period: MetricsPeriod, offset: Int): List<Session> {
         val now = Clock.System.now()
         val zone = TimeZone.currentSystemDefault()
+        val today = now.toLocalDateTime(zone).date
+        
         return when (period) {
             MetricsPeriod.DAY -> {
-                val startOfDay = now.toLocalDateTime(zone).date.atStartOfDayIn(zone)
-                sessions.filter { it.startTime >= startOfDay }
+                val targetDate = today.minus(offset, DateTimeUnit.DAY)
+                val start = targetDate.atStartOfDayIn(zone)
+                val end = targetDate.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone)
+                sessions.filter { it.startTime >= start && it.startTime < end }
             }
             MetricsPeriod.WEEK -> {
-                val startOfWeek = now.minus(7, DateTimeUnit.DAY, zone)
-                sessions.filter { it.startTime >= startOfWeek }
+                val start = now.minus((offset + 1) * 7, DateTimeUnit.DAY, zone)
+                val end = now.minus(offset * 7, DateTimeUnit.DAY, zone)
+                sessions.filter { it.startTime >= start && it.startTime < end }
             }
             MetricsPeriod.MONTH -> {
-                val startOfMonth = now.minus(30, DateTimeUnit.DAY, zone)
-                sessions.filter { it.startTime >= startOfMonth }
+                val start = now.minus((offset + 1) * 30, DateTimeUnit.DAY, zone)
+                val end = now.minus(offset * 30, DateTimeUnit.DAY, zone)
+                sessions.filter { it.startTime >= start && it.startTime < end }
             }
+        }
+    }
+
+    private fun calculatePeakHour(sessions: List<Session>): Int {
+        val hourlyUsage = IntArray(24)
+        sessions.forEach { session ->
+            val hour = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour
+            hourlyUsage[hour] += session.durationMinutes.toInt()
+        }
+        return hourlyUsage.indices.maxByOrNull { hourlyUsage[it] } ?: 0
+    }
+
+    private fun calculateCategoryInsight(sessions: List<Session>): String {
+        val categoryUsage = mutableMapOf<String, Long>()
+        sessions.forEach { session ->
+            val cat = getCategoryForPackage(session.packageName)
+            categoryUsage[cat] = (categoryUsage[cat] ?: 0L) + session.durationMinutes
+        }
+        val topCat = categoryUsage.maxByOrNull { it.value } ?: return "apps this period"
+        val hours = topCat.value / 60
+        val mins = topCat.value % 60
+        return "${hours}h ${mins}m on ${topCat.key.lowercase()} apps this period"
+    }
+
+    private fun getCategoryForPackage(pkg: String): String {
+        return when {
+            pkg.contains("video") || pkg.contains("youtube") || pkg.contains("netflix") || pkg.contains("disney") || pkg.contains("player") -> "Video"
+            pkg.contains("social") || pkg.contains("facebook") || pkg.contains("instagram") || pkg.contains("twitter") || pkg.contains("x.android") || pkg.contains("tiktok") || pkg.contains("whatsapp") -> "Social"
+            pkg.contains("game") || pkg.contains("play") -> "Games"
+            pkg.contains("browser") || pkg.contains("chrome") || pkg.contains("firefox") -> "Browsing"
+            pkg.contains("work") || pkg.contains("office") || pkg.contains("mail") || pkg.contains("slack") -> "Productivity"
+            else -> "Other"
+        }
+    }
+
+    private fun getFullDayName(abbreviation: String?): String {
+        return when (abbreviation) {
+            "M" -> "Monday"
+            "Tu" -> "Tuesday"
+            "W" -> "Wednesday"
+            "Th" -> "Thursday"
+            "F" -> "Friday"
+            "Sa" -> "Saturday"
+            "Su" -> "Sunday"
+            "Today" -> "Today"
+            else -> "N/A"
+        }
+    }
+
+    private fun getUniqueAbbreviation(day: DayOfWeek): String {
+        return when (day) {
+            DayOfWeek.MONDAY -> "M"
+            DayOfWeek.TUESDAY -> "Tu"
+            DayOfWeek.WEDNESDAY -> "W"
+            DayOfWeek.THURSDAY -> "Th"
+            DayOfWeek.FRIDAY -> "F"
+            DayOfWeek.SATURDAY -> "Sa"
+            DayOfWeek.SUNDAY -> "Su"
         }
     }
 
@@ -178,7 +287,7 @@ class MetricsViewModel(
                 it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date == date 
             }
             DailyUsage(
-                day = if (period == MetricsPeriod.DAY) "Today" else date.dayOfWeek.name.take(1),
+                day = if (period == MetricsPeriod.DAY) "Today" else getUniqueAbbreviation(date.dayOfWeek),
                 totalMinutes = daySessions.sumOf { it.durationMinutes },
                 percentageChange = 0f,
                 isWeekend = date.dayOfWeek == DayOfWeek.SATURDAY || date.dayOfWeek == DayOfWeek.SUNDAY
@@ -210,20 +319,32 @@ class MetricsViewModel(
                     percentage = if (totalMinutes > 0) pkgMinutes.toFloat() / totalMinutes.toFloat() else 0f
                 )
             }
-            StackedUsage(if (period == MetricsPeriod.DAY) "Today" else date.dayOfWeek.name.take(1), distributions)
+            StackedUsage(if (period == MetricsPeriod.DAY) "Today" else getUniqueAbbreviation(date.dayOfWeek), distributions)
         }
     }
 
-    private fun aggregateTrends(sessions: List<Session>): List<UsageTrend> {
-        val morning = sessions.filter { it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour in 5..11 }
-        val afternoon = sessions.filter { it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour in 12..17 }
-        val evening = sessions.filter { it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour in 18..23 || it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour in 0..4 }
-
-        return listOf(
-            UsageTrend("M", morning.sumOf { it.durationMinutes }),
-            UsageTrend("A", afternoon.sumOf { it.durationMinutes }),
-            UsageTrend("E", evening.sumOf { it.durationMinutes })
-        )
+    private fun aggregateTrends(sessions: List<Session>, period: MetricsPeriod): List<UsageTrend> {
+        return when (period) {
+            MetricsPeriod.DAY -> {
+                // Hourly trends for Day
+                (0..23).map { hour ->
+                    val hourUsage = sessions.filter { it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour == hour }
+                        .sumOf { it.durationMinutes }
+                    UsageTrend(hour.toString(), hourUsage)
+                }
+            }
+            else -> {
+                // Daily trends for Week/Month
+                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val dayCount = if (period == MetricsPeriod.WEEK) 7 else 30
+                (0 until dayCount).reversed().map { daysAgo ->
+                    val date = today.minus(daysAgo, DateTimeUnit.DAY)
+                    val dayUsage = sessions.filter { it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date == date }
+                        .sumOf { it.durationMinutes }
+                    UsageTrend(getUniqueAbbreviation(date.dayOfWeek), dayUsage)
+                }
+            }
+        }
     }
 
     private fun getPackageColor(pkg: String): Int {

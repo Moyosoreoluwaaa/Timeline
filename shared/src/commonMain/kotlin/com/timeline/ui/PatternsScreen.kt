@@ -114,9 +114,9 @@ fun PatternCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                modifier = Modifier.size(44.dp),
-                shape = RoundedCornerShape(Dimensions.PaddingSmall),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                modifier = Modifier.size(Dimensions.IconLarge),
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.surface
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -135,28 +135,6 @@ fun PatternCard(
                     color = MaterialTheme.colorScheme.outline
                 )
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PatternsScreen() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(AppStrings.InsightsPatterns, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) },
-                actions = {
-                    TextButton(onClick = {}) {
-                        Text("7 Days", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
-        Box(modifier = Modifier.padding(padding)) {
-            PatternsScreenContent(scrollState = scrollState)
         }
     }
 }

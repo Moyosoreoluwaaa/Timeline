@@ -89,16 +89,33 @@ fun InsightsHostScreen(
                             )
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (selectedTab) {
-                0 -> MetricsScreenContent(scrollState = insightsListState)
-                1 -> AppsScreenContent(scrollState = appsListState)
-                2 -> TrendsScreenContent(scrollState = trendsListState)
-                3 -> PatternsScreenContent(scrollState = patternsListState)
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = Dimensions.SpacingLarge, topEnd = Dimensions.SpacingLarge)),
+                color = MaterialTheme.colorScheme.surfaceContainerLowest
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (selectedTab) {
+                        0 -> MetricsScreenContent(scrollState = insightsListState)
+                        1 -> AppsScreenContent(scrollState = appsListState)
+                        2 -> TrendsScreenContent(scrollState = trendsListState)
+                        3 -> PatternsScreenContent(scrollState = patternsListState)
+                    }
+                }
             }
 
             FloatingToolbar(

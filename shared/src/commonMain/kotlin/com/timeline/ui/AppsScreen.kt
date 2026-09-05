@@ -58,7 +58,7 @@ fun AppsScreenContent(scrollState: LazyListState) {
         }
 
         item {
-            InsightCard(text = "You spent 2h 23m on ${state.categoryInsightText}.")
+            InsightCard(text = "You spent ${state.categoryInsightText}.")
         }
 
         val displayedApps = if (state.isAppsListExpanded) state.topApps else state.topApps.take(3)
@@ -105,11 +105,17 @@ fun AppUsageCard(app: AppTimeShare) {
             modifier = Modifier.padding(Dimensions.PaddingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AppIcon(
-                icon = app.icon,
-                contentDescription = app.displayName,
-                modifier = Modifier.size(40.dp)
-            )
+            Surface(
+                modifier = Modifier.size(Dimensions.IconLarge),
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                AppIcon(
+                    icon = app.icon,
+                    contentDescription = app.displayName,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
             Column(modifier = Modifier.weight(1f)) {
                 Row(
