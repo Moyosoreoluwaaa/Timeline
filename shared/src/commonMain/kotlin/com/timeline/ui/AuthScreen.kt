@@ -4,11 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.AuthEffect
 import com.timeline.presentation.AuthEvent
@@ -26,8 +26,8 @@ import com.timeline.presentation.AuthViewModel
 import com.timeline.ui.components.AuthForm
 import com.timeline.ui.components.AuthHeader
 import com.timeline.ui.theme.AppAlpha
+import com.timeline.ui.theme.Dimensions
 import kotlinx.coroutines.flow.collectLatest
-import org.koin.compose.koinInject
 
 @Composable
 fun AuthScreen(
@@ -47,14 +47,31 @@ fun AuthScreen(
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Upper Brand Header with Hourglass logo & App Icons Row
             AuthHeader()
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // Display authentication error if any
+            state.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = Dimensions.PaddingMedium)
+                )
+            }
+
+            // Bottom Google Sign-In Card & Subtext Link
             AuthForm(
                 state = state,
                 onSignInGoogle = {
@@ -63,18 +80,8 @@ fun AuthScreen(
                     } ?: run {
                         viewModel.onEvent(AuthEvent.AuthError("No platform context"))
                     }
-                },
-                onSignInApple = { /* TODO */ }
+                }
             )
-
-            state.error?.let { error ->
-                Text(
-                    text = error,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-            }
         }
 
         // Show global overlay when loading or authenticated (to prevent flashes during transitions)
