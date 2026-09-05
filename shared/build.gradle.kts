@@ -10,7 +10,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.androidxRoom)
     alias(libs.plugins.ksp)
-    kotlin("plugin.serialization") version "2.0.21"
+    kotlin("plugin.serialization") version "2.4.10"
     alias(libs.plugins.googleGmsGoogleServices)
 }
 
