@@ -54,7 +54,6 @@ fun TimelineHeader(
     onToggleTimeFilters: () -> Unit,
     onFilterSelected: (TimeFilter) -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToMetrics: () -> Unit,
     onSelectDateClick: () -> Unit
 ) {
     Surface(
@@ -86,9 +85,6 @@ fun TimelineHeader(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToMetrics) {
-                        Icon(Icons.Default.BarChart, "Metrics")
-                    }
                     IconButton(onClick = onToggleTimeFilters) {
                         Icon(Icons.Default.DateRange, AppStrings.TimelineTimeOfDay)
                     }

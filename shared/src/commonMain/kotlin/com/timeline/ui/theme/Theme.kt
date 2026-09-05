@@ -8,9 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
-    primary = AppColors.BrandOrange,
+    primary = AppColors.Primary,
     secondary = AppColors.BrandYellow,
-    tertiary = Color.Cyan,
+    tertiary = AppColors.BrandCyan,
     background = AppColors.BrandBlack,
     surface = AppColors.SurfaceDark,
     surfaceVariant = Color(0xFF3E3E42),
@@ -26,16 +26,16 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainer = Color(0xFF3A3A3C),
     surfaceContainerHigh = Color(0xFF48484A),
     surfaceContainerHighest = Color(0xFF636366),
-    primaryContainer = AppColors.BrandOrange.copy(alpha = 0.2f),
-    onPrimaryContainer = AppColors.BrandOrange,
+    primaryContainer = AppColors.Primary.copy(alpha = 0.2f),
+    onPrimaryContainer = AppColors.Primary,
     secondaryContainer = AppColors.BrandYellow.copy(alpha = 0.2f),
     onSecondaryContainer = AppColors.BrandYellow,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = AppColors.BrandOrange,
+    primary = AppColors.Primary,
     secondary = AppColors.BrandYellow,
-    tertiary = Color.Cyan,
+    tertiary = AppColors.BrandCyan,
     background = Color.White,
     surface = Color.White,
     surfaceVariant = Color(0xFFF2F2F7),
@@ -51,8 +51,8 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainer = Color(0xFFF2F2F7),
     surfaceContainerHigh = Color(0xFFEBEBF0),
     surfaceContainerHighest = Color(0xFFFAF6F6),
-    primaryContainer = AppColors.BrandOrange.copy(alpha = 0.1f),
-    onPrimaryContainer = AppColors.BrandOrange,
+    primaryContainer = AppColors.Primary.copy(alpha = 0.1f),
+    onPrimaryContainer = AppColors.Primary,
     secondaryContainer = AppColors.BrandYellow.copy(alpha = 0.1f),
     onSecondaryContainer = Color.Black,
 )

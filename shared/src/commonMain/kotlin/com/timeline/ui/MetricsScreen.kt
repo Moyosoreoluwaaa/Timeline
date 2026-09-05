@@ -1,12 +1,16 @@
 package com.timeline.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,161 +18,231 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.domain.model.TrialStatus
 import com.timeline.presentation.MetricsEvent
 import com.timeline.presentation.MetricsViewModel
 import com.timeline.ui.components.BarChart
-import com.timeline.ui.components.LineChartPlaceholder
-import com.timeline.ui.components.StackedBarChart
+import com.timeline.ui.components.DonutChart
 import com.timeline.ui.theme.Dimensions
+import com.timeline.util.AppStrings
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MetricsScreen(
-    viewModel: MetricsViewModel = koinViewModel(),
-    onBack: () -> Unit,
-    onNavigateToPaywall: () -> Unit
+    onBack: () -> Unit = {},
+    onNavigateToPaywall: () -> Unit = {}
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Insights & Metrics") },
+                title = { Text(AppStrings.InsightsOverview) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = AppStrings.ContentDescBack)
                     }
                 }
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = Dimensions.PaddingMedium),
-                verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingLarge),
-                contentPadding = PaddingValues(vertical = Dimensions.PaddingMedium)
-            ) {
-                item {
-                    TrialBanner(
-                        status = state.trialStatus,
-                        timeRemaining = state.trialTimeRemaining
-                    )
-                }
-
-                item {
-                    MetricSection(title = "Daily Usage Activity") {
-                        BarChart(data = state.dailyUsage)
-                    }
-                }
-
-                item {
-                    MetricSection(title = "App Distribution (Stacked)") {
-                        StackedBarChart(data = state.appUsageStacked)
-                    }
-                }
-
-                item {
-                    MetricSection(title = "Temporal Trends") {
-                        LineChartPlaceholder(data = state.usageTrends)
-                    }
-                }
-            }
-
-            if (state.trialStatus == TrialStatus.EXPIRED || state.trialStatus == TrialStatus.NOT_STARTED) {
-                LockedOverlay(
-                    status = state.trialStatus,
-                    onUpgradeClick = onNavigateToPaywall,
-                    onStartTrial = { viewModel.onEvent(MetricsEvent.StartTrial) }
-                )
-            }
+        val scrollState = androidx.compose.foundation.lazy.rememberLazyListState()
+        Box(modifier = Modifier.padding(padding)) {
+            MetricsScreenContent(
+                scrollState = scrollState,
+                onNavigateToPaywall = onNavigateToPaywall
+            )
         }
     }
 }
 
 @Composable
-fun MetricSection(
+fun MetricsScreenContent(
+    scrollState: LazyListState,
+    onNavigateToPaywall: () -> Unit = {}
+) {
+    val viewModel: MetricsViewModel = koinViewModel()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = scrollState,
+            modifier = Modifier.fillMaxSize().padding(horizontal = Dimensions.PaddingMedium),
+            verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingLarge),
+            contentPadding = PaddingValues(top = Dimensions.PaddingMedium, bottom = Dimensions.SpacingMega)
+        ) {
+            item {
+                UsageOverviewHeader(
+                    percentage = state.usageChangePercentage,
+                    isUp = state.isUsageIncreasing,
+                    dailyUsage = state.dailyUsage,
+                    period = state.selectedPeriod
+                )
+            }
+
+            item {
+                PatternInsightCard(
+                    title = state.biggestPatternTitle,
+                    description = state.biggestPatternDescription,
+                    percentage = state.biggestPatternPercentage
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+                ) {
+                    SmallInsightCard(
+                        modifier = Modifier.weight(1f),
+                        title = AppStrings.InsightsMostUsedApp,
+                        value = state.topAppDisplayName,
+                        subValue = state.topAppUsageTime,
+                        icon = {
+                            AppIcon(
+                                icon = state.topAppIcon,
+                                contentDescription = state.topAppDisplayName,
+                                modifier = Modifier.size(Dimensions.IconMedium)
+                            )
+                        }
+                    )
+                    SmallInsightCard(
+                        modifier = Modifier.weight(1f),
+                        title = AppStrings.InsightsMostActiveDay,
+                        value = state.mostActiveDayName,
+                        subValue = state.mostActiveDayUsageTime,
+                        icon = {
+                            Icon(
+                                Icons.Rounded.CalendarToday,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(Dimensions.IconMedium)
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
+        if (state.trialStatus == TrialStatus.EXPIRED || state.trialStatus == TrialStatus.NOT_STARTED) {
+            // Locked overlay logic...
+        }
+    }
+}
+
+@Composable
+fun UsageOverviewHeader(
+    percentage: String,
+    isUp: Boolean,
+    dailyUsage: List<com.timeline.presentation.DailyUsage>,
+    period: com.timeline.presentation.MetricsPeriod
+) {
+    val vsText = when (period) {
+        com.timeline.presentation.MetricsPeriod.DAY -> "vs previous Day"
+        com.timeline.presentation.MetricsPeriod.WEEK -> "vs previous 7 days"
+        com.timeline.presentation.MetricsPeriod.MONTH -> "vs previous 30 days"
+    }
+    Column {
+        Text(
+            text = AppStrings.InsightsOverview.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(Dimensions.Half))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Column {
+                Text(
+                    text = if (isUp) AppStrings.InsightsUsageUp else AppStrings.InsightsUsageDown,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = percentage,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = if (isUp) Icons.Rounded.ArrowUpward else Icons.Rounded.ArrowDownward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimensions.IconSmall)
+                    )
+                }
+                Text(
+                    text = vsText,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            BarChart(
+                data = dailyUsage,
+                modifier = Modifier.width(160.dp).height(100.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun PatternInsightCard(
     title: String,
-    content: @Composable () -> Unit
+    description: String,
+    percentage: Int
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(Dimensions.PaddingLarge),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Row(
+            modifier = Modifier.padding(Dimensions.PaddingLarge),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Rounded.Bedtime, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+                Text(text = title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.outline)
+                Text(text = description, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = "$percentage% of your usage", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
+            DonutChart(percentage = percentage)
+        }
+    }
+}
+
+@Composable
+fun SmallInsightCard(
+    title: String,
+    value: String,
+    subValue: String,
+    icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(Dimensions.PaddingLarge),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            icon()
             Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-            content()
-        }
-    }
-}
-
-@Composable
-fun TrialBanner(
-    status: TrialStatus,
-    timeRemaining: String
-) {
-    if (status == TrialStatus.ACTIVE) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(Dimensions.PaddingMedium),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Trial Active (Simulation)", style = MaterialTheme.typography.labelLarge)
-                Text("Ends in: $timeRemaining", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
-fun LockedOverlay(
-    status: TrialStatus,
-    onUpgradeClick: () -> Unit,
-    onStartTrial: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.6f))
-            .padding(Dimensions.PaddingLarge),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.PaddingExtraLarge),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
-            ) {
-                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(48.dp))
-                Text(
-                    text = if (status == TrialStatus.EXPIRED) "Trial Expired" else "Unlock Insights",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    text = "Unlock advanced charts, app distribution, and temporal trends with Timeline Pro.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Button(
-                    onClick = if (status == TrialStatus.NOT_STARTED) onStartTrial else onUpgradeClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (status == TrialStatus.NOT_STARTED) "Start 15-Min Trial" else "Upgrade to Pro")
-                }
-            }
+            Text(text = title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(text = subValue, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
         }
     }
 }

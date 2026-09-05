@@ -27,10 +27,10 @@ import com.timeline.presentation.TimelineViewModel
 import com.timeline.ui.AuthScreen
 import com.timeline.ui.LocalNavAnimatedVisibilityScope
 import com.timeline.ui.LocalSharedTransitionScope
-import com.timeline.ui.MetricsScreen
+import com.timeline.ui.InsightsHostScreen
+import com.timeline.ui.TimelineScreen
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
-import com.timeline.ui.TimelineScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import org.koin.compose.koinInject
@@ -143,23 +143,17 @@ actual fun AppNavigation(
                                     onNavigateToSettings = {
                                         backStack.add(Route.Settings)
                                     },
-                                    onNavigateToMetrics = {
-                                        backStack.add(Route.Metrics)
-                                    },
-                                    onNavigateToPaywall = {
-                                        backStack.add(Route.Paywall(isDealsVariant = false))
+                                    onNavigateToInsights = {
+                                        backStack.add(Route.Insights)
                                     }
                                 )
                             }
-                            is Route.Metrics -> {
-                                MetricsScreen(
-                                    onBack = {
+                            is Route.Insights -> {
+                                InsightsHostScreen(
+                                    onNavigateBack = {
                                         if (backStack.size > 1) {
                                             backStack.removeAt(backStack.size - 1)
                                         }
-                                    },
-                                    onNavigateToPaywall = {
-                                        backStack.add(Route.Paywall(isDealsVariant = false))
                                     }
                                 )
                             }

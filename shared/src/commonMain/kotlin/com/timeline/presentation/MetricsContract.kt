@@ -1,7 +1,6 @@
 package com.timeline.presentation
 
 import com.timeline.domain.model.TrialStatus
-import kotlin.time.Instant
 
 data class MetricsState(
     val trialStatus: TrialStatus = TrialStatus.NOT_STARTED,
@@ -10,7 +9,35 @@ data class MetricsState(
     val appUsageStacked: List<StackedUsage> = emptyList(),
     val usageTrends: List<UsageTrend> = emptyList(),
     val isLoading: Boolean = false,
-    val selectedPeriod: MetricsPeriod = MetricsPeriod.WEEK
+    val selectedPeriod: MetricsPeriod = MetricsPeriod.WEEK,
+    
+    // Redesigned Overview Fields
+    val usageChangePercentage: String = "0%",
+    val isUsageIncreasing: Boolean = true,
+    val biggestPatternTitle: String = "",
+    val biggestPatternDescription: String = "",
+    val biggestPatternPercentage: Int = 0,
+    val topAppDisplayName: String = "",
+    val topAppUsageTime: String = "",
+    val topAppIcon: Any? = null,
+    val mostActiveDayName: String = "",
+    val mostActiveDayUsageTime: String = "",
+    
+    // Redesigned Apps Fields
+    val appCount: Int = 0,
+    val topApps: List<AppTimeShare> = emptyList(),
+    val isAppsListExpanded: Boolean = false,
+    val categoryInsightText: String = "",
+    
+    // Redesigned Trends Fields
+    val usageMoreThanLastWeek: Boolean = true,
+    
+    // Redesigned Patterns Fields
+    val peakActiveHour: Int = 0,
+    val longestSessionAppName: String = "",
+    val longestSessionTime: String = "",
+    val heaviestDayName: String = "",
+    val heaviestDayUsageTime: String = ""
 )
 
 enum class MetricsPeriod {
@@ -20,7 +47,8 @@ enum class MetricsPeriod {
 data class DailyUsage(
     val day: String,
     val totalMinutes: Long,
-    val percentageChange: Float // Compared to prev period
+    val percentageChange: Float,
+    val isWeekend: Boolean = false
 )
 
 data class StackedUsage(
@@ -31,18 +59,21 @@ data class StackedUsage(
 data class AppTimeShare(
     val packageName: String,
     val displayName: String?,
-    val color: Int, // Hex color for chart
-    val minutes: Long
+    val icon: Any?,
+    val color: Int,
+    val minutes: Long,
+    val percentage: Float
 )
 
 data class UsageTrend(
-    val timeLabel: String, // e.g., "Morning", "Afternoon"
+    val timeLabel: String,
     val minutes: Long
 )
 
 sealed interface MetricsEvent {
     data object StartTrial : MetricsEvent
     data class ChangePeriod(val period: MetricsPeriod) : MetricsEvent
+    data object ToggleAppsListExpansion : MetricsEvent
     data object Refresh : MetricsEvent
 }
 

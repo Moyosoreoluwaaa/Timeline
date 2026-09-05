@@ -22,6 +22,12 @@ object Dimensions {
     val SpacingMega = 128.dp
     val SpacingUltra = 192.dp
 
+    val ToolbarHeight = 64.dp
+    val ToolbarTabPadding = 12.dp
+    val ChartHeightMedium = 160.dp
+    val ChartHeightLarge = 220.dp
+    val DonutChartSize = 80.dp
+
     val IconSmall = 24.dp
     val IconMedium = 32.dp
     val IconLarge = 48.dp

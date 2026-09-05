@@ -8,6 +8,7 @@ import com.timeline.presentation.PermissionViewModel
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.AuthScreen
+import com.timeline.ui.InsightsHostScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import com.timeline.presentation.AuthViewModel
@@ -53,7 +54,12 @@ actual fun AppNavigation(
             TimelineScreen(
                 viewModel = timelineViewModel,
                 onNavigateToSettings = { currentRoute = Route.Settings },
-                onNavigateToPaywall = { currentRoute = Route.Paywall(false) }
+                onNavigateToInsights = { currentRoute = Route.Insights }
+            )
+        }
+        Route.Insights -> {
+            InsightsHostScreen(
+                onNavigateBack = { currentRoute = Route.Timeline }
             )
         }
         Route.Settings -> {

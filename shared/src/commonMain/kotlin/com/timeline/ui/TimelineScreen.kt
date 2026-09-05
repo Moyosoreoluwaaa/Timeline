@@ -54,8 +54,7 @@ import kotlin.time.Instant
 fun TimelineScreen(
     viewModel: TimelineViewModel = koinViewModel(),
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToMetrics: () -> Unit = {},
-    onNavigateToPaywall: () -> Unit = {}
+    onNavigateToInsights: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     
@@ -171,7 +170,6 @@ fun TimelineScreen(
                     onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
                     onFilterSelected = { viewModel.onEvent(TimelineEvent.FilterTime(it)) },
                     onNavigateToSettings = onNavigateToSettings,
-                    onNavigateToMetrics = onNavigateToMetrics,
                     onSelectDateClick = { showDatePicker = true }
                 )
             }
@@ -238,7 +236,7 @@ fun TimelineScreen(
                         ) {
                             BottomSummary(
                                 summary = state.summary,
-                                onUpgradeClick = onNavigateToPaywall
+                                onUpgradeClick = onNavigateToInsights
                             )
                         }
                     }
