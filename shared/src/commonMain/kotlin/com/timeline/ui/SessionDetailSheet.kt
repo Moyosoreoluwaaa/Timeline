@@ -1,5 +1,8 @@
 package com.timeline.ui
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,88 +25,110 @@ import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
+import com.timeline.ui.LocalNavAnimatedVisibilityScope
+import com.timeline.ui.LocalSharedTransitionScope
 
 @Composable
 fun SessionDetailSheet(
     state: TimelineState,
-    expansionProgress: Float,
+    expansionProgress: () -> Float,
     prevSession: Session?,
     nextSession: Session?,
-    onEvent: (TimelineEvent) -> Unit
+    onEvent: (TimelineEvent) -> Unit,
+    onShowFullScreenImage: (String) -> Unit
 ) {
     val session = state.selectedSession ?: return
-    
-    Box(
+
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (state.isSheetExpanded) Modifier.fillMaxHeight() else Modifier)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            SessionDetailHeader(
-                session = session,
-                isExpanded = state.isSheetExpanded,
-                totalAppSessions = state.relatedSessions.size
-            )
+        SessionDetailHeader(
+            session = session,
+            isExpanded = state.isSheetExpanded,
+            totalSessions = state.relatedSessions.size
+        )
 
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
-                color = MaterialTheme.colorScheme.surfaceContainerLowest
-            ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+            color = MaterialTheme.colorScheme.surfaceContainerLowest
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Dimensions.PaddingMedium)
-                                .padding(top = Dimensions.PaddingMedium)
-                                .padding(bottom = Dimensions.IconHuge)
-                                .graphicsLayer {
-                                    alpha = AppAlpha.Full - expansionProgress
-                                    translationY = -expansionProgress * Dimensions.SpacingHuge.value
-                                }
-                        ) {
-                            StatRow(session)
-                            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
-                            ) {
-                                val segmentsWithScreenshots = session.segments.filter { it.screenshotPath != null }
-                                items(segmentsWithScreenshots) { segment ->
-                                    ScreenshotImage(
-                                        path = segment.screenshotPath,
-                                        contentDescription = AppStrings.ContentDescSessionSegment,
-                                        modifier = Modifier
-                                            .width(Dimensions.SpacingMega)
-                                            .height(Dimensions.SpacingUltra)
-                                            .clickable { onEvent(TimelineEvent.ShowFullScreenImage(segment.screenshotPath)) }
-                                    )
-                                }
-                            }
-                        }
-
-                        ExpandedSessionContent(
-                            appSessions = state.relatedSessions,
-                            progress = expansionProgress,
-                            onImageClick = { onEvent(TimelineEvent.ShowFullScreenImage(it)) }
-                        )
-                    }
-
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = Dimensions.PaddingMedium)
+                            .padding(top = Dimensions.PaddingMedium)
+                            .padding(bottom = Dimensions.IconHuge)
+                            .graphicsLayer {
+                                val progress = expansionProgress()
+                                alpha = AppAlpha.Full - progress
+                                translationY = -progress * Dimensions.SpacingHuge.value
+                            }
                     ) {
-                        SessionDetailFooter(
-                            prevSession = prevSession,
-                            nextSession = nextSession,
-                            onPrevClick = { onEvent(TimelineEvent.SelectPreviousSession) },
-                            onNextClick = { onEvent(TimelineEvent.SelectNextSession) }
-                        )
+                        StatRow(session)
+                        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
+                        ) {
+                            val segmentsWithScreenshots =
+                                session.segments.filter { it.screenshotPath != null }
+                            items(segmentsWithScreenshots) { segment ->
+                                val path = segment.screenshotPath!!
+                                val modifier =
+                                    if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                                        with(sharedTransitionScope) {
+                                        Modifier.sharedElement(
+                                            rememberSharedContentState(key = "image-$path"),
+                                            animatedVisibilityScope = animatedVisibilityScope,
+                                            boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 380f) }
+                                        )
+                                    }
+                                    } else Modifier
+
+                                ScreenshotImage(
+                                    path = path,
+                                    contentDescription = AppStrings.ContentDescSessionSegment,
+                                    modifier = Modifier
+                                        .width(Dimensions.SpacingMega)
+                                        .height(Dimensions.SpacingUltra)
+                                        .clip(MaterialTheme.shapes.small)
+                                        .then(modifier)
+                                        .clickable { onShowFullScreenImage(path) }
+                                )
+                            }
+                        }
                     }
+
+                    ExpandedSessionContent(
+                        appSessions = state.relatedSessions,
+                        progress = expansionProgress,
+                        onImageClick = { path ->
+                            if (path != null) onShowFullScreenImage(path)
+                        }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                ) {
+                    SessionDetailFooter(
+                        prevSession = prevSession,
+                        nextSession = nextSession,
+                        onPrevClick = { onEvent(TimelineEvent.SelectPreviousSession) },
+                        onNextClick = { onEvent(TimelineEvent.SelectNextSession) }
+                    )
                 }
             }
         }

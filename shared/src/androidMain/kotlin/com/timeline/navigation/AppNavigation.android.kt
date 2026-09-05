@@ -1,32 +1,42 @@
 package com.timeline.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.ui.NavDisplay
-import com.timeline.ui.TimelineScreen
-import com.timeline.ui.SettingsScreen
+import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
+import com.timeline.domain.UserPreferences
+import com.timeline.presentation.AuthViewModel
+import com.timeline.presentation.PaywallViewModel
+import com.timeline.presentation.PermissionViewModel
+import com.timeline.presentation.SettingsViewModel
+import com.timeline.presentation.TimelineViewModel
+import com.timeline.ui.AuthScreen
+import com.timeline.ui.LocalNavAnimatedVisibilityScope
+import com.timeline.ui.LocalSharedTransitionScope
 import com.timeline.ui.MetricsScreen
 import com.timeline.ui.PermissionScreen
-import com.timeline.ui.AuthScreen
+import com.timeline.ui.SettingsScreen
+import com.timeline.ui.TimelineScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
-import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
-import com.timeline.presentation.AuthViewModel
-import com.timeline.presentation.TimelineViewModel
-import com.timeline.presentation.SettingsViewModel
-import com.timeline.presentation.PermissionViewModel
-import com.timeline.presentation.PaywallViewModel
-import com.timeline.domain.UserPreferences
-import org.koin.compose.viewmodel.koinViewModel
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 actual fun AppNavigation(
     onNavigateToUsageStats: () -> Unit,
@@ -61,9 +71,8 @@ actual fun AppNavigation(
                 backStack.add(Route.Auth)
             }
         } else {
-            // Logged in: if we are on Auth screen or have an empty backstack, go to main app
             if (currentRoute == null || currentRoute == Route.Auth) {
-                val needsOnboarding = state.isPermissionsCompleted != true || !permState.allGranted
+                val needsOnboarding = !state.isPermissionsCompleted || !permState.allGranted
                 backStack.clear()
                 if (needsOnboarding) {
                     backStack.add(Route.Permission)
@@ -82,112 +91,137 @@ actual fun AppNavigation(
     }
 
     if (backStack.isNotEmpty()) {
-        NavDisplay(
-            backStack = backStack,
-            onBack = { 
-                if (backStack.size > 1) {
-                    backStack.removeAt(backStack.size - 1)
-                } else if (backStack.lastOrNull() == Route.Auth) {
-                    onExitApp()
-                }
-            },
-            entryProvider = entryProvider {
-                entry<Route.Auth> {
-                    AuthScreen(
-                        viewModel = authViewModel,
-                        platformContext = context,
-                        onAuthSuccess = {
-                            // The LaunchedEffect above will automatically redirect 
-                            // as soon as the 'isLoggedIn' preference updates to true.
+        val currentRoute = backStack.last()
+
+        BackHandler(enabled = backStack.size > 1 || currentRoute == Route.Auth) {
+            if (backStack.size > 1) {
+                backStack.removeAt(backStack.size - 1)
+            } else if (currentRoute == Route.Auth) {
+                onExitApp()
+            }
+        }
+
+        SharedTransitionLayout {
+            CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+                AnimatedContent(
+                    targetState = currentRoute,
+                    label = "NavTransition",
+                    transitionSpec = {
+                        if (targetState is Route.FullScreenImage || initialState is Route.FullScreenImage) {
+                            fadeIn(tween(500)) togetherWith fadeOut(tween(500))
+                        } else {
+                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
                         }
-                    )
-                }
-                entry<Route.Permission> {
-                    PermissionScreen(
-                        viewModel = permissionViewModel,
-                        onNavigateToUsageStats = onNavigateToUsageStats,
-                        onNavigateToOverlay = onNavigateToOverlay,
-                        onNavigateToNotification = onNavigateToNotification,
-                        onNavigateToAccessibility = onNavigateToAccessibility,
-                        onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
-                        onAllGranted = {
-                            backStack.clear()
-                            backStack.add(Route.Timeline)
-                        }
-                    )
-                }
-                entry<Route.Timeline> {
-                    TimelineScreen(
-                        viewModel = timelineViewModel,
-                        onNavigateToSettings = {
-                            backStack.add(Route.Settings)
-                        },
-                        onNavigateToMetrics = {
-                            backStack.add(Route.Metrics)
-                        },
-                        onNavigateToPaywall = {
-                            backStack.add(Route.Paywall(isDealsVariant = false))
-                        }
-                    )
-                }
-                entry<Route.Metrics> {
-                    MetricsScreen(
-                        onBack = {
-                            if (backStack.size > 1) {
-                                backStack.removeAt(backStack.size - 1)
+                    }
+                ) { route ->
+                    CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
+                        when (route) {
+                            is Route.Auth -> {
+                                AuthScreen(
+                                    viewModel = authViewModel,
+                                    platformContext = context,
+                                    onAuthSuccess = { }
+                                )
                             }
-                        },
-                        onNavigateToPaywall = {
-                            backStack.add(Route.Paywall(isDealsVariant = false))
-                        }
-                    )
-                }
-                entry<Route.Settings> {
-                    SettingsScreen(
-                        viewModel = settingsViewModel,
-                        onNavigateToPaywall = { isDeals ->
-                            backStack.add(Route.Paywall(isDealsVariant = isDeals))
-                        },
-                        onNavigateToCustomerCenter = {
-                            backStack.add(Route.CustomerCenter)
-                        },
-                        onNavigateToAuth = {
-                            backStack.add(Route.Auth)
-                        },
-                        onBack = {
-                            if (backStack.size > 1) {
-                                backStack.removeAt(backStack.size - 1)
+                            is Route.Permission -> {
+                                PermissionScreen(
+                                    viewModel = permissionViewModel,
+                                    onNavigateToUsageStats = onNavigateToUsageStats,
+                                    onNavigateToOverlay = onNavigateToOverlay,
+                                    onNavigateToNotification = onNavigateToNotification,
+                                    onNavigateToAccessibility = onNavigateToAccessibility,
+                                    onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
+                                    onAllGranted = {
+                                        backStack.clear()
+                                        backStack.add(Route.Timeline)
+                                    }
+                                )
+                            }
+                            is Route.Timeline -> {
+                                TimelineScreen(
+                                    viewModel = timelineViewModel,
+                                    onNavigateToSettings = {
+                                        backStack.add(Route.Settings)
+                                    },
+                                    onNavigateToMetrics = {
+                                        backStack.add(Route.Metrics)
+                                    },
+                                    onNavigateToPaywall = {
+                                        backStack.add(Route.Paywall(isDealsVariant = false))
+                                    }
+                                )
+                            }
+                            is Route.Metrics -> {
+                                MetricsScreen(
+                                    onBack = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeAt(backStack.size - 1)
+                                        }
+                                    },
+                                    onNavigateToPaywall = {
+                                        backStack.add(Route.Paywall(isDealsVariant = false))
+                                    }
+                                )
+                            }
+                            is Route.Settings -> {
+                                SettingsScreen(
+                                    viewModel = settingsViewModel,
+                                    onNavigateToPaywall = { isDeals ->
+                                        backStack.add(Route.Paywall(isDealsVariant = isDeals))
+                                    },
+                                    onNavigateToCustomerCenter = {
+                                        backStack.add(Route.CustomerCenter)
+                                    },
+                                    onNavigateToAuth = {
+                                        backStack.add(Route.Auth)
+                                    },
+                                    onBack = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeAt(backStack.size - 1)
+                                        }
+                                    }
+                                )
+                            }
+                            is Route.CustomerCenter -> {
+                                CustomerCenter(
+                                    onDismiss = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeAt(backStack.size - 1)
+                                        }
+                                    }
+                                )
+                            }
+                            is Route.Paywall -> {
+                                val paywallViewModel: PaywallViewModel = koinViewModel()
+                                NewPaywallScreen(
+                                    viewModel = paywallViewModel,
+                                    style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
+                                    onDismiss = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeAt(backStack.size - 1)
+                                        }
+                                    },
+                                    onPurchaseSuccess = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeAt(backStack.size - 1)
+                                        }
+                                    }
+                                )
+                            }
+                            is Route.FullScreenImage -> {
+//                                FullScreenImageScreen(
+//                                    path = route.path,
+//                                    onBack = {
+//                                        if (backStack.size > 1) {
+//                                            backStack.removeAt(backStack.size - 1)
+//                                        }
+//                                    }
+//                                )
                             }
                         }
-                    )
-                }
-                entry<Route.CustomerCenter> {
-                    CustomerCenter(
-                        onDismiss = {
-                            if (backStack.size > 1) {
-                                backStack.removeAt(backStack.size - 1)
-                            }
-                        }
-                    )
-                }
-                entry<Route.Paywall> { route ->
-                    val paywallViewModel: PaywallViewModel = koinViewModel()
-                    NewPaywallScreen(
-                        viewModel = paywallViewModel,
-                        style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
-                        onDismiss = {
-                            if (backStack.size > 1) {
-                                backStack.removeAt(backStack.size - 1)
-                            }
-                        },
-                        onPurchaseSuccess = {
-                            if (backStack.size > 1) {
-                                backStack.removeAt(backStack.size - 1)
-                            }
-                        }
-                    )
+                    }
                 }
             }
-        )
+        }
     }
 }

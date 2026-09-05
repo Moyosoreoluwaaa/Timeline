@@ -1,5 +1,9 @@
 package com.timeline.ui.components
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,6 +26,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import com.timeline.domain.Session
 import com.timeline.ui.AppIcon
+import com.timeline.ui.LocalNavAnimatedVisibilityScope
+import com.timeline.ui.LocalSharedTransitionScope
 import com.timeline.ui.ScreenshotImage
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
@@ -34,7 +40,7 @@ import kotlinx.datetime.toLocalDateTime
 fun SessionDetailHeader(
     session: Session,
     isExpanded: Boolean,
-    totalAppSessions: Int
+    totalSessions: Int
 ) {
     Row(
         modifier = Modifier
@@ -43,38 +49,40 @@ fun SessionDetailHeader(
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clip(MaterialTheme.shapes.medium)
             .padding(Dimensions.PaddingMedium),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Surface(
-            modifier = Modifier.size(Dimensions.IconLarge),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            AppIcon(
-                icon = session.icon,
-                contentDescription = session.displayName,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-        Column(modifier = Modifier.weight(AppWeights.Full)) {
-            Text(
-                text = session.displayName ?: session.packageName,
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "${session.durationMinutes}m",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-        
-        if (isExpanded) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                modifier = Modifier.size(Dimensions.IconLarge),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                AppIcon(
+                    icon = session.icon,
+                    contentDescription = session.displayName,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+            Column {
+                Text(
+                    text = session.displayName ?: session.packageName,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${session.durationMinutes}m",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+        }
+
+        if (isExpanded) {
             Text(
-                text = "$totalAppSessions ${if (totalAppSessions == 1) "session" else "sessions"}",
+                text = "$totalSessions ${if (totalSessions == 1) "session" else "sessions"}",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -143,17 +151,20 @@ fun SessionDetailFooter(
 @Composable
 fun ExpandedSessionContent(
     appSessions: List<Session>,
-    progress: Float,
+    progress: () -> Float,
     onImageClick: (String?) -> Unit
 ) {
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
-                alpha = progress
-                translationY = (AppAlpha.Full - progress) * Dimensions.SpacingColossal.value
+                val currentProgress = progress()
+                alpha = currentProgress
+                translationY = (AppAlpha.Full - currentProgress) * Dimensions.SpacingColossal.value
             },
         verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium),
         contentPadding = PaddingValues(
@@ -184,10 +195,21 @@ fun ExpandedSessionContent(
                             contentPadding = PaddingValues(vertical = Dimensions.Half)
                         ) {
                             items(segmentsWithScreenshots) { segment ->
+                                val path = segment.screenshotPath!!
+                                val sharedModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                                    with(sharedTransitionScope) {
+                                        Modifier.sharedElement(
+                                            rememberSharedContentState(key = "image-$path"),
+                                            animatedVisibilityScope = animatedVisibilityScope,
+                                            boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 380f) }
+                                        )
+                                    }
+                                } else Modifier
+
                                 Column(
                                     modifier = Modifier
                                         .width(Dimensions.SpacingMega)
-                                        .clickable { onImageClick(segment.screenshotPath) }
+                                        .clickable { onImageClick(path) }
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -209,9 +231,13 @@ fun ExpandedSessionContent(
                                     }
                                     Spacer(modifier = Modifier.height(Dimensions.Half))
                                     ScreenshotImage(
-                                        path = segment.screenshotPath,
+                                        path = path,
                                         contentDescription = null,
-                                        modifier = Modifier.fillMaxWidth().height(Dimensions.SpacingUltra)
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(Dimensions.SpacingUltra)
+                                            .clip(MaterialTheme.shapes.small)
+                                            .then(sharedModifier)
                                     )
                                 }
                             }

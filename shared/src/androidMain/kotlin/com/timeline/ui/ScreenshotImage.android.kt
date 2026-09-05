@@ -22,7 +22,8 @@ import java.io.File
 actual fun ScreenshotImage(
     path: String?,
     contentDescription: String?,
-    modifier: Modifier
+    modifier: Modifier,
+    contentScale: ContentScale
 ) {
     val bitmap = remember(path) {
         if (!path.isNullOrEmpty()) {
@@ -41,13 +42,12 @@ actual fun ScreenshotImage(
         Image(
             bitmap = bitmap.asImageBitmap(),
             contentDescription = contentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = modifier.clip(MaterialTheme.shapes.small)
+            contentScale = contentScale,
+            modifier = modifier
         )
     } else {
         Box(
             modifier = modifier
-                .clip(MaterialTheme.shapes.small)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
