@@ -48,6 +48,7 @@ fun SessionDetailHeader(
             .zIndex(1f)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clip(MaterialTheme.shapes.medium)
+            .padding(vertical = Dimensions.PaddingLarge)
             .padding(Dimensions.PaddingMedium),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

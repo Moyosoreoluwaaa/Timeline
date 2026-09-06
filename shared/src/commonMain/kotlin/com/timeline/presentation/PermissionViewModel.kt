@@ -29,6 +29,45 @@ class PermissionViewModel(
 
     init {
         checkPermissions()
+        viewModelScope.launch {
+            userPreferences.state.collect { prefs ->
+                val stepName = prefs.lastOnboardingStep
+                val savedStep = try {
+                    OnboardingStep.valueOf(stepName)
+                } catch (_: Exception) {
+                    null
+                }
+                if (savedStep != null && _state.value.currentStep == OnboardingStep.Welcome && savedStep != OnboardingStep.Welcome) {
+                    val resolvedStep = resolveInitialStep(savedStep)
+                    _state.update { it.copy(currentStep = resolvedStep) }
+                }
+            }
+        }
+    }
+
+    private fun resolveInitialStep(savedStep: OnboardingStep): OnboardingStep {
+        // If the saved step is for a permission that is already granted, skip directly forward
+        return when (savedStep) {
+            OnboardingStep.AccessibilityIntro, OnboardingStep.AccessibilityGrant, OnboardingStep.AccessibilitySuccess, OnboardingStep.AccessibilityFailure -> {
+                if (permissionManager.hasAccessibilityPermission()) {
+                    if (permissionManager.hasUsageStatsPermission()) {
+                        if (permissionManager.hasNotificationPermission()) OnboardingStep.AllSet
+                        else OnboardingStep.NotificationsIntro
+                    } else OnboardingStep.UsageIntro
+                } else savedStep
+            }
+            OnboardingStep.UsageIntro, OnboardingStep.UsageGrant, OnboardingStep.UsageSuccess, OnboardingStep.UsageFailure -> {
+                if (permissionManager.hasUsageStatsPermission()) {
+                    if (permissionManager.hasNotificationPermission()) OnboardingStep.AllSet
+                    else OnboardingStep.NotificationsIntro
+                } else savedStep
+            }
+            OnboardingStep.NotificationsIntro, OnboardingStep.NotificationsGrant -> {
+                if (permissionManager.hasNotificationPermission()) OnboardingStep.AllSet
+                else savedStep
+            }
+            else -> savedStep
+        }
     }
 
     fun onEvent(event: PermissionEvent) {
@@ -41,9 +80,8 @@ class PermissionViewModel(
             is PermissionEvent.StartTracking -> {
                 viewModelScope.launch {
                     userPreferences.setPermissionsCompleted(true)
-                    if (state.value.allGranted) {
-                        _effects.send(PermissionEffect.AllGranted)
-                    }
+                    userPreferences.setLastOnboardingStep(OnboardingStep.AllSet.name)
+                    _effects.send(PermissionEffect.AllGranted)
                 }
             }
         }
@@ -113,32 +151,69 @@ class PermissionViewModel(
                 OnboardingStep.Welcome -> OnboardingStep.ValueProp
                 OnboardingStep.ValueProp -> OnboardingStep.PermissionOverview
                 OnboardingStep.PermissionOverview -> OnboardingStep.AccessibilityIntro
-                OnboardingStep.AccessibilityIntro -> OnboardingStep.AccessibilityGrant
+                OnboardingStep.AccessibilityIntro -> {
+                    if (permissionManager.hasAccessibilityPermission()) OnboardingStep.AccessibilitySuccess
+                    else OnboardingStep.AccessibilityGrant
+                }
+                OnboardingStep.AccessibilityGrant -> {
+                    if (permissionManager.hasAccessibilityPermission()) OnboardingStep.AccessibilitySuccess
+                    else OnboardingStep.AccessibilityFailure
+                }
                 OnboardingStep.AccessibilitySuccess -> OnboardingStep.UsageIntro
-                OnboardingStep.AccessibilityFailure -> OnboardingStep.AccessibilityGrant
-                OnboardingStep.UsageIntro -> OnboardingStep.UsageGrant
+                OnboardingStep.AccessibilityFailure -> OnboardingStep.UsageIntro // Flexible fallback: user can skip
+                OnboardingStep.UsageIntro -> {
+                    if (permissionManager.hasUsageStatsPermission()) OnboardingStep.UsageSuccess
+                    else OnboardingStep.UsageGrant
+                }
+                OnboardingStep.UsageGrant -> {
+                    if (permissionManager.hasUsageStatsPermission()) OnboardingStep.UsageSuccess
+                    else OnboardingStep.UsageFailure
+                }
                 OnboardingStep.UsageSuccess -> OnboardingStep.NotificationsIntro
-                OnboardingStep.UsageFailure -> OnboardingStep.UsageGrant
+                OnboardingStep.UsageFailure -> OnboardingStep.NotificationsIntro // Flexible fallback
                 OnboardingStep.NotificationsIntro -> OnboardingStep.NotificationsGrant
                 OnboardingStep.NotificationsGrant -> OnboardingStep.AllSet
                 OnboardingStep.AllSet -> OnboardingStep.AllSet
-                else -> currentState.currentStep
             }
-            currentState.copy(currentStep = next)
+            val newHistory = currentState.stepHistory + currentState.currentStep
+            
+            viewModelScope.launch {
+                userPreferences.setLastOnboardingStep(next.name)
+            }
+
+            currentState.copy(currentStep = next, stepHistory = newHistory)
         }
     }
 
     private fun previousStep() {
         _state.update { currentState ->
-            val prev = when (currentState.currentStep) {
-                OnboardingStep.ValueProp -> OnboardingStep.Welcome
-                OnboardingStep.PermissionOverview -> OnboardingStep.ValueProp
-                OnboardingStep.AccessibilityIntro -> OnboardingStep.PermissionOverview
-                OnboardingStep.UsageIntro -> OnboardingStep.AccessibilitySuccess
-                OnboardingStep.NotificationsIntro -> OnboardingStep.UsageSuccess
-                else -> currentState.currentStep
+            val prev = if (currentState.stepHistory.isNotEmpty()) {
+                currentState.stepHistory.last()
+            } else {
+                when (currentState.currentStep) {
+                    OnboardingStep.ValueProp -> OnboardingStep.Welcome
+                    OnboardingStep.PermissionOverview -> OnboardingStep.ValueProp
+                    OnboardingStep.AccessibilityIntro -> OnboardingStep.PermissionOverview
+                    OnboardingStep.AccessibilityGrant -> OnboardingStep.AccessibilityIntro
+                    OnboardingStep.AccessibilitySuccess -> OnboardingStep.AccessibilityIntro
+                    OnboardingStep.AccessibilityFailure -> OnboardingStep.AccessibilityIntro
+                    OnboardingStep.UsageIntro -> OnboardingStep.AccessibilitySuccess
+                    OnboardingStep.UsageGrant -> OnboardingStep.UsageIntro
+                    OnboardingStep.UsageSuccess -> OnboardingStep.UsageIntro
+                    OnboardingStep.UsageFailure -> OnboardingStep.UsageIntro
+                    OnboardingStep.NotificationsIntro -> OnboardingStep.UsageSuccess
+                    OnboardingStep.NotificationsGrant -> OnboardingStep.NotificationsIntro
+                    OnboardingStep.AllSet -> OnboardingStep.NotificationsGrant
+                    else -> OnboardingStep.Welcome
+                }
             }
-            currentState.copy(currentStep = prev)
+            val newHistory = if (currentState.stepHistory.isNotEmpty()) currentState.stepHistory.dropLast(1) else emptyList()
+            
+            viewModelScope.launch {
+                userPreferences.setLastOnboardingStep(prev.name)
+            }
+
+            currentState.copy(currentStep = prev, stepHistory = newHistory)
         }
     }
 

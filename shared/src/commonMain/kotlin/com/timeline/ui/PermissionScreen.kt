@@ -72,6 +72,7 @@ fun PermissionScreen(
     ) { step ->
         OnboardingStepContent(
             step = step,
+            state = state,
             onEvent = viewModel::onEvent,
             onOpenTimeline = {
                 viewModel.onEvent(PermissionEvent.StartTracking)
@@ -83,24 +84,29 @@ fun PermissionScreen(
 @Composable
 private fun OnboardingStepContent(
     step: OnboardingStep,
+    state: PermissionState,
     onEvent: (PermissionEvent) -> Unit,
     onOpenTimeline: () -> Unit
 ) {
+    val isAccessibilityGranted = state.permissions.find { it.id == "accessibility" }?.isGranted ?: false
+    val isUsageGranted = state.permissions.find { it.id == "usage" }?.isGranted ?: false
+    val isNotificationGranted = state.permissions.find { it.id == "notifications" }?.isGranted ?: false
+
     when (step) {
         OnboardingStep.Welcome -> WelcomeStep(onEvent)
         OnboardingStep.ValueProp -> ValuePropStep(onEvent)
         OnboardingStep.PermissionOverview -> PermissionOverviewStep(onEvent)
         OnboardingStep.AccessibilityIntro -> AccessibilityIntroStep(onEvent)
-        OnboardingStep.AccessibilityGrant -> AccessibilityGrantStep(onEvent)
+        OnboardingStep.AccessibilityGrant -> AccessibilityGrantStep(onEvent, isAccessibilityGranted)
         OnboardingStep.AccessibilitySuccess -> AccessibilitySuccessStep(onEvent)
         OnboardingStep.AccessibilityFailure -> AccessibilityFailureStep(onEvent)
         OnboardingStep.UsageIntro -> UsageIntroStep(onEvent)
-        OnboardingStep.UsageGrant -> UsageGrantStep(onEvent)
+        OnboardingStep.UsageGrant -> UsageGrantStep(onEvent, isUsageGranted)
         OnboardingStep.UsageSuccess -> UsageSuccessStep(onEvent)
         OnboardingStep.UsageFailure -> UsageFailureStep(onEvent)
         OnboardingStep.NotificationsIntro -> NotificationsIntroStep(onEvent)
-        OnboardingStep.NotificationsGrant -> NotificationsGrantStep(onEvent)
-        OnboardingStep.AllSet -> AllSetStep(onOpenTimeline)
+        OnboardingStep.NotificationsGrant -> NotificationsGrantStep(onEvent, isNotificationGranted)
+        OnboardingStep.AllSet -> AllSetStep(onOpenTimeline, isAccessibilityGranted, isUsageGranted)
     }
 }
 
@@ -182,9 +188,9 @@ private fun PermissionOverviewStep(onEvent: (PermissionEvent) -> Unit) {
 private fun AccessibilityIntroStep(onEvent: (PermissionEvent) -> Unit) {
     OnboardingLayout(
         bottomBar = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
                 OnboardingActionButton(text = AppStrings.ButtonUnderstandContinue, onClick = { onEvent(PermissionEvent.NextStep) })
-                OnboardingTextButton(text = AppStrings.ButtonNotNow, onClick = { onEvent(PermissionEvent.NextStep) })
+                OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
             }
         }
     ) {
@@ -216,11 +222,18 @@ private fun AccessibilityIntroStep(onEvent: (PermissionEvent) -> Unit) {
 }
 
 @Composable
-private fun AccessibilityGrantStep(onEvent: (PermissionEvent) -> Unit) {
+private fun AccessibilityGrantStep(onEvent: (PermissionEvent) -> Unit, isGranted: Boolean) {
     OnboardingLayout(
         topBar = { OnboardingPermissionIndicator(current = 1) },
         bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonGrantAccess, onClick = { onEvent(PermissionEvent.GrantPermission("accessibility")) })
+            if (isGranted) {
+                OnboardingActionButton(text = AppStrings.ButtonAlreadyGranted, onClick = { onEvent(PermissionEvent.NextStep) })
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
+                    OnboardingActionButton(text = AppStrings.ButtonGrantAccess, onClick = { onEvent(PermissionEvent.GrantPermission("accessibility")) })
+                    OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
+                }
+            }
         }
     ) {
         Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
@@ -267,7 +280,7 @@ private fun AccessibilitySuccessStep(onEvent: (PermissionEvent) -> Unit) {
 private fun AccessibilityFailureStep(onEvent: (PermissionEvent) -> Unit) {
     OnboardingLayout(
         bottomBar = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
                 OnboardingActionButton(text = AppStrings.ButtonTryAgain, onClick = { onEvent(PermissionEvent.RetryPermission) })
                 OnboardingTextButton(text = AppStrings.ButtonNotNow, onClick = { onEvent(PermissionEvent.NextStep) })
             }
@@ -292,9 +305,9 @@ private fun AccessibilityFailureStep(onEvent: (PermissionEvent) -> Unit) {
 private fun UsageIntroStep(onEvent: (PermissionEvent) -> Unit) {
     OnboardingLayout(
         bottomBar = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
                 OnboardingActionButton(text = AppStrings.ButtonContinueSettings, onClick = { onEvent(PermissionEvent.NextStep) })
-                OnboardingTextButton(text = AppStrings.ButtonNotNow, onClick = { onEvent(PermissionEvent.NextStep) })
+                OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
             }
         }
     ) {
@@ -316,11 +329,18 @@ private fun UsageIntroStep(onEvent: (PermissionEvent) -> Unit) {
 }
 
 @Composable
-private fun UsageGrantStep(onEvent: (PermissionEvent) -> Unit) {
+private fun UsageGrantStep(onEvent: (PermissionEvent) -> Unit, isGranted: Boolean) {
     OnboardingLayout(
         topBar = { OnboardingPermissionIndicator(current = 2) },
         bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonOpenSettings, onClick = { onEvent(PermissionEvent.GrantPermission("usage")) })
+            if (isGranted) {
+                OnboardingActionButton(text = AppStrings.ButtonAlreadyGranted, onClick = { onEvent(PermissionEvent.NextStep) })
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
+                    OnboardingActionButton(text = AppStrings.ButtonOpenSettings, onClick = { onEvent(PermissionEvent.GrantPermission("usage")) })
+                    OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
+                }
+            }
         }
     ) {
         Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
@@ -367,9 +387,9 @@ private fun UsageSuccessStep(onEvent: (PermissionEvent) -> Unit) {
 private fun UsageFailureStep(onEvent: (PermissionEvent) -> Unit) {
     OnboardingLayout(
         bottomBar = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
                 OnboardingActionButton(text = AppStrings.ButtonTryAgain, onClick = { onEvent(PermissionEvent.RetryPermission) })
-                OnboardingTextButton(text = AppStrings.ButtonNotNow, onClick = { onEvent(PermissionEvent.NextStep) })
+                OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
             }
         }
     ) {
@@ -412,11 +432,18 @@ private fun NotificationsIntroStep(onEvent: (PermissionEvent) -> Unit) {
 }
 
 @Composable
-private fun NotificationsGrantStep(onEvent: (PermissionEvent) -> Unit) {
+private fun NotificationsGrantStep(onEvent: (PermissionEvent) -> Unit, isGranted: Boolean) {
     OnboardingLayout(
         topBar = { OnboardingPermissionIndicator(current = 3) },
         bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonEnable, onClick = { onEvent(PermissionEvent.GrantPermission("notifications")) })
+            if (isGranted) {
+                OnboardingActionButton(text = AppStrings.ButtonAlreadyGranted, onClick = { onEvent(PermissionEvent.NextStep) })
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
+                    OnboardingActionButton(text = AppStrings.ButtonEnable, onClick = { onEvent(PermissionEvent.GrantPermission("notifications")) })
+                    OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
+                }
+            }
         }
     ) {
         Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
@@ -438,7 +465,18 @@ private fun NotificationsGrantStep(onEvent: (PermissionEvent) -> Unit) {
 }
 
 @Composable
-private fun AllSetStep(onOpenTimeline: () -> Unit) {
+private fun AllSetStep(
+    onOpenTimeline: () -> Unit,
+    isAccessibilityGranted: Boolean,
+    isUsageGranted: Boolean
+) {
+    val modeSummary = when {
+        isAccessibilityGranted && isUsageGranted -> "Full Experience: Visual Screenshots + App Usage Time"
+        isAccessibilityGranted -> "Visual Mode: Screenshots + Real-time Logging"
+        isUsageGranted -> "Usage Stats Mode: App Usage Time + Activity Trends"
+        else -> "Basic Mode: Minimal Tracking"
+    }
+
     OnboardingLayout(
         bottomBar = {
             OnboardingActionButton(text = AppStrings.ButtonOpenTimeline, onClick = onOpenTimeline)
@@ -452,7 +490,6 @@ private fun AllSetStep(onOpenTimeline: () -> Unit) {
                         Icon(imageVector = Icons.Rounded.Timeline, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(48.dp))
                     }
                 }
-                // Small success icons around the main one
                 Icon(imageVector = Icons.Rounded.Favorite, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(24.dp).align(Alignment.TopEnd).offset(x = 12.dp, y = (-12).dp))
                 Icon(imageVector = Icons.Rounded.BarChart, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(24.dp).align(Alignment.BottomStart).offset(x = (-12).dp, y = 12.dp))
             }
@@ -460,11 +497,27 @@ private fun AllSetStep(onOpenTimeline: () -> Unit) {
         Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
         Text(text = AppStrings.OnboardingAllSetTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
         Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+        Text(text = modeSummary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
         Text(text = AppStrings.OnboardingAllSetSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
         
         OnboardingPermissionFeature(icon = Icons.Rounded.Lock, title = AppStrings.OnboardingAllSet1)
         OnboardingPermissionFeature(icon = Icons.Rounded.Smartphone, title = AppStrings.OnboardingAllSet2)
         OnboardingPermissionFeature(icon = Icons.Rounded.ToggleOn, title = AppStrings.OnboardingAllSet3)
+
+        Spacer(modifier = Modifier.height(Dimensions.SpacingMedium))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+        ) {
+            Text(
+                text = AppStrings.OnboardingAllSetDataNotice,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(Dimensions.PaddingMedium)
+            )
+        }
     }
 }

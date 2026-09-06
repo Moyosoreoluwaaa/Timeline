@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.timeline.presentation.AuthState
@@ -31,11 +32,11 @@ fun AuthHeader(
     ) {
         Spacer(modifier = Modifier.height(80.dp))
         
-        // Brand Hourglass Icon (Vibrant Purple)
+        // Brand Hourglass Icon (Brand Orange)
         Icon(
             imageVector = Icons.Rounded.HourglassEmpty,
             contentDescription = null,
-            tint = Color(0xFF6C5CE7),
+            tint = Color(0xFFE67E22),
             modifier = Modifier.size(80.dp)
         )
         
@@ -67,8 +68,18 @@ fun AuthAppIconsRow(
         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 4 placeholder app icon cards
-        repeat(4) {
+        // TikTok, Instagram, WhatsApp, YouTube icon cards
+        val iconList = listOf<@Composable () -> Unit>({
+            PlaceholderIcons.TiktokIcon(modifier = Modifier.size(Dimensions.IconSmall))
+        }, {
+            PlaceholderIcons.InstagramIcon(modifier = Modifier.size(Dimensions.IconSmall))
+        }, {
+            PlaceholderIcons.WhatsappIcon(modifier = Modifier.size(Dimensions.IconSmall))
+        }, {
+            PlaceholderIcons.YoutubeIcon(modifier = Modifier.size(Dimensions.IconSmall))
+        })
+
+        iconList.forEach { iconContent ->
             Surface(
                 modifier = Modifier.size(64.dp),
                 shape = RoundedCornerShape(20.dp),
@@ -77,7 +88,7 @@ fun AuthAppIconsRow(
                 border = BorderStroke(1.dp, Color(0xFFF1F2F6))
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    PlaceholderIcons.AppleIcon()
+                    iconContent()
                 }
             }
         }
@@ -94,7 +105,7 @@ fun AuthAppIconsRow(
                 Icon(
                     imageVector = Icons.Rounded.Add,
                     contentDescription = null,
-                    tint = Color(0xFF6C5CE7),
+                    tint = Color(0xFFE67E22),
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -163,9 +174,20 @@ fun AuthForm(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color(0xFF6C5CE7)
+                color = Color(0xFFE67E22)
             )
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        // Privacy Policy Notice
+        Text(
+            text = "By continuing, you agree to using your data online. Your email, user ID, and name will be connected to your account to improve our service and provide the best of the service.",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = Dimensions.PaddingMedium)
+        )
         
         Spacer(modifier = Modifier.height(40.dp))
     }

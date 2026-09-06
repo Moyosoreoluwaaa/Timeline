@@ -11,7 +11,8 @@ data class PreferencesState(
     val isScreenshotCaptureEnabled: Boolean,
     val dataRetentionDays: Int,
     val isLoggedIn: Boolean,
-    val trialStartedAt: Long? // null = not started
+    val trialStartedAt: Long?, // null = not started
+    val lastOnboardingStep: String
 )
 
 class UserPreferences(private val dataStore: DataStore<Preferences>) {
@@ -21,6 +22,7 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
     private val DATA_RETENTION_DAYS = intPreferencesKey("data_retention_days")
     private val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
     private val TRIAL_STARTED_AT = longPreferencesKey("trial_started_at")
+    private val LAST_ONBOARDING_STEP = stringPreferencesKey("last_onboarding_step")
 
     val state: Flow<PreferencesState> = dataStore.data.map { prefs ->
         PreferencesState(
@@ -29,7 +31,8 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
             isScreenshotCaptureEnabled = prefs[IS_SCREENSHOT_CAPTURE_ENABLED] ?: true,
             dataRetentionDays = prefs[DATA_RETENTION_DAYS] ?: 30,
             isLoggedIn = prefs[IS_LOGGED_IN] ?: false,
-            trialStartedAt = prefs[TRIAL_STARTED_AT]
+            trialStartedAt = prefs[TRIAL_STARTED_AT],
+            lastOnboardingStep = prefs[LAST_ONBOARDING_STEP] ?: "Welcome"
         )
     }
 
@@ -55,5 +58,9 @@ class UserPreferences(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setLoggedIn(loggedIn: Boolean) {
         dataStore.edit { it[IS_LOGGED_IN] = loggedIn }
+    }
+
+    suspend fun setLastOnboardingStep(step: String) {
+        dataStore.edit { it[LAST_ONBOARDING_STEP] = step }
     }
 }

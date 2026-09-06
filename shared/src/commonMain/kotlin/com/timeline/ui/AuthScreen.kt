@@ -59,7 +59,7 @@ fun AuthScreen(
             // Upper Brand Header with Hourglass logo & App Icons Row
             AuthHeader()
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(0.6f))
 
             // Display authentication error if any
             state.error?.let { error ->
@@ -82,6 +82,8 @@ fun AuthScreen(
                     }
                 }
             )
+
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         // Show global overlay when loading or authenticated (to prevent flashes during transitions)
