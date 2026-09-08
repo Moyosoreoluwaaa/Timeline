@@ -6,7 +6,6 @@ import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
 import com.timeline.domain.NotificationManager
 import com.timeline.util.AppStrings
-import co.touchlab.kermit.Logger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,10 +16,8 @@ import kotlinx.coroutines.launch
 class PermissionViewModel(
     private val permissionManager: PermissionManager,
     private val userPreferences: UserPreferences,
-    private val notificationManager: NotificationManager,
-    private val logger: Logger
+    private val notificationManager: NotificationManager
 ) : ViewModel() {
-    private val tagLogger = logger.withTag("PermissionViewModel")
     private val _state = MutableStateFlow(PermissionState())
     val state = _state.asStateFlow()
 
@@ -46,28 +43,13 @@ class PermissionViewModel(
     }
 
     private fun resolveInitialStep(savedStep: OnboardingStep): OnboardingStep {
-        // If the saved step is for a permission that is already granted, skip directly forward
-        return when (savedStep) {
-            OnboardingStep.AccessibilityIntro, OnboardingStep.AccessibilityGrant, OnboardingStep.AccessibilitySuccess, OnboardingStep.AccessibilityFailure -> {
-                if (permissionManager.hasAccessibilityPermission()) {
-                    if (permissionManager.hasUsageStatsPermission()) {
-                        if (permissionManager.hasNotificationPermission()) OnboardingStep.AllSet
-                        else OnboardingStep.NotificationsIntro
-                    } else OnboardingStep.UsageIntro
-                } else savedStep
-            }
-            OnboardingStep.UsageIntro, OnboardingStep.UsageGrant, OnboardingStep.UsageSuccess, OnboardingStep.UsageFailure -> {
-                if (permissionManager.hasUsageStatsPermission()) {
-                    if (permissionManager.hasNotificationPermission()) OnboardingStep.AllSet
-                    else OnboardingStep.NotificationsIntro
-                } else savedStep
-            }
-            OnboardingStep.NotificationsIntro, OnboardingStep.NotificationsGrant -> {
-                if (permissionManager.hasNotificationPermission()) OnboardingStep.AllSet
-                else savedStep
-            }
-            else -> savedStep
-        }
+        return if (savedStep == OnboardingStep.PermissionCardStack) {
+            if (permissionManager.hasAccessibilityPermission() && 
+                permissionManager.hasUsageStatsPermission() && 
+                permissionManager.hasNotificationPermission()) {
+                OnboardingStep.ModeSelection
+            } else savedStep
+        } else savedStep
     }
 
     fun onEvent(event: PermissionEvent) {
@@ -80,15 +62,23 @@ class PermissionViewModel(
             is PermissionEvent.StartTracking -> {
                 viewModelScope.launch {
                     userPreferences.setPermissionsCompleted(true)
-                    userPreferences.setLastOnboardingStep(OnboardingStep.AllSet.name)
+                    userPreferences.setLastOnboardingStep(OnboardingStep.ModeSelection.name)
                     _effects.send(PermissionEffect.AllGranted)
                 }
             }
         }
     }
 
+    fun selectProPlan() {
+        viewModelScope.launch {
+            userPreferences.setPermissionsCompleted(true)
+            userPreferences.setLastOnboardingStep(OnboardingStep.ModeSelection.name)
+            _effects.send(PermissionEffect.NavigateToPaywall)
+        }
+    }
+
     private fun checkPermissions() {
-        val allPermissions = listOf(
+        val permissions = listOf(
             PermissionItem(
                 id = "accessibility",
                 title = AppStrings.PermissionAccessibilityTitle,
@@ -112,98 +102,63 @@ class PermissionViewModel(
             )
         )
 
-        val permissions = allPermissions
         val allGranted = permissions.all { p -> p.isGranted }
 
-        tagLogger.d { "Checking permissions. All granted: $allGranted" }
-
         _state.update { currentState ->
-            val newState = currentState.copy(
-                permissions = permissions,
-                allGranted = allGranted
-            )
-            
-            // Auto-advance logic based on permission status changes
-            when (newState.currentStep) {
-                OnboardingStep.AccessibilityGrant, OnboardingStep.AccessibilityFailure -> {
-                    if (permissionManager.hasAccessibilityPermission()) {
-                        newState.copy(currentStep = OnboardingStep.AccessibilitySuccess)
-                    } else newState
+            // Update active card index based on grants if we are in the stack
+            var nextCardIndex = currentState.activeCardIndex
+            if (currentState.currentStep == OnboardingStep.PermissionCardStack) {
+                // If current card is granted, move to next
+                if (nextCardIndex < permissions.size && permissions[nextCardIndex].isGranted) {
+                    nextCardIndex++
                 }
-                OnboardingStep.UsageGrant, OnboardingStep.UsageFailure -> {
-                    if (permissionManager.hasUsageStatsPermission()) {
-                        newState.copy(currentStep = OnboardingStep.UsageSuccess)
-                    } else newState
-                }
-                OnboardingStep.NotificationsGrant -> {
-                    if (permissionManager.hasNotificationPermission()) {
-                        newState.copy(currentStep = OnboardingStep.AllSet)
-                    } else newState
-                }
-                else -> newState
             }
+
+            currentState.copy(
+                permissions = permissions,
+                allGranted = allGranted,
+                activeCardIndex = nextCardIndex
+            )
         }
     }
 
     private fun nextStep() {
         _state.update { currentState ->
             val next = when (currentState.currentStep) {
-                OnboardingStep.Welcome -> OnboardingStep.ValueProp
-                OnboardingStep.ValueProp -> OnboardingStep.PermissionOverview
-                OnboardingStep.PermissionOverview -> OnboardingStep.AccessibilityIntro
-                OnboardingStep.AccessibilityIntro -> {
-                    if (permissionManager.hasAccessibilityPermission()) OnboardingStep.AccessibilitySuccess
-                    else OnboardingStep.AccessibilityGrant
+                OnboardingStep.Welcome -> OnboardingStep.PermissionCardStack
+                OnboardingStep.PermissionCardStack -> {
+                    // If we are at the end of the stack, move to mode selection
+                    if (currentState.activeCardIndex >= currentState.permissions.size - 1) {
+                        OnboardingStep.ModeSelection
+                    } else {
+                        return@update currentState.copy(activeCardIndex = currentState.activeCardIndex + 1)
+                    }
                 }
-                OnboardingStep.AccessibilityGrant -> {
-                    if (permissionManager.hasAccessibilityPermission()) OnboardingStep.AccessibilitySuccess
-                    else OnboardingStep.AccessibilityFailure
-                }
-                OnboardingStep.AccessibilitySuccess -> OnboardingStep.UsageIntro
-                OnboardingStep.AccessibilityFailure -> OnboardingStep.UsageIntro // Flexible fallback: user can skip
-                OnboardingStep.UsageIntro -> {
-                    if (permissionManager.hasUsageStatsPermission()) OnboardingStep.UsageSuccess
-                    else OnboardingStep.UsageGrant
-                }
-                OnboardingStep.UsageGrant -> {
-                    if (permissionManager.hasUsageStatsPermission()) OnboardingStep.UsageSuccess
-                    else OnboardingStep.UsageFailure
-                }
-                OnboardingStep.UsageSuccess -> OnboardingStep.NotificationsIntro
-                OnboardingStep.UsageFailure -> OnboardingStep.NotificationsIntro // Flexible fallback
-                OnboardingStep.NotificationsIntro -> OnboardingStep.NotificationsGrant
-                OnboardingStep.NotificationsGrant -> OnboardingStep.AllSet
-                OnboardingStep.AllSet -> OnboardingStep.AllSet
+                OnboardingStep.ModeSelection -> OnboardingStep.ModeSelection
             }
-            val newHistory = currentState.stepHistory + currentState.currentStep
             
             viewModelScope.launch {
                 userPreferences.setLastOnboardingStep(next.name)
             }
 
+            val newHistory = currentState.stepHistory + currentState.currentStep
             currentState.copy(currentStep = next, stepHistory = newHistory)
         }
     }
 
     private fun previousStep() {
         _state.update { currentState ->
+            // If in card stack and not on first card, go back one card
+            if (currentState.currentStep == OnboardingStep.PermissionCardStack && currentState.activeCardIndex > 0) {
+                return@update currentState.copy(activeCardIndex = currentState.activeCardIndex - 1)
+            }
+
             val prev = if (currentState.stepHistory.isNotEmpty()) {
                 currentState.stepHistory.last()
             } else {
                 when (currentState.currentStep) {
-                    OnboardingStep.ValueProp -> OnboardingStep.Welcome
-                    OnboardingStep.PermissionOverview -> OnboardingStep.ValueProp
-                    OnboardingStep.AccessibilityIntro -> OnboardingStep.PermissionOverview
-                    OnboardingStep.AccessibilityGrant -> OnboardingStep.AccessibilityIntro
-                    OnboardingStep.AccessibilitySuccess -> OnboardingStep.AccessibilityIntro
-                    OnboardingStep.AccessibilityFailure -> OnboardingStep.AccessibilityIntro
-                    OnboardingStep.UsageIntro -> OnboardingStep.AccessibilitySuccess
-                    OnboardingStep.UsageGrant -> OnboardingStep.UsageIntro
-                    OnboardingStep.UsageSuccess -> OnboardingStep.UsageIntro
-                    OnboardingStep.UsageFailure -> OnboardingStep.UsageIntro
-                    OnboardingStep.NotificationsIntro -> OnboardingStep.UsageSuccess
-                    OnboardingStep.NotificationsGrant -> OnboardingStep.NotificationsIntro
-                    OnboardingStep.AllSet -> OnboardingStep.NotificationsGrant
+                    OnboardingStep.PermissionCardStack -> OnboardingStep.Welcome
+                    OnboardingStep.ModeSelection -> OnboardingStep.PermissionCardStack
                     else -> OnboardingStep.Welcome
                 }
             }
@@ -218,13 +173,7 @@ class PermissionViewModel(
     }
 
     private fun retryCurrentPermission() {
-        val currentStep = state.value.currentStep
-        val permissionId = when (currentStep) {
-            OnboardingStep.AccessibilityFailure -> "accessibility"
-            OnboardingStep.UsageFailure -> "usage"
-            else -> null
-        }
-        permissionId?.let { grantPermission(it) }
+        // No-op in the new streamlined flow as the card stack handles retries
     }
 
     private fun grantPermission(id: String) {

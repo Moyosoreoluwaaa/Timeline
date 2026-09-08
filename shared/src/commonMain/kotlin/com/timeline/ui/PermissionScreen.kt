@@ -1,6 +1,8 @@
 package com.timeline.ui
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,7 +37,8 @@ fun PermissionScreen(
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
     onNavigateToBatteryOptimization: () -> Unit,
-    onAllGranted: () -> Unit
+    onAllGranted: () -> Unit,
+    onNavigateToPaywall: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -47,6 +51,7 @@ fun PermissionScreen(
                 is PermissionEffect.NavigateToAccessibilitySettings -> onNavigateToAccessibility()
                 is PermissionEffect.NavigateToBatteryOptimizationSettings -> onNavigateToBatteryOptimization()
                 is PermissionEffect.AllGranted -> onAllGranted()
+                is PermissionEffect.NavigateToPaywall -> onNavigateToPaywall()
             }
         }
     }
@@ -76,6 +81,9 @@ fun PermissionScreen(
             onEvent = viewModel::onEvent,
             onOpenTimeline = {
                 viewModel.onEvent(PermissionEvent.StartTracking)
+            },
+            onNavigateToPaywall = {
+                viewModel.selectProPlan()
             }
         )
     }
@@ -86,438 +94,359 @@ private fun OnboardingStepContent(
     step: OnboardingStep,
     state: PermissionState,
     onEvent: (PermissionEvent) -> Unit,
-    onOpenTimeline: () -> Unit
+    onOpenTimeline: () -> Unit,
+    onNavigateToPaywall: () -> Unit
 ) {
-    val isAccessibilityGranted = state.permissions.find { it.id == "accessibility" }?.isGranted ?: false
-    val isUsageGranted = state.permissions.find { it.id == "usage" }?.isGranted ?: false
-    val isNotificationGranted = state.permissions.find { it.id == "notifications" }?.isGranted ?: false
-
     when (step) {
-        OnboardingStep.Welcome -> WelcomeStep(onEvent)
-        OnboardingStep.ValueProp -> ValuePropStep(onEvent)
-        OnboardingStep.PermissionOverview -> PermissionOverviewStep(onEvent)
-        OnboardingStep.AccessibilityIntro -> AccessibilityIntroStep(onEvent)
-        OnboardingStep.AccessibilityGrant -> AccessibilityGrantStep(onEvent, isAccessibilityGranted)
-        OnboardingStep.AccessibilitySuccess -> AccessibilitySuccessStep(onEvent)
-        OnboardingStep.AccessibilityFailure -> AccessibilityFailureStep(onEvent)
-        OnboardingStep.UsageIntro -> UsageIntroStep(onEvent)
-        OnboardingStep.UsageGrant -> UsageGrantStep(onEvent, isUsageGranted)
-        OnboardingStep.UsageSuccess -> UsageSuccessStep(onEvent)
-        OnboardingStep.UsageFailure -> UsageFailureStep(onEvent)
-        OnboardingStep.NotificationsIntro -> NotificationsIntroStep(onEvent)
-        OnboardingStep.NotificationsGrant -> NotificationsGrantStep(onEvent, isNotificationGranted)
-        OnboardingStep.AllSet -> AllSetStep(onOpenTimeline, isAccessibilityGranted, isUsageGranted)
+        OnboardingStep.Welcome -> UnifiedWelcomeStep(onEvent)
+        OnboardingStep.PermissionCardStack -> PermissionCardStackStep(state, onEvent)
+        OnboardingStep.ModeSelection -> ModeSelectionStep(onEvent, onOpenTimeline, onNavigateToPaywall)
     }
 }
 
 @Composable
-private fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
+private fun ModeSelectionStep(
+    onEvent: (PermissionEvent) -> Unit,
+    onOpenTimeline: () -> Unit,
+    onNavigateToPaywall: () -> Unit
+) {
+    OnboardingLayout(
+        topBar = {
+            Column {
+                Text(text = AppStrings.OnboardingModeTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                Text(text = AppStrings.OnboardingModeSubtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            }
+        },
+        bottomBar = {
+            OnboardingStepIndicator(total = 3, current = 2, modifier = Modifier.padding(bottom = Dimensions.PaddingMedium))
+        }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+        ) {
+            // Pro Mode (Behind, Taller)
+            ModeCard(
+                title = AppStrings.OnboardingProModeTitle,
+                desc = AppStrings.OnboardingProModeDesc,
+                isPro = true,
+                onClick = onNavigateToPaywall,
+                buttonText = AppStrings.OnboardingProModeButton
+            )
+            
+            // Basic Mode (In front)
+            ModeCard(
+                title = AppStrings.OnboardingBasicModeTitle,
+                desc = AppStrings.OnboardingBasicModeDesc,
+                onClick = onOpenTimeline,
+                buttonText = AppStrings.OnboardingBasicModeButton
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModeCard(
+    title: String,
+    desc: String,
+    onClick: () -> Unit,
+    buttonText: String,
+    isPro: Boolean = false
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (isPro) 320.dp else 280.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = if (isPro) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(Dimensions.PaddingLarge)) {
+            if (isPro) {
+                Badge(containerColor = MaterialTheme.colorScheme.primary) { Text(AppStrings.OnboardingProModeBadge) }
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            }
+            Text(text = title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            Text(text = desc, style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.weight(1f))
+            OnboardingActionButton(text = buttonText, onClick = onClick)
+        }
+    }
+}
+
+@Composable
+private fun UnifiedWelcomeStep(onEvent: (PermissionEvent) -> Unit) {
     OnboardingLayout(
         bottomBar = {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 OnboardingStepIndicator(total = 3, current = 0)
                 Spacer(modifier = Modifier.weight(1f))
-                OnboardingActionButton(text = AppStrings.ButtonNext, onClick = { onEvent(PermissionEvent.NextStep) }, modifier = Modifier.width(120.dp))
+                OnboardingActionButton(text = AppStrings.ButtonNext, onClick = { onEvent(PermissionEvent.NextStep) }, modifier = Modifier.width(140.dp))
             }
         }
     ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingMega))
-        Icon(imageVector = Icons.Rounded.Timeline, contentDescription = null, modifier = Modifier.size(48.dp))
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Text(text = AppStrings.OnboardingWelcomeTitle, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.OnboardingWelcomeSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
-private fun ValuePropStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                OnboardingStepIndicator(total = 3, current = 1)
-                Spacer(modifier = Modifier.weight(1f))
-                OnboardingActionButton(text = AppStrings.ButtonNext, onClick = { onEvent(PermissionEvent.NextStep) }, modifier = Modifier.width(120.dp))
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingMega))
-        Icon(imageVector = Icons.Rounded.HourglassEmpty, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Text(text = AppStrings.OnboardingValuePropTitle, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.OnboardingValuePropSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
-private fun PermissionOverviewStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                OnboardingStepIndicator(total = 3, current = 2)
-                Spacer(modifier = Modifier.weight(1f))
-                OnboardingActionButton(text = AppStrings.ButtonNext, onClick = { onEvent(PermissionEvent.NextStep) }, modifier = Modifier.width(120.dp))
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Text(text = AppStrings.OnboardingOverviewTitle, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.OnboardingOverviewSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        ) {
-            Column {
-                OnboardingPermissionFeature(icon = Icons.Rounded.AccessibilityNew, title = AppStrings.OnboardingAccessibilityGrantTitle)
-                HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.PaddingMedium), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                OnboardingPermissionFeature(icon = Icons.Rounded.BarChart, title = AppStrings.OnboardingUsageGrantTitle)
-                HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.PaddingMedium), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                OnboardingPermissionFeature(icon = Icons.Rounded.Notifications, title = AppStrings.OnboardingNotificationsGrantTitle)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccessibilityIntroStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                OnboardingActionButton(text = AppStrings.ButtonUnderstandContinue, onClick = { onEvent(PermissionEvent.NextStep) })
-                OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            OnboardingIllustration(icon = Icons.Rounded.AccessibilityNew, color = MaterialTheme.colorScheme.primary)
-        }
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.OnboardingAccessibilityIntroTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        
-        OnboardingIntroFeature(icon = Icons.Rounded.Visibility, text = AppStrings.OnboardingAccessibilityIntro1)
-        OnboardingIntroFeature(icon = Icons.Rounded.ChatBubbleOutline, text = AppStrings.OnboardingAccessibilityIntro2)
-        OnboardingIntroFeature(icon = Icons.Rounded.History, text = AppStrings.OnboardingAccessibilityIntro3)
-        
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ) {
-            Row(modifier = Modifier.padding(Dimensions.PaddingMedium), verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Rounded.Lock, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-                Text(text = AppStrings.OnboardingAccessibilityIntroFooter, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccessibilityGrantStep(onEvent: (PermissionEvent) -> Unit, isGranted: Boolean) {
-    OnboardingLayout(
-        topBar = { OnboardingPermissionIndicator(current = 1) },
-        bottomBar = {
-            if (isGranted) {
-                OnboardingActionButton(text = AppStrings.ButtonAlreadyGranted, onClick = { onEvent(PermissionEvent.NextStep) })
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                    OnboardingActionButton(text = AppStrings.ButtonGrantAccess, onClick = { onEvent(PermissionEvent.GrantPermission("accessibility")) })
-                    OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
-                }
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Text(text = AppStrings.OnboardingAccessibilityGrantTitle, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ) {
-            Column(modifier = Modifier.padding(Dimensions.PaddingLarge), horizontalAlignment = Alignment.CenterHorizontally) {
-                OnboardingIllustration(icon = Icons.Rounded.AccessibilityNew, color = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-                Text(text = AppStrings.OnboardingAccessibilityGrantSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AccessibilitySuccessStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonContinue, onClick = { onEvent(PermissionEvent.NextStep) })
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Surface(modifier = Modifier.size(80.dp), shape = CircleShape, color = Color(0xFF4CAF50)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        Text(text = AppStrings.OnboardingAccessibilitySuccessTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = AppStrings.OnboardingAccessibilitySuccessSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun AccessibilityFailureStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                OnboardingActionButton(text = AppStrings.ButtonTryAgain, onClick = { onEvent(PermissionEvent.RetryPermission) })
-                OnboardingTextButton(text = AppStrings.ButtonNotNow, onClick = { onEvent(PermissionEvent.NextStep) })
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Surface(modifier = Modifier.size(80.dp), shape = CircleShape, color = MaterialTheme.colorScheme.errorContainer) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = Icons.Rounded.PriorityHigh, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        Text(text = AppStrings.OnboardingAccessibilityFailureTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = AppStrings.OnboardingAccessibilityFailureSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun UsageIntroStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                OnboardingActionButton(text = AppStrings.ButtonContinueSettings, onClick = { onEvent(PermissionEvent.NextStep) })
-                OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            OnboardingIllustration(icon = Icons.Rounded.BarChart, color = Color(0xFF4CAF50))
-        }
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.OnboardingUsageIntroTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = AppStrings.OnboardingUsageIntroSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        
-        OnboardingIntroFeature(icon = Icons.Rounded.Visibility, text = AppStrings.OnboardingUsageIntro1)
-        OnboardingIntroFeature(icon = Icons.Rounded.AutoGraph, text = AppStrings.OnboardingUsageIntro2)
-        OnboardingIntroFeature(icon = Icons.Rounded.Lock, text = AppStrings.OnboardingUsageIntro3)
-        OnboardingIntroFeature(icon = Icons.Rounded.VisibilityOff, text = AppStrings.OnboardingUsageIntro4)
-    }
-}
-
-@Composable
-private fun UsageGrantStep(onEvent: (PermissionEvent) -> Unit, isGranted: Boolean) {
-    OnboardingLayout(
-        topBar = { OnboardingPermissionIndicator(current = 2) },
-        bottomBar = {
-            if (isGranted) {
-                OnboardingActionButton(text = AppStrings.ButtonAlreadyGranted, onClick = { onEvent(PermissionEvent.NextStep) })
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                    OnboardingActionButton(text = AppStrings.ButtonOpenSettings, onClick = { onEvent(PermissionEvent.GrantPermission("usage")) })
-                    OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
-                }
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Text(text = AppStrings.OnboardingUsageGrantTitle, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ) {
-            Column(modifier = Modifier.padding(Dimensions.PaddingLarge), horizontalAlignment = Alignment.CenterHorizontally) {
-                OnboardingIllustration(icon = Icons.Rounded.BarChart, color = Color(0xFF4CAF50))
-                Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-                Text(text = AppStrings.OnboardingUsageGrantSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-            }
-        }
-    }
-}
-
-@Composable
-private fun UsageSuccessStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonContinue, onClick = { onEvent(PermissionEvent.NextStep) })
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Surface(modifier = Modifier.size(80.dp), shape = CircleShape, color = Color(0xFF4CAF50)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        Text(text = AppStrings.OnboardingUsageSuccessTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = AppStrings.OnboardingUsageSuccessSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun UsageFailureStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                OnboardingActionButton(text = AppStrings.ButtonTryAgain, onClick = { onEvent(PermissionEvent.RetryPermission) })
-                OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Surface(modifier = Modifier.size(80.dp), shape = CircleShape, color = MaterialTheme.colorScheme.errorContainer) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(imageVector = Icons.Rounded.PriorityHigh, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        Text(text = AppStrings.OnboardingUsageFailureTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = AppStrings.OnboardingUsageFailureSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun NotificationsIntroStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonEnable, onClick = { onEvent(PermissionEvent.NextStep) })
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            OnboardingIllustration(icon = Icons.Rounded.Notifications, color = Color(0xFFFF9800))
-        }
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Text(text = AppStrings.OnboardingNotificationsIntroTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = AppStrings.OnboardingNotificationsIntroSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        
-        OnboardingIntroFeature(icon = Icons.Rounded.ChatBubbleOutline, text = AppStrings.OnboardingNotificationsIntro1)
-        OnboardingIntroFeature(icon = Icons.Rounded.CloudUpload, text = AppStrings.OnboardingNotificationsIntro2)
-        OnboardingIntroFeature(icon = Icons.Rounded.Lock, text = AppStrings.OnboardingNotificationsIntro3)
-    }
-}
-
-@Composable
-private fun NotificationsGrantStep(onEvent: (PermissionEvent) -> Unit, isGranted: Boolean) {
-    OnboardingLayout(
-        topBar = { OnboardingPermissionIndicator(current = 3) },
-        bottomBar = {
-            if (isGranted) {
-                OnboardingActionButton(text = AppStrings.ButtonAlreadyGranted, onClick = { onEvent(PermissionEvent.NextStep) })
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)) {
-                    OnboardingActionButton(text = AppStrings.ButtonEnable, onClick = { onEvent(PermissionEvent.GrantPermission("notifications")) })
-                    OnboardingTextButton(text = AppStrings.ButtonSkipForNow, onClick = { onEvent(PermissionEvent.NextStep) })
-                }
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingGiant))
-        Text(text = AppStrings.OnboardingNotificationsGrantTitle, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ) {
-            Column(modifier = Modifier.padding(Dimensions.PaddingLarge), horizontalAlignment = Alignment.CenterHorizontally) {
-                OnboardingIllustration(icon = Icons.Rounded.Notifications, color = Color(0xFFFF9800))
-                Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-                Text(text = AppStrings.OnboardingNotificationsGrantSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), textAlign = TextAlign.Center)
-            }
-        }
-    }
-}
-
-@Composable
-private fun AllSetStep(
-    onOpenTimeline: () -> Unit,
-    isAccessibilityGranted: Boolean,
-    isUsageGranted: Boolean
-) {
-    val modeSummary = when {
-        isAccessibilityGranted && isUsageGranted -> "Full Experience: Visual Screenshots + App Usage Time"
-        isAccessibilityGranted -> "Visual Mode: Screenshots + Real-time Logging"
-        isUsageGranted -> "Usage Stats Mode: App Usage Time + Activity Trends"
-        else -> "Basic Mode: Minimal Tracking"
-    }
-
-    OnboardingLayout(
-        bottomBar = {
-            OnboardingActionButton(text = AppStrings.ButtonOpenTimeline, onClick = onOpenTimeline)
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(contentAlignment = Alignment.Center) {
-                Surface(modifier = Modifier.size(100.dp), shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.primary) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(imageVector = Icons.Rounded.Timeline, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(48.dp))
-                    }
-                }
-                Icon(imageVector = Icons.Rounded.Favorite, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(24.dp).align(Alignment.TopEnd).offset(x = 12.dp, y = (-12).dp))
-                Icon(imageVector = Icons.Rounded.BarChart, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(24.dp).align(Alignment.BottomStart).offset(x = (-12).dp, y = 12.dp))
-            }
-        }
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        Text(text = AppStrings.OnboardingAllSetTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        Text(text = modeSummary, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-        Text(text = AppStrings.OnboardingAllSetSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        
-        OnboardingPermissionFeature(icon = Icons.Rounded.Lock, title = AppStrings.OnboardingAllSet1)
-        OnboardingPermissionFeature(icon = Icons.Rounded.Smartphone, title = AppStrings.OnboardingAllSet2)
-        OnboardingPermissionFeature(icon = Icons.Rounded.ToggleOn, title = AppStrings.OnboardingAllSet3)
-
+        Icon(imageVector = Icons.Rounded.Timeline, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(Dimensions.SpacingMedium))
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+        Text(text = AppStrings.OnboardingWelcomeTitle, style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
+        Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+        Text(text = AppStrings.OnboardingWelcomeSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+        
+        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
+        
+        ValuePropFeature(
+            icon = Icons.Rounded.AutoAwesome,
+            title = AppStrings.OnboardingValueProp1Title,
+            desc = AppStrings.OnboardingValueProp1Desc
+        )
+        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+        ValuePropFeature(
+            icon = Icons.Rounded.Favorite,
+            title = AppStrings.OnboardingValueProp2Title,
+            desc = AppStrings.OnboardingValueProp2Desc
+        )
+    }
+}
+
+@Composable
+private fun ValuePropFeature(icon: ImageVector, title: String, desc: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = Dimensions.PaddingSmall),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+        }
+        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(text = desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PermissionCardStackStep(
+    state: PermissionState,
+    onEvent: (PermissionEvent) -> Unit
+) {
+    var showPrivacySheet by remember { mutableStateOf(false) }
+    val currentPermission = state.permissions.getOrNull(state.activeCardIndex)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
+        // ... (Header and Stack logic)
+        
+        // Header Area
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingMedium)
+                .align(Alignment.TopStart)
         ) {
             Text(
-                text = AppStrings.OnboardingAllSetDataNotice,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier.padding(Dimensions.PaddingMedium)
+                text = AppStrings.OnboardingStackTitle,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
+            Text(
+                text = AppStrings.OnboardingStackSubtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+
+        // 2. Interactive Card Stack (Align Bottom)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            state.permissions.asReversed().forEachIndexed { indexFromEnd, permission ->
+                val actualIndex = state.permissions.size - 1 - indexFromEnd
+                val isVisible = actualIndex >= state.activeCardIndex
+                
+                val offsetY by animateDpAsState(
+                    targetValue = if (isVisible) 0.dp else 1200.dp,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+
+                if (offsetY < 1200.dp) {
+                    PermissionCard(
+                        permission = permission,
+                        index = actualIndex,
+                        offsetY = offsetY
+                    )
+                }
+            }
+        }
+
+        // 3. Overlay Control Area (Indicator + Buttons)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(Dimensions.PaddingLarge)
+                .align(Alignment.BottomCenter)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+            ) {
+                OnboardingStepIndicator(total = 3, current = 1)
+
+                if (currentPermission != null) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
+                    ) {
+                        OnboardingActionButton(
+                            text = if (currentPermission.isGranted) AppStrings.ButtonAlreadyGranted else AppStrings.ButtonGrantAccess,
+                            onClick = {
+                                if (currentPermission.isGranted) {
+                                    onEvent(PermissionEvent.NextStep)
+                                } else if (currentPermission.id == "accessibility") {
+                                    showPrivacySheet = true
+                                } else {
+                                    onEvent(PermissionEvent.GrantPermission(currentPermission.id))
+                                }
+                            }
+                        )
+                        OnboardingTextButton(
+                            text = AppStrings.ButtonSkipForNow,
+                            onClick = { onEvent(PermissionEvent.NextStep) }
+                        )
+                    }
+                }
+            }
+        }
+
+        // Handle completion of all cards
+        if (state.activeCardIndex >= state.permissions.size) {
+            LaunchedEffect(Unit) {
+                onEvent(PermissionEvent.NextStep)
+            }
+        }
+    }
+
+    // Privacy Bottom Sheet for Accessibility
+    if (showPrivacySheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showPrivacySheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(Dimensions.PaddingLarge)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.PrivacyTip,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+                Text(
+                    text = "Accessibility & Privacy",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+                Text(
+                    text = "Timeline uses Accessibility to detect app switches and capture visual context for your daily highlights. Data processing happens on-device and through secure cloud services to improve app functionality and deliver the best highlights.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
+                OnboardingActionButton(
+                    text = "I Understand & Accept",
+                    onClick = {
+                        showPrivacySheet = false
+                        onEvent(PermissionEvent.GrantPermission("accessibility"))
+                    }
+                )
+                OnboardingTextButton(
+                    text = "Cancel",
+                    onClick = { showPrivacySheet = false }
+                )
+            }
         }
     }
 }
+
+@Composable
+private fun PermissionCard(
+    permission: PermissionItem,
+    index: Int,
+    offsetY: androidx.compose.ui.unit.Dp
+) {
+    // Back cards (higher indices like 2) are tallest, front cards (index 0) are shortest
+    // This allows back cards to peek from the top when all are aligned at the bottom
+    val cardHeight = when (index) {
+        0 -> 460.dp // Frontmost
+        1 -> 520.dp // Middle
+        else -> 580.dp // Backmost
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(cardHeight)
+            .offset(y = offsetY),
+        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = ((3 - index) * 4).dp, // Higher elevation for front (index 0) cards
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.PaddingLarge),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+            OnboardingIllustration(
+                icon = when (permission.id) {
+                    "accessibility" -> Icons.Rounded.AccessibilityNew
+                    "usage" -> Icons.Rounded.BarChart
+                    else -> Icons.Rounded.Notifications
+                },
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
+            Text(
+                text = permission.title,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            Text(
+                text = permission.description,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            
+            // Leave space for the overlay buttons at the bottom
+            Spacer(modifier = Modifier.height(160.dp))
+        }
+    }
+}
+
+

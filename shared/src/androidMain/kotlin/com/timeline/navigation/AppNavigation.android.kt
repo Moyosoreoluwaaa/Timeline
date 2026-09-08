@@ -134,6 +134,9 @@ actual fun AppNavigation(
                                     onAllGranted = {
                                         backStack.clear()
                                         backStack.add(Route.Timeline)
+                                    },
+                                    onNavigateToPaywall = {
+                                        backStack.add(Route.Paywall())
                                     }
                                 )
                             }

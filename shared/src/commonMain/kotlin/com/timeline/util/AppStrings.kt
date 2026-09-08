@@ -13,13 +13,38 @@ object AppStrings {
     const val AuthDontHaveAccount = "Don't have an account?"
     const val AuthSignInWithGoogleLink = "Sign in with Google"
 
-    // Onboarding Intro
+    // Onboarding Intro (Unified Screen 1)
     const val OnboardingWelcomeTitle = "Welcome to $AppName"
-    const val OnboardingWelcomeSubtitle = "A private timeline of your phone activity—so you can understand your time, not lose it."
-    const val OnboardingValuePropTitle = "We build your activity timeline"
-    const val OnboardingValuePropSubtitle = "Timeline quietly records when you use apps so we can show you a clear, honest view of your day."
-    const val OnboardingOverviewTitle = "Choose your tracking permissions"
-    const val OnboardingOverviewSubtitle = "Granting permissions unlocks full features. You can proceed with partial permissions anytime."
+    const val OnboardingWelcomeSubtitle = "A quiet, private timeline of your phone activity—so you can understand your day, not lose it."
+    const val OnboardingValueProp1Title = "Automatic daily story"
+    const val OnboardingValueProp1Desc = "Timeline quietly records your app sessions so you get a clear, honest picture of where your time goes."
+    const val OnboardingValueProp2Title = "Helpful highlights"
+    const val OnboardingValueProp2Desc = "See meaningful moments, trends, and summaries without tedious manual journaling."
+    const val OnboardingGetStarted = "Get Started"
+    
+    // Permission Card Stack (Screen 2)
+    const val OnboardingStackTitle = "Set up your timeline"
+    const val OnboardingStackSubtitle = "Enable permissions to start building your personal activity journal."
+
+    // Privacy Summary (Screen 3)
+    const val OnboardingPrivacyTitle = "Your Privacy & Data"
+    const val OnboardingPrivacySubtitle = "Transparency is at our core. Here is how we handle your information."
+    const val OnboardingPrivacyDataImprovement = "Data and usage metrics might be collected to improve app functionality, optimize features, and provide you with the best experience."
+    const val OnboardingPrivacyOnDevice = "Most processing happens directly on your device to keep your personal timeline private."
+    const val OnboardingPrivacyYouInControl = "You're in full control. You can pause tracking or delete your data at any time in Settings."
+    const val OnboardingPrivacyAgreeNotice = "By continuing, you agree to our terms and understand that some data might be collected to deliver and improve our services."
+
+    // Mode Selection (Screen 3)
+    const val OnboardingModeTitle = "Choose your experience"
+    const val OnboardingModeSubtitle = "Pick the plan that fits how you want to reflect on your time."
+    const val OnboardingBasicModeTitle = "Basic Mode"
+    const val OnboardingBasicModeDesc = "Essential screen time logging, on-device timelines, and simple app usage summaries."
+    const val OnboardingBasicModeButton = "Continue with Basic"
+    const val OnboardingProModeTitle = "Timeline Pro"
+    const val OnboardingProModeBadge = "RECOMMENDED"
+    const val OnboardingProModeDesc = "Rich visual highlights, smart search through your day, proactive gentle nudges, and deep cloud-powered story recaps."
+    const val OnboardingProModeButton = "Unlock Pro Highlights"
+
 
     // Accessibility Flow
     const val OnboardingAccessibilityIntroTitle = "Accessibility powers visual screenshots"

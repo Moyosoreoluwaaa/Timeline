@@ -47,7 +47,8 @@ actual fun AppNavigation(
                 onNavigateToNotification = onNavigateToNotification,
                 onNavigateToAccessibility = onNavigateToAccessibility,
                 onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
-                onAllGranted = { currentRoute = Route.Timeline }
+                onAllGranted = { currentRoute = Route.Timeline },
+                onNavigateToPaywall = { currentRoute = Route.Paywall() }
             )
         }
         Route.Timeline -> {

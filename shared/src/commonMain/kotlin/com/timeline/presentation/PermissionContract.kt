@@ -2,19 +2,8 @@ package com.timeline.presentation
 
 enum class OnboardingStep {
     Welcome,
-    ValueProp,
-    PermissionOverview,
-    AccessibilityIntro,
-    AccessibilityGrant,
-    AccessibilitySuccess,
-    AccessibilityFailure,
-    UsageIntro,
-    UsageGrant,
-    UsageSuccess,
-    UsageFailure,
-    NotificationsIntro,
-    NotificationsGrant,
-    AllSet
+    PermissionCardStack,
+    ModeSelection
 }
 
 data class PermissionItem(
@@ -31,6 +20,7 @@ data class PermissionState(
     val allGranted: Boolean = false,
     val currentStep: OnboardingStep = OnboardingStep.Welcome,
     val stepHistory: List<OnboardingStep> = emptyList(),
+    val activeCardIndex: Int = 0,
     val error: String? = null
 )
 
@@ -50,4 +40,5 @@ sealed interface PermissionEffect {
     data object NavigateToAccessibilitySettings : PermissionEffect
     data object NavigateToBatteryOptimizationSettings : PermissionEffect
     data object AllGranted : PermissionEffect
+    data object NavigateToPaywall : PermissionEffect
 }
