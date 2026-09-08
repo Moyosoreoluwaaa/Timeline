@@ -3,12 +3,13 @@ package com.timeline.domain
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.timeline.domain.repository.AuthRepository
+import com.timeline.util.Constants
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-
-import com.timeline.util.Constants
 
 interface ExclusionPolicy {
     fun isExcludedFlow(packageName: String): Flow<Boolean>
@@ -17,16 +18,15 @@ interface ExclusionPolicy {
     fun getExcludedPackages(): Flow<Set<String>>
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TimelineExclusionPolicy(
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val authRepository: AuthRepository
 ) : ExclusionPolicy {
-    private val EXCLUDED_PACKAGES_KEY = stringSetPreferencesKey("excluded_packages")
-
     private val hardcodedExclusions = Constants.HARDCODED_EXCLUSIONS
 
     override fun isExcludedFlow(packageName: String): Flow<Boolean> {
-        return dataStore.data.map { prefs ->
-            val userExclusions = prefs[EXCLUDED_PACKAGES_KEY] ?: emptySet()
+        return getExcludedPackages().map { userExclusions ->
             packageName in hardcodedExclusions || 
             packageName in userExclusions || 
             packageName.contains("launcher")
@@ -34,25 +34,29 @@ class TimelineExclusionPolicy(
     }
 
     override suspend fun isExcluded(packageName: String): Boolean {
-        val prefs = dataStore.data.first()
-        val userExclusions = prefs[EXCLUDED_PACKAGES_KEY] ?: emptySet()
+        val userExclusions = getExcludedPackages().first()
         return packageName in hardcodedExclusions || 
                packageName in userExclusions || 
                packageName.contains("launcher")
     }
 
     override suspend fun toggleExclusion(packageName: String) {
+        val userId = authRepository.getCurrentUser()?.uid
+        val key = UserPreferenceKeys.excludedPackages(userId)
         dataStore.edit { prefs ->
-            val current = prefs[EXCLUDED_PACKAGES_KEY] ?: emptySet()
+            val current = prefs[key] ?: emptySet()
             if (packageName in current) {
-                prefs[EXCLUDED_PACKAGES_KEY] = current - packageName
+                prefs[key] = current - packageName
             } else {
-                prefs[EXCLUDED_PACKAGES_KEY] = current + packageName
+                prefs[key] = current + packageName
             }
         }
     }
 
     override fun getExcludedPackages(): Flow<Set<String>> {
-        return dataStore.data.map { it[EXCLUDED_PACKAGES_KEY] ?: emptySet() }
+        return authRepository.currentUser.flatMapLatest { user ->
+            val key = UserPreferenceKeys.excludedPackages(user?.uid)
+            dataStore.data.map { it[key] ?: emptySet() }
+        }
     }
 }

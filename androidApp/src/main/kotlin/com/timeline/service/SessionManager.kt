@@ -72,6 +72,7 @@ class SessionManager(
 
     fun enqueueScreenshot(sessionId: String, packageName: String) {
         val workRequest = OneTimeWorkRequestBuilder<ScreenshotWorker>()
+            .addTag("screenshot_capture")
             .setInputData(workDataOf(
                 "package_name" to packageName,
                 "session_id" to sessionId

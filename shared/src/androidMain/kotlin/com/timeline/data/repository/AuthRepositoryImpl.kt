@@ -48,6 +48,11 @@ class AuthRepositoryImpl(
 
     override suspend fun signOut(): Result<Unit> = runCatching {
         tagLogger.i { "Signing out" }
+        try {
+            androidx.work.WorkManager.getInstance(context).cancelAllWorkByTag("screenshot_capture")
+        } catch (e: Exception) {
+            tagLogger.w(e) { "Failed to cancel screenshot work on sign out" }
+        }
         firebaseAuth.signOut()
         credentialManager.clearCredentialState(ClearCredentialStateRequest())
         _currentUser.value = null

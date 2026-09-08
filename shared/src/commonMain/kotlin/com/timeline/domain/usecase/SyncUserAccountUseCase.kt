@@ -28,7 +28,7 @@ class SyncUserAccountUseCase(
             }
 
             // 3. Migrate local anonymous data
-            migrateGuestDataUseCase(userId)
+            migrateGuestDataUseCase(userId).getOrThrow()
 
             // 4. Mark as logged in
             userPreferences.setLoggedIn(true)

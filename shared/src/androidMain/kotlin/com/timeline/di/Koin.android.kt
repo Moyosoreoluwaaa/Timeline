@@ -13,6 +13,7 @@ import com.timeline.domain.repository.AuthRepository
 import com.timeline.domain.auth.AuthUiHelper
 import com.timeline.data.repository.AuthRepositoryImpl
 import com.timeline.util.auth.AndroidAuthUiHelper
+import com.timeline.data.UserStorageManager
 import com.timeline.notification.OneSignalManager
 import com.timeline.domain.NotificationManager
 import com.google.firebase.auth.FirebaseAuth
@@ -35,6 +36,9 @@ actual val platformModule: Module = module {
     singleOf(::AuthRepositoryImpl) { bind<AuthRepository>() }
     singleOf(::AndroidAuthUiHelper) { bind<AuthUiHelper>() }
     
+    // Storage
+    singleOf(::UserStorageManager)
+
     // Notifications
     singleOf(::OneSignalManager) { bind<NotificationManager>() }
 }

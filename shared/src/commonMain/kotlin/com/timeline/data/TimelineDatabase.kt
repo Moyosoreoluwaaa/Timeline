@@ -2,15 +2,17 @@ package com.timeline.data
 
 import androidx.room.*
 import androidx.room.RoomDatabaseConstructor
-import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.timeline.domain.Session
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.datetime.Instant
 
-@Entity(tableName = "sessions")
+@Entity(
+    tableName = "sessions",
+    indices = [
+        Index("userId"),
+        Index(value = ["userId", "startTime"])
+    ]
+)
 data class SessionEntity(
     @PrimaryKey val id: String,
     val userId: String? = null,
@@ -18,14 +20,16 @@ data class SessionEntity(
     val startTime: Long,
     val endTime: Long?,
     val durationMinutes: Long,
-    val screenshotsJson: String, // Simplified for this implementation
-    val segmentsJson: String
+    val screenshotsJson: String,
+    val segmentsJson: String,
+    val updatedAt: Long = 0L,
+    val isSynced: Boolean = false
 )
 
 @Dao
 interface SessionDao {
-    @Query("SELECT * FROM sessions ORDER BY startTime DESC")
-    fun getAllSessions(): Flow<List<SessionEntity>>
+    @Query("SELECT * FROM sessions WHERE (:userId IS NULL AND userId IS NULL) OR (userId = :userId) ORDER BY startTime DESC")
+    fun getSessions(userId: String?): Flow<List<SessionEntity>>
 
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun getSessionById(id: String): SessionEntity?
@@ -36,17 +40,55 @@ interface SessionDao {
     @Update
     suspend fun updateSession(session: SessionEntity)
 
-    @Query("SELECT * FROM sessions WHERE packageName = :packageName ORDER BY startTime DESC")
-    fun getSessionsByPackage(packageName: String): Flow<List<SessionEntity>>
+    @Query("SELECT * FROM sessions WHERE ((:userId IS NULL AND userId IS NULL) OR (userId = :userId)) AND packageName = :packageName ORDER BY startTime DESC")
+    fun getSessionsByPackage(packageName: String, userId: String?): Flow<List<SessionEntity>>
 
-    @Query("UPDATE sessions SET userId = :userId WHERE userId IS NULL")
-    suspend fun associateAnonymousSessions(userId: String)
+    @Query("SELECT * FROM sessions WHERE userId IS NULL")
+    suspend fun getGuestSessionsSync(): List<SessionEntity>
+
+    @Update
+    suspend fun updateSessions(sessions: List<SessionEntity>)
+
+    @Transaction
+    suspend fun migrateGuestSessionsTransactional(userId: String, pathMap: Map<String, String>, updatedAt: Long) {
+        val guestSessions = getGuestSessionsSync()
+        val updatedSessions = guestSessions.map { session ->
+            val newScreenshotsJson = updateJsonPaths(session.screenshotsJson, pathMap)
+            val newSegmentsJson = updateJsonPaths(session.segmentsJson, pathMap)
+            session.copy(
+                userId = userId,
+                screenshotsJson = newScreenshotsJson,
+                segmentsJson = newSegmentsJson,
+                updatedAt = updatedAt,
+                isSynced = false
+            )
+        }
+        updateSessions(updatedSessions)
+    }
+
+    @Query("DELETE FROM sessions WHERE userId = :userId")
+    suspend fun deleteSessionsForUser(userId: String?)
 }
 
-@Database(entities = [SessionEntity::class], version = 1)
+private fun updateJsonPaths(json: String, pathMap: Map<String, String>): String {
+    if (json.isBlank()) return json
+    var result = json
+    for ((oldPath, newPath) in pathMap) {
+        if (oldPath.isNotBlank() && newPath.isNotBlank()) {
+            result = result.replace(oldPath, newPath)
+        }
+    }
+    return result
+}
+
+@Database(entities = [SessionEntity::class], version = 2)
+@ConstructedBy(TimelineDatabaseConstructor::class)
 abstract class TimelineDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
 }
+
+@Suppress("NO_ACTUAL_FOR_EXPECT")
+expect object TimelineDatabaseConstructor : RoomDatabaseConstructor<TimelineDatabase>
 
 expect fun getDatabaseBuilder(context: Any? = null): RoomDatabase.Builder<TimelineDatabase>
 

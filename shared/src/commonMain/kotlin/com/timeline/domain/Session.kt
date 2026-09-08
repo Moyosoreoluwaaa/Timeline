@@ -4,6 +4,7 @@ import kotlin.time.Instant
 
 data class Session(
     val id: String,
+    val userId: String? = null,
     val packageName: String,
     val displayName: String? = null,
     val icon: Any? = null,

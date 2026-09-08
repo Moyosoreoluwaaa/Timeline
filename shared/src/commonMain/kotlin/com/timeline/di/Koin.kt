@@ -32,7 +32,7 @@ expect val platformModule: Module
 val appModule = module {
     single { Logger(config = StaticConfig()) }
     singleOf(::TimelineRepositoryImpl) { bind<TimelineRepository>() }
-    single<ExclusionPolicy> { TimelineExclusionPolicy(get()) }
+    singleOf(::TimelineExclusionPolicy) { bind<ExclusionPolicy>() }
     singleOf(::UserPreferences)
     singleOf(::RevenueCatSubscriptionManager) { bind<SubscriptionManager>() }
     

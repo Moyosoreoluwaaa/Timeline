@@ -13,12 +13,13 @@ import com.timeline.domain.SessionSegment
 import com.timeline.domain.UserPreferences
 import com.timeline.service.TimelineAccessibilityService
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import androidx.core.graphics.createBitmap
+import kotlin.time.Instant
 
 class ScreenshotWorker(
     context: Context,
@@ -27,6 +28,7 @@ class ScreenshotWorker(
 
     private val repository: TimelineRepository by inject()
     private val userPreferences: UserPreferences by inject()
+    private val userStorageManager: com.timeline.data.UserStorageManager by inject()
 
     override suspend fun doWork(): Result {
         val packageName = inputData.getString("package_name") ?: return Result.failure()
@@ -38,7 +40,13 @@ class ScreenshotWorker(
             return Result.success()
         }
 
-        Logger.d { "Taking screenshot for $packageName (Session: $sessionId)" }
+        val session = repository.getSession(sessionId)
+        if (session == null) {
+            Logger.w { "Session $sessionId not found when capturing screenshot, skipping" }
+            return Result.success()
+        }
+
+        Logger.d { "Taking screenshot for $packageName (Session: $sessionId, User: ${session.userId})" }
         
         val accessibilityService = TimelineAccessibilityService.getInstance()
         val bitmap = if (accessibilityService != null) {
@@ -49,9 +57,9 @@ class ScreenshotWorker(
         }
 
         if (bitmap != null) {
-            val screenshotPath = saveBitmap(bitmap, packageName)
+            val screenshotPath = saveBitmap(bitmap, packageName, session.userId)
             if (screenshotPath != null) {
-                updateSession(sessionId, screenshotPath)
+                updateSession(session, screenshotPath)
             }
         }
         
@@ -59,7 +67,7 @@ class ScreenshotWorker(
     }
 
     private fun generateFallbackSnapshot(packageName: String): Bitmap {
-        val bitmap = Bitmap.createBitmap(720, 1280, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(720, 1280)
         val canvas = Canvas(bitmap)
         val paint = Paint()
         
@@ -79,36 +87,42 @@ class ScreenshotWorker(
         return bitmap
     }
 
-    private fun saveBitmap(bitmap: Bitmap, packageName: String): String? {
+    private fun saveBitmap(bitmap: Bitmap, packageName: String, userId: String?): String? {
+        val storageDir = File(userStorageManager.getScreenshotDirectory(userId))
         val filename = "screenshot_${packageName}_${System.currentTimeMillis()}.png"
-        val file = File(applicationContext.filesDir, "screenshots").apply { mkdirs() }
-        val targetFile = File(file, filename)
+        val targetFile = File(storageDir, filename)
+        val tempFile = File(storageDir, ".temp_${UUID.randomUUID()}.png")
         
         return try {
-            FileOutputStream(targetFile).use { out ->
+            FileOutputStream(tempFile).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
+                out.flush()
             }
-            targetFile.absolutePath
+            if (tempFile.renameTo(targetFile)) {
+                targetFile.absolutePath
+            } else {
+                tempFile.copyTo(targetFile, overwrite = true)
+                tempFile.delete()
+                targetFile.absolutePath
+            }
         } catch (e: Exception) {
             Logger.e(e) { "Failed to save screenshot" }
+            if (tempFile.exists()) tempFile.delete()
             null
         }
     }
 
-    private suspend fun updateSession(sessionId: String, screenshotPath: String) {
-        val session = repository.getSession(sessionId)
-        if (session != null) {
-            val newSegment = SessionSegment(
-                timestamp = kotlinx.datetime.Instant.fromEpochMilliseconds(System.currentTimeMillis()),
-                screenshotPath = screenshotPath,
-                activityDescription = "Snapshot captured"
-            )
-            val updatedSession = session.copy(
-                screenshots = session.screenshots + screenshotPath,
-                segments = session.segments + newSegment
-            )
-            repository.saveSession(updatedSession)
-            Logger.d { "Updated session $sessionId with new screenshot" }
-        }
+    private suspend fun updateSession(session: com.timeline.domain.Session, screenshotPath: String) {
+        val newSegment = SessionSegment(
+            timestamp = Instant.fromEpochMilliseconds(System.currentTimeMillis()),
+            screenshotPath = screenshotPath,
+            activityDescription = "Snapshot captured"
+        )
+        val updatedSession = session.copy(
+            screenshots = session.screenshots + screenshotPath,
+            segments = session.segments + newSegment
+        )
+        repository.saveSession(updatedSession)
+        Logger.d { "Updated session ${session.id} with new screenshot" }
     }
 }
