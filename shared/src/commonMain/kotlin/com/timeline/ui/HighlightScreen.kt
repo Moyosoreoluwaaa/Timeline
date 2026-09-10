@@ -82,6 +82,19 @@ fun HighlightScreen(
                     }
                 },
                 actions = {
+                    val isActive = state.isAiOptedIn
+                    val penTint = if (isActive) Color(0xFFFF8C00) else MaterialTheme.colorScheme.onSurfaceVariant
+                    IconButton(
+                        onClick = { viewModel.onEvent(HighlightEvent.ToggleAiOptIn) },
+                        modifier = Modifier.testTag("highlight_pen_button")
+                    ) {
+                        Icon(
+                            imageVector = if (isActive) Icons.Rounded.Star else Icons.Rounded.Edit,
+                            contentDescription = if (isActive) "AI Active (Starburst)" else "Pen (Toggle Reasoning)",
+                            tint = penTint,
+                            modifier = Modifier.size(Dimensions.IconSmall)
+                        )
+                    }
                     IconButton(
                         onClick = { viewModel.onEvent(HighlightEvent.SyncRealData) },
                         modifier = Modifier.testTag("highlight_sync_real_button"),
@@ -212,8 +225,8 @@ fun HighlightScreen(
                     VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     
                     PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
-                        onRefresh = { viewModel.onEvent(HighlightEvent.Refresh) },
+                        isRefreshing = state.isSyncingDeviceUsage,
+                        onRefresh = { viewModel.onEvent(HighlightEvent.SyncRealData) },
                         modifier = Modifier.fillMaxSize().weight(1f)
                     ) {
                         // Main Content Column (Right, scrollable separately)
@@ -313,42 +326,7 @@ private fun SessionHighlightCard(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 if (result != null) {
-                    // Header with App Info and Copy
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                modifier = Modifier.size(28.dp),
-                                shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.surface
-                            ) {
-                                AppIcon(
-                                    icon = item.icon,
-                                    contentDescription = item.displayName,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = item.displayName ?: "App Activity",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
-                        IconButton(
-                            onClick = { onCopy(result.textResult.fullText) },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Consolidated Text content with smart typing animation (only on first view / new info)
+                    // Consolidated Text content with smart typing animation (no app icon, no title, no copy button)
                     TypewriterText(
                         text = result.textResult.fullText,
                         shouldAnimate = shouldAnimate,
@@ -377,8 +355,7 @@ private fun SessionHighlightCard(
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
-                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.clickable { onCopy(label.text) }
+                                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
                             ) {
                                 Text(
                                     text = "${label.text} $confidence%",
@@ -478,31 +455,13 @@ private fun ScreenshotRail(
         contentPadding = PaddingValues(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // "All Apps" entry
-        item {
-            val isSelected = selectedPackage == null
-            val isLast = items.isEmpty()
-            RailNodeItem(
-                isSelected = isSelected,
-                isFirst = true,
-                isLast = isLast,
-                onClick = { onSelectApp(null) }
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.AllInclusive,
-                    contentDescription = AppStrings.HighlightAllApps,
-                    modifier = Modifier.size(26.dp),
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
         itemsIndexed(items, key = { _, item -> item.packageName }) { index, item ->
             val isSelected = item.packageName == selectedPackage
+            val isFirst = index == 0
             val isLast = index == items.lastIndex
             RailNodeItem(
                 isSelected = isSelected,
-                isFirst = false,
+                isFirst = isFirst,
                 isLast = isLast,
                 onClick = { onSelectApp(item.packageName) }
             ) {

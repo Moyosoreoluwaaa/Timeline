@@ -59,8 +59,8 @@ actual fun AppNavigation(
             )
         }
         Route.Highlight -> {
-            val highlightViewModel: com.timeline.presentation.HighlightViewModel = koinViewModel()
-            com.timeline.ui.HighlightScreen(
+            val highlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
+            com.timeline.ui.NewHighlightScreen(
                 viewModel = highlightViewModel,
                 onNavigateBack = { currentRoute = Route.Timeline }
             )

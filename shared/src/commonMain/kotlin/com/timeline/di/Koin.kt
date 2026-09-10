@@ -17,6 +17,7 @@ import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.presentation.PaywallViewModel
 import com.timeline.presentation.HighlightViewModel
+import com.timeline.presentation.NewHighlightViewModel
 import com.timeline.domain.usecase.SignInWithGoogleUseCase
 import com.timeline.domain.usecase.MigrateGuestDataUseCase
 import com.timeline.domain.usecase.SyncUserAccountUseCase
@@ -56,6 +57,7 @@ val appModule = module {
     viewModelOf(::PermissionViewModel)
     viewModelOf(::PaywallViewModel)
     viewModelOf(::HighlightViewModel)
+    viewModelOf(::NewHighlightViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {
