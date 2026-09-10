@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class NewHighlightViewModel(
     private val repository: TimelineRepository
@@ -22,12 +23,16 @@ class NewHighlightViewModel(
 
     private fun loadData() {
         viewModelScope.launch {
-            // Load sample screenshot paths from repository for the loading state animation
             repository.getTimeline().collect { sessions ->
                 val allPaths = sessions.flatMap { s -> s.screenshots + s.segments.mapNotNull { it.screenshotPath } }.distinct()
+                val left = allPaths.take(3)
+                val right = allPaths.drop(3).take(3).ifEmpty { left }
+                
                 _state.update {
                     it.copy(
-                        sampleThumbnailsLeft = allPaths.take(5)
+                        dynamicScreenshots = allPaths,
+                        sampleThumbnailsLeft = left,
+                        sampleThumbnailsRight = right
                     )
                 }
             }
@@ -39,11 +44,11 @@ class NewHighlightViewModel(
             is NewHighlightEvent.SetFilter -> {
                 _state.update { it.copy(timeOfDayFilter = event.filter) }
             }
-            is NewHighlightEvent.TriggerRefresh -> {
+            is NewHighlightEvent.Refresh -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(isLoading = true) }
-                    delay(3000)
-                    _state.update { it.copy(isLoading = false) }
+                    _state.update { it.copy(isRefreshing = true) }
+                    delay(2000.milliseconds)
+                    _state.update { it.copy(isRefreshing = false) }
                 }
             }
         }
