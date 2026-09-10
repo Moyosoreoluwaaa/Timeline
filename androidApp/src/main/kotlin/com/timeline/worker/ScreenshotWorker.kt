@@ -11,6 +11,7 @@ import com.timeline.service.TimelineAccessibilityService
 import kotlinx.coroutines.flow.first
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import com.timeline.util.ScreenshotCache
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -51,6 +52,10 @@ class ScreenshotWorker(
 
         val bitmap = accessibilityService.captureScreenshot()
         if (bitmap != null) {
+            if (ScreenshotCache.isDuplicate(packageName, bitmap)) {
+                Logger.d { "Duplicate screenshot detected for $packageName, skipping." }
+                return Result.success()
+            }
             val screenshotPath = saveBitmap(bitmap, packageName, session.userId)
             if (screenshotPath != null) {
                 updateSession(session, screenshotPath)

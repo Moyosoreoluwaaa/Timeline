@@ -11,6 +11,7 @@ data class Session(
     val startTime: Instant,
     val endTime: Instant?,
     val durationMinutes: Long = 0,
+    val durationSeconds: Long = 0,
     val screenshots: List<String> = emptyList(),
     val segments: List<SessionSegment> = emptyList()
 )

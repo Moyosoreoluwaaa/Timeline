@@ -33,6 +33,7 @@ class SessionManager(
                     startTime = kotlin.time.Clock.System.now(),
                     endTime = null,
                     durationMinutes = 0,
+                    durationSeconds = 0,
                     screenshots = emptyList(),
                     segments = emptyList()
                 )
@@ -52,13 +53,14 @@ class SessionManager(
                 val session = repository.getSession(sessionId)
                 if (session != null) {
                     val endTime = kotlin.time.Clock.System.now()
-                    val duration = (endTime - session.startTime).inWholeMinutes
+                    val duration = (endTime - session.startTime)
                     val updatedSession = session.copy(
                         endTime = endTime,
-                        durationMinutes = duration
+                        durationMinutes = duration.inWholeMinutes,
+                        durationSeconds = duration.inWholeSeconds
                     )
                     repository.saveSession(updatedSession)
-                    Logger.i(tag = "SessionManager") { "Closed session $sessionId. Duration: ${duration}m" }
+                    Logger.i(tag = "SessionManager") { "Closed session $sessionId. Duration: ${duration.inWholeMinutes}m" }
                 }
             } catch (e: Exception) {
                 Logger.e(e, "SessionManager") { "Failed to close session $sessionId" }

@@ -231,7 +231,7 @@ fun TimelineEntry(
                     )
                 }
                 Text(
-                    text = "${session.durationMinutes}m",
+                    text = formatDuration(session.durationMinutes, session.durationSeconds),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )

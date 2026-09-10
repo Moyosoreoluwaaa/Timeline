@@ -74,7 +74,7 @@ fun SessionDetailHeader(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${session.durationMinutes}m",
+                    text = formatDuration(session.durationMinutes, session.durationSeconds),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -265,7 +265,7 @@ fun StatRow(session: Session) {
     ) {
         StatItem(AppStrings.SessionStarted, session.startTime.formatTime())
         StatItem(AppStrings.SessionEnded, session.endTime?.formatTime() ?: "--:--")
-        StatItem(AppStrings.SessionDuration, "${session.durationMinutes}m")
+        StatItem(AppStrings.SessionDuration, formatDuration(session.durationMinutes, session.durationSeconds))
     }
 }
 
@@ -279,5 +279,17 @@ fun StatItem(label: String, value: String) {
 
 fun kotlin.time.Instant.formatTime(): String {
     val local = toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${local.hour}:${local.minute.toString().padStart(2, '0')}"
+    val hour = local.hour
+    val displayHour = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
+    val amPm = if (hour < 12) "AM" else "PM"
+    val minute = local.minute.toString().padStart(2, '0')
+    return "$displayHour:$minute $amPm"
+}
+
+fun formatDuration(durationMinutes: Long, durationSeconds: Long): String {
+    return if (durationMinutes > 0) {
+        "${durationMinutes}m"
+    } else {
+        "${durationSeconds}s"
+    }
 }

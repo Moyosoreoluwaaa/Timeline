@@ -82,7 +82,10 @@ class TrackingService : Service() {
                     onTransition = { currentApp ->
                         sessionManager.currentSessionId?.let { sessionManager.closePreviousSession(it) }
                         sessionManager.startNewSession(currentApp)
-                        lastScreenshotTime = System.currentTimeMillis()
+                        // Initialize lastScreenshotTime to a value that allows an immediate screenshot if needed,
+                        // or handle the first screenshot separately.
+                        // Increasing the initial check time to account for cold start.
+                        lastScreenshotTime = System.currentTimeMillis() - (Constants.SCREENSHOT_INTERVAL_MS - 5000L)
                     },
                     onPeriodicCheck = { currentApp ->
                         if (sessionManager.currentSessionId != null && (System.currentTimeMillis() - lastScreenshotTime) >= Constants.SCREENSHOT_INTERVAL_MS) {
