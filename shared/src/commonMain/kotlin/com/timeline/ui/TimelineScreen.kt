@@ -50,7 +50,7 @@ import kotlin.time.Instant
 fun TimelineScreen(
     viewModel: TimelineViewModel = koinViewModel(),
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToInsights: () -> Unit = {}
+    onNavigateToHighlight: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     
@@ -232,7 +232,7 @@ fun TimelineScreen(
                         ) {
                             BottomSummary(
                                 summary = state.summary,
-                                onUpgradeClick = onNavigateToInsights
+                                onSummaryClick = onNavigateToHighlight
                             )
                         }
                     }

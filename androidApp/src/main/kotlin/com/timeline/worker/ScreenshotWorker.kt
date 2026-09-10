@@ -1,10 +1,6 @@
 package com.timeline.worker
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import co.touchlab.kermit.Logger
@@ -18,7 +14,6 @@ import org.koin.core.component.inject
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
-import androidx.core.graphics.createBitmap
 import kotlin.time.Instant
 
 class ScreenshotWorker(
@@ -49,13 +44,12 @@ class ScreenshotWorker(
         Logger.d { "Taking screenshot for $packageName (Session: $sessionId, User: ${session.userId})" }
         
         val accessibilityService = TimelineAccessibilityService.getInstance()
-        val bitmap = if (accessibilityService != null) {
-            accessibilityService.captureScreenshot()
-        } else {
-            Logger.w { "AccessibilityService not available (Service is likely not enabled in System Settings). Generating fallback snapshot for $packageName." }
-            generateFallbackSnapshot(packageName)
+        if (accessibilityService == null) {
+            Logger.w { "AccessibilityService not available (Service is likely not enabled in System Settings). Cannot capture real screenshot for $packageName." }
+            return Result.success()
         }
 
+        val bitmap = accessibilityService.captureScreenshot()
         if (bitmap != null) {
             val screenshotPath = saveBitmap(bitmap, packageName, session.userId)
             if (screenshotPath != null) {
@@ -66,28 +60,7 @@ class ScreenshotWorker(
         return Result.success()
     }
 
-    private fun generateFallbackSnapshot(packageName: String): Bitmap {
-        val bitmap = createBitmap(720, 1280)
-        val canvas = Canvas(bitmap)
-        val paint = Paint()
-        
-        paint.color = 0xFF121212.toInt()
-        canvas.drawRect(0f, 0f, 720f, 1280f, paint)
-        
-        paint.color = Color.WHITE
-        paint.textSize = 40f
-        paint.isAntiAlias = true
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("Snapshot of $packageName", 360f, 600f, paint)
-        canvas.drawText(
-            java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()),
-            360f, 680f, paint
-        )
-        
-        return bitmap
-    }
-
-    private fun saveBitmap(bitmap: Bitmap, packageName: String, userId: String?): String? {
+    private fun saveBitmap(bitmap: android.graphics.Bitmap, packageName: String, userId: String?): String? {
         val storageDir = File(userStorageManager.getScreenshotDirectory(userId))
         val filename = "screenshot_${packageName}_${System.currentTimeMillis()}.png"
         val targetFile = File(storageDir, filename)
@@ -95,7 +68,7 @@ class ScreenshotWorker(
         
         return try {
             FileOutputStream(tempFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 90, out)
                 out.flush()
             }
             if (tempFile.renameTo(targetFile)) {

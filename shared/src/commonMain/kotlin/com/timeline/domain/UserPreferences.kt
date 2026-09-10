@@ -25,6 +25,7 @@ data class PreferencesState(
     val isPermissionsCompleted: Boolean,
     val isUsageTrackingEnabled: Boolean,
     val isScreenshotCaptureEnabled: Boolean,
+    val isAiReasoningEnabled: Boolean,
     val dataRetentionDays: Int,
     val isLoggedIn: Boolean,
     val trialStartedAt: Long?, // null = not started
@@ -35,6 +36,7 @@ object UserPreferenceKeys {
     val IS_PERMISSIONS_COMPLETED = booleanPreferencesKey("is_permissions_completed")
     val IS_USAGE_TRACKING_ENABLED = booleanPreferencesKey("is_usage_tracking_enabled")
     val IS_SCREENSHOT_CAPTURE_ENABLED = booleanPreferencesKey("is_screenshot_capture_enabled")
+    val IS_AI_REASONING_ENABLED = booleanPreferencesKey("is_ai_reasoning_enabled")
     val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
     val MIGRATION_STATUS = stringPreferencesKey("migration_status")
     val MIGRATION_TARGET_USER_ID = stringPreferencesKey("migration_target_user_id")
@@ -58,6 +60,7 @@ class UserPreferences(
                 isPermissionsCompleted = prefs[UserPreferenceKeys.IS_PERMISSIONS_COMPLETED] ?: false,
                 isUsageTrackingEnabled = prefs[UserPreferenceKeys.IS_USAGE_TRACKING_ENABLED] ?: true,
                 isScreenshotCaptureEnabled = prefs[UserPreferenceKeys.IS_SCREENSHOT_CAPTURE_ENABLED] ?: true,
+                isAiReasoningEnabled = prefs[UserPreferenceKeys.IS_AI_REASONING_ENABLED] ?: true,
                 dataRetentionDays = prefs[UserPreferenceKeys.dataRetentionDays(userId)] ?: 30,
                 isLoggedIn = prefs[UserPreferenceKeys.IS_LOGGED_IN] ?: false,
                 trialStartedAt = prefs[UserPreferenceKeys.trialStartedAt(userId)],
@@ -81,6 +84,10 @@ class UserPreferences(
 
     suspend fun setScreenshotCaptureEnabled(enabled: Boolean) {
         dataStore.edit { it[UserPreferenceKeys.IS_SCREENSHOT_CAPTURE_ENABLED] = enabled }
+    }
+
+    suspend fun setAiReasoningEnabled(enabled: Boolean) {
+        dataStore.edit { it[UserPreferenceKeys.IS_AI_REASONING_ENABLED] = enabled }
     }
 
     suspend fun setDataRetentionDays(days: Int) {

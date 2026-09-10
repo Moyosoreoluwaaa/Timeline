@@ -7,7 +7,6 @@ import com.timeline.data.TimelineRepository
 import com.timeline.domain.AppInfoProvider
 import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
-import com.timeline.util.PlaceholderData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +17,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -53,13 +51,28 @@ class TimelineViewModel(
     ) { args: Array<Any?> ->
         val sessions = args[0] as List<Session>
         val excluded = args[1] as Set<String>
-        val date = args[2] as Instant
+        var date = args[2] as Instant
         val packageName = args[3] as String?
         val session = args[4] as Session?
         val fullScreenImage = args[5] as String?
         val expanded = args[6] as Boolean
         val filter = args[7] as TimeFilter
         val loading = args[8] as Boolean
+
+        // If there are sessions in the database, but none for today, auto-select the latest session's date
+        val tz = TimeZone.currentSystemDefault()
+        val filteredForDate = sessions.filter { applyDateFilter(it, date) && it.packageName !in excluded }
+        if (filteredForDate.isEmpty() && sessions.isNotEmpty()) {
+            val selectedLocalDate = date.toLocalDateTime(tz).date
+            val todayLocalDate = Clock.System.now().toLocalDateTime(tz).date
+            if (selectedLocalDate == todayLocalDate) {
+                val latestSession = sessions.maxByOrNull { it.startTime }
+                if (latestSession != null) {
+                    date = latestSession.startTime
+                    _selectedDate.value = date
+                }
+            }
+        }
 
         val filteredSessions = filterSessions(sessions, excluded, date, filter, packageName)
         val summary = calculateSummary(filteredSessions)
@@ -130,7 +143,6 @@ class TimelineViewModel(
         Logger.d { "TimelineViewModel onEvent: $event" }
         when (event) {
             is TimelineEvent.Refresh -> _refreshTrigger.value++
-            is TimelineEvent.GenerateDummyData -> generateDummyData()
             is TimelineEvent.SelectDate -> _selectedDate.value = event.date
             is TimelineEvent.SelectPackage -> _selectedPackageName.value = event.packageName
             is TimelineEvent.SelectSession -> _selectedSession.value = event.session
@@ -180,15 +192,6 @@ class TimelineViewModel(
         )
     }
 
-    /**
-     * Future-proofing: Groups usage by hour segments for stacked charts or flow charts.
-     */
-    private fun groupUsageByTime(sessions: List<Session>): Map<Int, List<Session>> {
-        return sessions.groupBy {
-            it.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).hour
-        }
-    }
-
     private fun navigateSession(direction: Int) {
         val sessions = state.value.sessions
         val current = state.value.selectedSession ?: return
@@ -215,12 +218,5 @@ class TimelineViewModel(
         val sessionDate = session.startTime.toLocalDateTime(TimeZone.currentSystemDefault()).date
         val filterDate = selectedDate.toLocalDateTime(TimeZone.currentSystemDefault()).date
         return sessionDate == filterDate
-    }
-
-    private fun generateDummyData() {
-        viewModelScope.launch {
-            val dummySessions = PlaceholderData.getDummySessions()
-            dummySessions.forEach { repository.saveSession(it) }
-        }
     }
 }

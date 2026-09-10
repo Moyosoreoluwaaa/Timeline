@@ -17,6 +17,10 @@ import com.timeline.data.UserStorageManager
 import com.timeline.notification.OneSignalManager
 import com.timeline.domain.NotificationManager
 import com.google.firebase.auth.FirebaseAuth
+import com.timeline.domain.ml.VisionAnalysisService
+import com.timeline.ml.AndroidVisionAnalysisService
+import com.timeline.domain.DeviceUsageSyncer
+import com.timeline.domain.AndroidDeviceUsageSyncer
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
@@ -27,18 +31,25 @@ actual val platformModule: Module = module {
         getDatabase(getDatabaseBuilder(get<Context>()))
     }
     single { get<TimelineDatabase>().sessionDao() }
+    single { get<TimelineDatabase>().reasoningDao() }
     singleOf(::AndroidPermissionManager) { bind<PermissionManager>() }
     single { createDataStore(get<Context>()) }
     singleOf(::AndroidAppInfoProvider) { bind<AppInfoProvider>() }
-    
+
     // Auth
     single { FirebaseAuth.getInstance() }
     singleOf(::AuthRepositoryImpl) { bind<AuthRepository>() }
     singleOf(::AndroidAuthUiHelper) { bind<AuthUiHelper>() }
-    
+
     // Storage
     singleOf(::UserStorageManager)
 
     // Notifications
     singleOf(::OneSignalManager) { bind<NotificationManager>() }
+
+    // Vision Analysis (ML Kit OCR & Image Labeling)
+    singleOf(::AndroidVisionAnalysisService) { bind<VisionAnalysisService>() }
+
+    // Device Real Usage Syncer
+    singleOf(::AndroidDeviceUsageSyncer) { bind<DeviceUsageSyncer>() }
 }

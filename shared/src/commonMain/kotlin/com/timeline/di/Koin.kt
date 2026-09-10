@@ -7,12 +7,16 @@ import com.timeline.domain.TimelineExclusionPolicy
 import com.timeline.domain.UserPreferences
 import com.timeline.domain.SubscriptionManager
 import com.timeline.domain.RevenueCatSubscriptionManager
+import com.timeline.domain.reasoning.ReasoningService
+import com.timeline.domain.reasoning.GeminiReasoningService
+import com.timeline.domain.reasoning.LocalHeuristicService
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.MetricsViewModel
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.presentation.PaywallViewModel
+import com.timeline.presentation.HighlightViewModel
 import com.timeline.domain.usecase.SignInWithGoogleUseCase
 import com.timeline.domain.usecase.MigrateGuestDataUseCase
 import com.timeline.domain.usecase.SyncUserAccountUseCase
@@ -35,7 +39,11 @@ val appModule = module {
     singleOf(::TimelineExclusionPolicy) { bind<ExclusionPolicy>() }
     singleOf(::UserPreferences)
     singleOf(::RevenueCatSubscriptionManager) { bind<SubscriptionManager>() }
-    
+
+    // Reasoning Layer
+    single<ReasoningService> { GeminiReasoningService(get()) }
+    single { LocalHeuristicService() }
+
     // Use Cases
     factoryOf(::SignInWithGoogleUseCase)
     factoryOf(::MigrateGuestDataUseCase)
@@ -47,6 +55,7 @@ val appModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::PermissionViewModel)
     viewModelOf(::PaywallViewModel)
+    viewModelOf(::HighlightViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

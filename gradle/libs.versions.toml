@@ -2,7 +2,7 @@
 agp = "9.3.1"
 android-compileSdk = "37"
 android-minSdk = "26"
-android-targetSdk = "35"
+android-targetSdk = "36"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.8.0"
 androidx-core = "1.19.0"
@@ -13,6 +13,7 @@ composeMultiplatform = "1.11.1"
 junit = "4.13.2"
 kotlin = "2.4.10"
 material3 = "1.11.0-alpha07"
+secretsGradlePlugin = "2.0.1"
 kotlinx-datetime = "0.7.1"
 
 # --- foreground service / notification / overlay ---
@@ -42,6 +43,7 @@ koin = "4.2.2"
 navigation3 = "1.2.0-alpha07"
 ksp = "2.3.11"
 kotlinx-serialization = "1.7.3"
+ktor = "3.1.1"
 purchases = "3.7.0"
 firebaseCrashlytics = "20.1.0"
 googleGmsGoogleServices = "4.5.0"
@@ -55,6 +57,8 @@ firebaseFirestore = "26.6.0"
 onesignal = "5.1.25"
 uiautomator = "2.2.0"
 benchmarkMacroJunit4 = "1.2.0-beta01"
+mlkitTextRecognition = "16.0.1"
+mlkitImageLabeling = "17.0.9"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -125,6 +129,17 @@ firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore
 onesignal = { module = "com.onesignal:OneSignal", version.ref = "onesignal" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacroJunit4" }
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitTextRecognition" }
+mlkit-image-labeling = { module = "com.google.mlkit:image-labeling", version.ref = "mlkitImageLabeling" }
+
+# --- networking (Ktor) ---
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
@@ -135,4 +150,5 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidxRoom = { id = "androidx.room", version.ref = "androidx-room" }
 googleGmsGoogleServices = { id = "com.google.gms.google-services", version.ref = "googleGmsGoogleServices" }
 googleFirebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "googleFirebaseCrashlytics" }
+secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
 androidTest = { id = "com.android.test", version.ref = "agp" }

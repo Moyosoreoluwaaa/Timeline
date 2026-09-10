@@ -36,7 +36,6 @@ enum class TimeFilter {
 
 sealed interface TimelineEvent {
     data object Refresh : TimelineEvent
-    data object GenerateDummyData : TimelineEvent
     data class SelectDate(val date: Instant) : TimelineEvent
     data class SelectSession(val session: Session?) : TimelineEvent
     data class ShowFullScreenImage(val path: String?) : TimelineEvent

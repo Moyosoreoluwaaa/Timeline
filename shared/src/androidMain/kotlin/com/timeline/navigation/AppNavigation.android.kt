@@ -146,9 +146,21 @@ actual fun AppNavigation(
                                     onNavigateToSettings = {
                                         backStack.add(Route.Settings)
                                     },
-                                    onNavigateToInsights = {
-                                        backStack.add(Route.Insights)
+                                    onNavigateToHighlight = {
+                                        backStack.add(Route.Highlight)
                                     }
+                                )
+                            }
+                            is Route.Highlight -> {
+                                val highlightViewModel: com.timeline.presentation.HighlightViewModel = koinViewModel()
+                                com.timeline.ui.HighlightScreen(
+                                    viewModel = highlightViewModel,
+                                    onNavigateBack = {
+                                        if (backStack.size > 1) {
+                                            backStack.removeAt(backStack.size - 1)
+                                        }
+                                    },
+                                    onNavigateToUsageStats = onNavigateToUsageStats
                                 )
                             }
                             is Route.Insights -> {

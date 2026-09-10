@@ -1,6 +1,7 @@
 package com.timeline.data
 
 import com.timeline.domain.Session
+import com.timeline.domain.reasoning.AppDailyReasoning
 import com.timeline.domain.repository.AuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -15,33 +16,37 @@ interface TimelineRepository {
     suspend fun saveSession(session: Session)
     suspend fun associateAnonymousSessions(userId: String)
     suspend fun migrateGuestSessions(userId: String, pathMap: Map<String, String>)
+
+    fun getAppDailyReasoning(packageName: String, date: String): Flow<AppDailyReasoning?>
+    suspend fun saveAppDailyReasoning(reasoning: AppDailyReasoning)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimelineRepositoryImpl(
-    private val dao: SessionDao,
+    private val sessionDao: SessionDao,
+    private val reasoningDao: ReasoningDao,
     private val authRepository: AuthRepository
 ) : TimelineRepository {
     override fun getTimeline(): Flow<List<Session>> = 
         authRepository.currentUser.flatMapLatest { user ->
-            dao.getSessions(user?.uid).map { entities -> entities.map { it.toDomain() } }
+            sessionDao.getSessions(user?.uid).map { entities -> entities.map { it.toDomain() } }
         }
 
     override fun getApplicationTimeline(packageName: String): Flow<List<Session>> =
         authRepository.currentUser.flatMapLatest { user ->
-            dao.getSessionsByPackage(packageName, user?.uid).map { entities -> entities.map { it.toDomain() } }
+            sessionDao.getSessionsByPackage(packageName, user?.uid).map { entities -> entities.map { it.toDomain() } }
         }
 
     override suspend fun getSession(id: String): Session? =
-        dao.getSessionById(id)?.toDomain()
+        sessionDao.getSessionById(id)?.toDomain()
 
     override suspend fun saveSession(session: Session) {
         val currentUid = session.userId ?: authRepository.getCurrentUser()?.uid
-        dao.insertSession(session.toEntity(currentUid))
+        sessionDao.insertSession(session.toEntity(currentUid))
     }
 
     override suspend fun associateAnonymousSessions(userId: String) {
-        dao.migrateGuestSessionsTransactional(
+        sessionDao.migrateGuestSessionsTransactional(
             userId = userId,
             pathMap = emptyMap(),
             updatedAt = Clock.System.now().toEpochMilliseconds()
@@ -49,10 +54,37 @@ class TimelineRepositoryImpl(
     }
 
     override suspend fun migrateGuestSessions(userId: String, pathMap: Map<String, String>) {
-        dao.migrateGuestSessionsTransactional(
+        sessionDao.migrateGuestSessionsTransactional(
             userId = userId,
             pathMap = pathMap,
             updatedAt = Clock.System.now().toEpochMilliseconds()
+        )
+    }
+
+    override fun getAppDailyReasoning(packageName: String, date: String): Flow<AppDailyReasoning?> {
+        return reasoningDao.getReasoning(packageName, date).map { entity ->
+            entity?.let {
+                AppDailyReasoning(
+                    packageName = it.packageName,
+                    date = it.date,
+                    summary = it.summary,
+                    cognitiveMode = it.cognitiveMode,
+                    actionItems = it.actionItemsJson.split("|||").filter { item -> item.isNotBlank() }
+                )
+            }
+        }
+    }
+
+    override suspend fun saveAppDailyReasoning(reasoning: AppDailyReasoning) {
+        reasoningDao.insertReasoning(
+            ReasoningEntity(
+                packageName = reasoning.packageName,
+                date = reasoning.date,
+                summary = reasoning.summary,
+                cognitiveMode = reasoning.cognitiveMode,
+                actionItemsJson = reasoning.actionItems.joinToString("|||"),
+                lastUpdated = Clock.System.now().toEpochMilliseconds()
+            )
         )
     }
 

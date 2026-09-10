@@ -11,7 +11,6 @@ plugins {
     alias(libs.plugins.androidxRoom)
     alias(libs.plugins.ksp)
     kotlin("plugin.serialization") version "2.4.10"
-    alias(libs.plugins.googleGmsGoogleServices)
 }
 
 kotlin {
@@ -26,31 +25,31 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     android {
-       namespace = "com.timeline.shared"
-       compileSdk = libs.versions.android.compileSdk.get().toInt()
-       minSdk = libs.versions.android.minSdk.get().toInt()
-    
-       compilerOptions {
-           jvmTarget = JvmTarget.JVM_11
-       }
-       androidResources {
-           enable = true
-       }
-       withHostTest {
-           isIncludeAndroidResources = true
-       }
-       withDeviceTestBuilder {
-           sourceSetTreeName = "test"
-       }.configure {
-           instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-       }
+        namespace = "com.timeline.shared"
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_11
+        }
+        androidResources {
+            enable = true
+        }
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+        withDeviceTestBuilder {
+            sourceSetTreeName = "test"
+        }.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
     }
-    
+
     sourceSets {
         val commonMain = named("commonMain").get()
-        
+
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -82,6 +81,12 @@ kotlin {
             implementation(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.androidx.datastore.preferences)
+
+            // Ktor
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
         }
 
         named("androidMain").configure {
@@ -92,13 +97,20 @@ kotlin {
                 implementation(libs.androidx.work.runtime)
                 implementation(libs.androidx.navigation3.runtime)
                 implementation(libs.androidx.navigation3.ui)
-                
+
+                // Ktor Android
+                implementation(libs.ktor.client.okhttp)
+
                 // Auth & Credentials
                 implementation(libs.firebase.auth)
                 implementation(libs.androidx.credentials)
                 implementation(libs.androidx.credentials.play.services.auth)
                 implementation(libs.googleid)
                 implementation(libs.onesignal)
+
+                // ML Kit OCR & Image Recognition
+                implementation(libs.mlkit.text.recognition)
+                implementation(libs.mlkit.image.labeling)
             }
         }
 

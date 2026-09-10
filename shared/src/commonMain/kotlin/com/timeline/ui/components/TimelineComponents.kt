@@ -272,7 +272,7 @@ fun FullScreenImageOverlay(
 @Composable
 fun BottomSummary(
     summary: TimelineSummary,
-    onUpgradeClick: () -> Unit
+    onSummaryClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -288,6 +288,7 @@ fun BottomSummary(
             modifier = Modifier
                 .height(IntrinsicSize.Max)
                 .clip(MaterialTheme.shapes.medium)
+                .clickable { onSummaryClick() }
                 .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingSmall),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -296,8 +297,6 @@ fun BottomSummary(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable { onUpgradeClick() }
                     .padding(Dimensions.Half)
             ) {
                 Text(AppStrings.TimelineTotalUsage, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
@@ -308,8 +307,6 @@ fun BottomSummary(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable { onUpgradeClick() }
                     .padding(Dimensions.Half)
             ) {
                 Text(AppStrings.TimelineSessionsCount, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
@@ -320,8 +317,6 @@ fun BottomSummary(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxHeight()
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable { onUpgradeClick() }
                     .padding(Dimensions.Half)
             ) {
                 Text(AppStrings.TimelineMostUsed, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)

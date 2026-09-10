@@ -26,6 +26,16 @@ data class SessionEntity(
     val isSynced: Boolean = false
 )
 
+@Entity(tableName = "app_daily_reasoning", primaryKeys = ["packageName", "date"])
+data class ReasoningEntity(
+    val packageName: String,
+    val date: String, // format: YYYY-MM-DD
+    val summary: String,
+    val cognitiveMode: String,
+    val actionItemsJson: String, // JSON / split list of strings
+    val lastUpdated: Long = 0L
+)
+
 @Dao
 interface SessionDao {
     @Query("SELECT * FROM sessions WHERE (:userId IS NULL AND userId IS NULL) OR (userId = :userId) ORDER BY startTime DESC")
@@ -70,6 +80,18 @@ interface SessionDao {
     suspend fun deleteSessionsForUser(userId: String?)
 }
 
+@Dao
+interface ReasoningDao {
+    @Query("SELECT * FROM app_daily_reasoning WHERE packageName = :packageName AND date = :date")
+    fun getReasoning(packageName: String, date: String): Flow<ReasoningEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertReasoning(reasoning: ReasoningEntity)
+
+    @Query("DELETE FROM app_daily_reasoning WHERE lastUpdated < :threshold")
+    suspend fun purgeOldReasoning(threshold: Long)
+}
+
 private fun updateJsonPaths(json: String, pathMap: Map<String, String>): String {
     if (json.isBlank()) return json
     var result = json
@@ -81,10 +103,11 @@ private fun updateJsonPaths(json: String, pathMap: Map<String, String>): String 
     return result
 }
 
-@Database(entities = [SessionEntity::class], version = 2)
+@Database(entities = [SessionEntity::class, ReasoningEntity::class], version = 3)
 @ConstructedBy(TimelineDatabaseConstructor::class)
 abstract class TimelineDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
+    abstract fun reasoningDao(): ReasoningDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")
@@ -94,6 +117,7 @@ expect fun getDatabaseBuilder(context: Any? = null): RoomDatabase.Builder<Timeli
 
 fun getDatabase(builder: RoomDatabase.Builder<TimelineDatabase>): TimelineDatabase {
     return builder
+        .fallbackToDestructiveMigration(dropAllTables = true)
         .setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(kotlinx.coroutines.Dispatchers.IO)
         .build()
