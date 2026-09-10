@@ -25,13 +25,9 @@ class NewHighlightViewModel(
             // Load sample screenshot paths from repository for the loading state animation
             repository.getTimeline().collect { sessions ->
                 val allPaths = sessions.flatMap { s -> s.screenshots + s.segments.mapNotNull { it.screenshotPath } }.distinct()
-                val left = allPaths.take(3)
-                val right = allPaths.drop(3).take(3).ifEmpty { left }
-                
                 _state.update {
                     it.copy(
-                        sampleThumbnailsLeft = left,
-                        sampleThumbnailsRight = right
+                        sampleThumbnailsLeft = allPaths.take(5)
                     )
                 }
             }

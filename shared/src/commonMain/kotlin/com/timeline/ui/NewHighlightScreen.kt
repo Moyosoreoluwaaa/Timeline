@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.NewHighlightEvent
 import com.timeline.presentation.NewHighlightViewModel
@@ -130,105 +132,189 @@ private fun NewHighlightLoadingState(
     leftThumbnails: List<String>,
     rightThumbnails: List<String>
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "loading_transfer")
-    val translationX by infiniteTransition.animateFloat(
-        initialValue = 120f,
-        targetValue = -120f,
+    val combinedThumbnails = (leftThumbnails + rightThumbnails).distinct()
+
+    val animationProgress by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(1400, easing = FastOutSlowInEasing),
+        label = "arc_reveal"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "loading_float")
+    val floatOffset by infiniteTransition.animateFloat(
+        initialValue = -5f,
+        targetValue = 5f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
+            animation = tween(2200, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "transfer_indicator"
+        label = "floating_cards"
     )
+
+    val mockBrushes = remember {
+        listOf(
+            Brush.linearGradient(listOf(Color(0xFFFF5F6D), Color(0xFFFFC371))),
+            Brush.linearGradient(listOf(Color(0xFFE0C3FC), Color(0xFF8EC5FC))),
+            Brush.linearGradient(listOf(Color(0xFF11998e), Color(0xFF38ef7d))),
+            Brush.linearGradient(listOf(Color(0xFF00c6ff), Color(0xFF0072ff))),
+            Brush.linearGradient(listOf(Color(0xFFf857a6), Color(0xFFff5858)))
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .background(Color.Black)
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // Left stack card
-            Card(
+            // Arc Layout of 5 thumbnails / screenshots
+            Box(
                 modifier = Modifier
-                    .width(130.dp)
+                    .fillMaxWidth()
                     .height(220.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                contentAlignment = Alignment.BottomCenter
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    Text("Raw Captures", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    leftThumbnails.forEach { path ->
-                        ScreenshotImage(
-                            path = path,
-                            contentDescription = null,
+                    for (index in 0 until 5) {
+                        val path = combinedThumbnails.getOrNull(index)
+                        val brush = mockBrushes[index]
+
+                        val targetRotation = when (index) {
+                            0 -> -22f
+                            1 -> -11f
+                            2 -> 0f
+                            3 -> 11f
+                            4 -> 22f
+                            else -> 0f
+                        }
+
+                        val targetTranslationY = when (index) {
+                            0 -> 42f
+                            1 -> 12f
+                            2 -> 0f
+                            3 -> 12f
+                            4 -> 42f
+                            else -> 0f
+                        }
+
+                        val targetTranslationX = when (index) {
+                            0 -> 24f
+                            1 -> 8f
+                            2 -> 0f
+                            3 -> -8f
+                            4 -> -24f
+                            else -> 0f
+                        }
+
+                        // Apply animations based on index to stagger or curve perfectly
+                        Card(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
+                                .size(width = 85.dp, height = 110.dp)
+                                .graphicsLayer {
+                                    rotationZ = targetRotation * animationProgress
+                                    translationY = (targetTranslationY * animationProgress) + floatOffset
+                                    translationX = targetTranslationX * animationProgress
+                                }
+                                .padding(4.dp),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                if (path != null) {
+                                    ScreenshotImage(
+                                        path = path,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(18.dp))
+                                    )
+                                } else {
+                                    // High-quality premium gradient placeholder
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(brush)
+                                            .clip(RoundedCornerShape(18.dp))
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // Animated transfer indicator moving back and forth
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.graphicsLayer { this.translationX = translationX }
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    tonalElevation = 4.dp
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                        Text("Reasoning...", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // Right stack card
-            Card(
+            // Animated title and description (word-by-word fade-in stream)
+            FadingWordText(
+                text = "Your daily narrative got a major upgrade",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White,
+                delayBetweenWords = 130L,
                 modifier = Modifier
-                    .width(130.dp)
-                    .height(220.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize().padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("AI Synthesis", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
-                    rightThumbnails.forEach { path ->
-                        ScreenshotImage(
-                            path = path,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                    }
-                }
-            }
+                    .fillMaxWidth(0.9f)
+                    .padding(bottom = 12.dp)
+            )
+
+            FadingWordText(
+                text = "Higher-quality reasoning, faster generation, and smarter creative insights",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Normal,
+                color = Color.White.copy(alpha = 0.7f),
+                delayBetweenWords = 100L,
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
         }
     }
 }
+
+@Composable
+private fun FadingWordText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    fontWeight: FontWeight = FontWeight.Normal,
+    delayBetweenWords: Long = 120L,
+    modifier: Modifier = Modifier
+) {
+    val words = remember(text) { text.split(" ") }
+    var visibleWords by remember(text) { mutableIntStateOf(0) }
+
+    LaunchedEffect(text) {
+        visibleWords = 0
+        delay(150.milliseconds)
+        while (visibleWords < words.size) {
+            visibleWords++
+            delay(delayBetweenWords.milliseconds)
+        }
+    }
+
+    val displayedText = remember(visibleWords, words) {
+        words.take(visibleWords).joinToString(" ")
+    }
+
+    Text(
+        text = displayedText,
+        style = style,
+        fontWeight = fontWeight,
+        color = color,
+        modifier = modifier,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+    )
+}
+
 
 @Composable
 private fun NewHighlightContentState(text: String) {
