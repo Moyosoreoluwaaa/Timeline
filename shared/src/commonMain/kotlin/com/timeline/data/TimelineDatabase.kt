@@ -92,6 +92,33 @@ interface ReasoningDao {
     suspend fun purgeOldReasoning(threshold: Long)
 }
 
+@Entity(tableName = "analysis_results")
+data class AnalysisResultEntity(
+    @PrimaryKey val screenshotId: String,
+    val redactedFullText: String,
+    val keywordsJson: String,
+    val labelsJson: String,
+    val visualCategory: String?,
+    val categoryConfidence: Float,
+    val confidenceScore: Float,
+    val timestamp: Long
+)
+
+@Dao
+interface AnalysisResultDao {
+    @Query("SELECT * FROM analysis_results WHERE screenshotId = :screenshotId")
+    suspend fun getAnalysis(screenshotId: String): AnalysisResultEntity?
+
+    @Query("SELECT * FROM analysis_results WHERE screenshotId IN (:screenshotIds)")
+    suspend fun getAnalyses(screenshotIds: List<String>): List<AnalysisResultEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAnalysis(analysis: AnalysisResultEntity)
+
+    @Query("DELETE FROM analysis_results WHERE timestamp < :threshold")
+    suspend fun purgeOldAnalysis(threshold: Long)
+}
+
 private fun updateJsonPaths(json: String, pathMap: Map<String, String>): String {
     if (json.isBlank()) return json
     var result = json
@@ -103,11 +130,12 @@ private fun updateJsonPaths(json: String, pathMap: Map<String, String>): String 
     return result
 }
 
-@Database(entities = [SessionEntity::class, ReasoningEntity::class], version = 3)
+@Database(entities = [SessionEntity::class, ReasoningEntity::class, AnalysisResultEntity::class], version = 4)
 @ConstructedBy(TimelineDatabaseConstructor::class)
 abstract class TimelineDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun reasoningDao(): ReasoningDao
+    abstract fun analysisResultDao(): AnalysisResultDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

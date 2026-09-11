@@ -65,10 +65,12 @@ class AndroidVisionAnalysisService(
             val extractedKeywords = if (fullText.isNotBlank()) {
                 fullText
                     .split(Regex("[^a-zA-Z0-9_#@]"))
+                    .asSequence()
                     .map { it.trim() }
                     .filter { it.length in 4..25 && it.lowercase() !in stopWords }
                     .distinctBy { it.lowercase() }
                     .take(15)
+                    .toList()
             } else {
                 emptyList()
             }
@@ -82,6 +84,34 @@ class AndroidVisionAnalysisService(
                 )
             }.sortedByDescending { it.confidence }
 
+            // Infer visual category and confidence from top labels
+            val topLabel = recognizedLabels.firstOrNull()
+            val (inferredCategory, inferredConfidence) = when {
+                recognizedLabels.any { it.text.contains("chat", ignoreCase = true) || it.text.contains("message", ignoreCase = true) || it.text.contains("social", ignoreCase = true) } -> {
+                    val label = recognizedLabels.first { it.text.contains("chat", ignoreCase = true) || it.text.contains("message", ignoreCase = true) || it.text.contains("social", ignoreCase = true) }
+                    "Communication" to label.confidence
+                }
+                recognizedLabels.any { it.text.contains("software", ignoreCase = true) || it.text.contains("computer", ignoreCase = true) || it.text.contains("web", ignoreCase = true) || it.text.contains("document", ignoreCase = true) } -> {
+                    val label = recognizedLabels.first { it.text.contains("software", ignoreCase = true) || it.text.contains("computer", ignoreCase = true) || it.text.contains("web", ignoreCase = true) || it.text.contains("document", ignoreCase = true) }
+                    "Technical/Work" to label.confidence
+                }
+                recognizedLabels.any { it.text.contains("media", ignoreCase = true) || it.text.contains("video", ignoreCase = true) || it.text.contains("music", ignoreCase = true) || it.text.contains("photo", ignoreCase = true) } -> {
+                    val label = recognizedLabels.first { it.text.contains("media", ignoreCase = true) || it.text.contains("video", ignoreCase = true) || it.text.contains("music", ignoreCase = true) || it.text.contains("photo", ignoreCase = true) }
+                    "Media" to label.confidence
+                }
+                topLabel != null && topLabel.confidence >= 0.5f -> {
+                    topLabel.text to topLabel.confidence
+                }
+                else -> {
+                    null to 0f
+                }
+            }
+
+            // Aggregate overall confidence score based on label confidence and text density
+            val labelScore = recognizedLabels.firstOrNull()?.confidence ?: 0.6f
+            val textScore = if (fullText.isNotBlank()) 1.0f else 0.4f
+            val overallConfidence = ((labelScore * 0.4f) + (textScore * 0.6f)).coerceIn(0.0f, 1.0f)
+
             val textResult = RecognizedTextResult(
                 fullText = fullText,
                 blocks = blocks,
@@ -92,7 +122,10 @@ class AndroidVisionAnalysisService(
                 imagePath = imagePath,
                 textResult = textResult,
                 labels = recognizedLabels,
-                timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis(),
+                visualCategory = if (inferredConfidence >= 0.5f) inferredCategory else null,
+                categoryConfidence = inferredConfidence,
+                confidenceScore = overallConfidence
             )
         }
     }

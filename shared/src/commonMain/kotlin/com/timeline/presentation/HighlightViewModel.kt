@@ -26,14 +26,14 @@ import kotlin.time.Clock
 
 class HighlightViewModel(
     private val repository: TimelineRepository,
-    private val appInfoProvider: com.timeline.domain.AppInfoProvider,
+    private val appInfoProvider: AppInfoProvider,
     private val visionService: VisionAnalysisService,
     private val reasoningService: ReasoningService,
     private val localHeuristicService: LocalHeuristicService,
     private val userPreferences: UserPreferences,
     private val subscriptionManager: SubscriptionManager,
     private val deviceUsageSyncer: DeviceUsageSyncer,
-    private val logger: Logger
+    private val logger: Logger,
 ) : ViewModel() {
     private val analysisSemaphore = Semaphore(2)
     private val _state = MutableStateFlow(
@@ -43,9 +43,6 @@ class HighlightViewModel(
         )
     )
     val state: StateFlow<HighlightState> = _state.asStateFlow()
-
-    private val _effect = Channel<HighlightEffect>(Channel.BUFFERED)
-    val effect = _effect.receiveAsFlow()
 
     private var timelineJob: Job? = null
 
@@ -67,7 +64,7 @@ class HighlightViewModel(
             logger.i { "syncRealDeviceUsage finished with $count sessions" }
 
             // Ensure AI reasoning is active for Gemini narratives
-            userPreferences.setAiReasoningEnabled(true)
+            userPreferences.setAiReasoningEnabled(enabled = true)
             _state.update { it.copy(isAiOptedIn = true, isSyncingDeviceUsage = false) }
             
             // repository.getTimeline() flow will automatically trigger update via loadScreenshots job
@@ -93,7 +90,7 @@ class HighlightViewModel(
             is HighlightEvent.Refresh -> {
                 viewModelScope.launch {
                     _state.update { it.copy(isRefreshing = true) }
-                    val count = deviceUsageSyncer.syncRealDeviceUsage(daysBack = 1)
+                    deviceUsageSyncer.syncRealDeviceUsage(daysBack = 1)
                     _state.update { it.copy(isRefreshing = false) }
                 }
             }
@@ -129,7 +126,7 @@ class HighlightViewModel(
     private fun generateDailyReasoning() {
         if (!_state.value.isAiOptedIn) {
             viewModelScope.launch {
-                userPreferences.setAiReasoningEnabled(true)
+                userPreferences.setAiReasoningEnabled(enabled = true)
             }
             _state.update { it.copy(isAiOptedIn = true) }
         }
@@ -138,10 +135,10 @@ class HighlightViewModel(
         val tz = TimeZone.currentSystemDefault()
         val localDate = date.toLocalDateTime(tz).date
         val dateString = localDate.toString() // YYYY-MM-DD
+        val yesterdayLocalDate = kotlinx.datetime.LocalDate.fromEpochDays(localDate.toEpochDays() - 1)
+        val yesterdayDateString = yesterdayLocalDate.toString()
 
-        val allItems = if (_state.value.screenshots.isNotEmpty()) {
-            _state.value.screenshots
-        } else {
+        val allItems = _state.value.screenshots.ifEmpty {
             listOfNotNull(_state.value.selectedScreenshot)
         }
         val groupedByApp = allItems.groupBy { it.packageName }
@@ -149,19 +146,26 @@ class HighlightViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             _state.update { it.copy(isReasoningLoading = true) }
             
+            val allTriagedFrames = mutableListOf<TriagedFrame>()
+
             groupedByApp.forEach { (packageName, items) ->
                 if (PrivacyExclusionProvider.isPackageExcluded(packageName)) return@forEach
                 
-                // Collect OCR results for this app/day
-                val ocrDumps = items.mapNotNull { _state.value.analysisCache[it.screenshotPath]?.textResult?.fullText }
-                val labels = items.flatMap { item -> 
-                    _state.value.analysisCache[item.screenshotPath]?.labels?.map { it.text } ?: emptyList() 
-                }
-                
-                // If OCR cache is not ready yet, perform immediate analysis
-                val effectiveDumps = if (ocrDumps.isEmpty()) {
-                    items.mapNotNull { item ->
-                        visionService.analyzeImageFromPath(item.screenshotPath).getOrNull()?.let { analysis ->
+                // Collect or compute OCR results with Room persistence
+                val analyses = items.mapNotNull { item ->
+                    val cached = _state.value.analysisCache[item.screenshotPath]
+                        ?: repository.getAnalysisResult(item.screenshotPath)
+                    if (cached != null) {
+                        if (!_state.value.analysisCache.containsKey(item.screenshotPath)) {
+                            HighlightAnalysisCache.put(item.screenshotPath, cached)
+                            _state.update { current ->
+                                current.copy(analysisCache = current.analysisCache + (item.screenshotPath to cached))
+                            }
+                        }
+                        cached
+                    } else {
+                        visionService.analyzeImageFromPath(item.screenshotPath).getOrNull()?.also { analysis ->
+                            repository.saveAnalysisResult(item.screenshotPath, analysis)
                             HighlightAnalysisCache.put(item.screenshotPath, analysis)
                             val localEntities = localHeuristicService.performLocalHeuristics(listOf(analysis.textResult.fullText))
                             _state.update { current ->
@@ -171,15 +175,43 @@ class HighlightViewModel(
                                     currentResult = if (current.selectedScreenshot?.screenshotPath == item.screenshotPath) analysis else current.currentResult
                                 )
                             }
-                            analysis.textResult.fullText
                         }
                     }
-                } else {
-                    ocrDumps
                 }
 
-                val appName = items.firstOrNull()?.displayName ?: appInfoProvider.getAppName(packageName) ?: packageName
-                val validDumps = if (effectiveDumps.isNotEmpty()) effectiveDumps else listOf("Active usage session in $appName")
+                val appName = items.firstOrNull()?.displayName ?: appInfoProvider.getAppName(packageName)
+
+                // Build TriagedFrames with sanitized text (PiiRedactor applied)
+                val triagedFrames = items.zip(analyses).map { (item, analysis) ->
+                    TriagedFrame(
+                        sessionId = item.sessionId,
+                        packageName = packageName,
+                        timestamp = item.timestamp.toEpochMilliseconds(),
+                        text = PiiRedactor.redact(analysis.textResult.fullText),
+                        labels = analysis.labels.map { it.text },
+                        confidenceScore = analysis.confidenceScore,
+                        visualCategory = analysis.visualCategory
+                    )
+                }
+                allTriagedFrames.addAll(triagedFrames)
+
+                // Retrieve yesterday's reasoning summary if present (strict 1-day prior check)
+                val yesterdaySummary = repository.getAppDailyReasoning(packageName, yesterdayDateString).firstOrNull()?.summary
+
+                // Triage frames: intra-session Jaccard deduplication & confidence filtering
+                val triaged = ContextTriagingService.triageSession(
+                    packageName = packageName,
+                    appName = appName,
+                    date = dateString,
+                    frames = triagedFrames,
+                    yesterdaySummary = yesterdaySummary
+                )
+
+                val validDumps = if (triaged.deduplicatedTextSamples.isNotEmpty()) {
+                    triaged.deduplicatedTextSamples
+                } else {
+                    listOf("Active usage session in $appName")
+                }
                 
                 logger.d { "Generating daily narrative for $appName on $dateString" }
                 val result = reasoningService.generateDailyNarrative(
@@ -187,7 +219,8 @@ class HighlightViewModel(
                     appName = appName,
                     date = dateString,
                     ocrDumps = validDumps,
-                    labels = labels
+                    labels = triaged.aggregatedLabels,
+                    previousDaySummary = triaged.previousDaySummary
                 )
                 
                 result.onSuccess { reasoning ->
@@ -202,7 +235,8 @@ class HighlightViewModel(
                         appName = appName,
                         date = dateString,
                         ocrDumps = validDumps,
-                        labels = labels
+                        labels = triaged.aggregatedLabels,
+                        previousDaySummary = triaged.previousDaySummary
                     ).getOrNull()
                     if (fallbackReasoning != null) {
                         repository.saveAppDailyReasoning(fallbackReasoning)
@@ -215,26 +249,36 @@ class HighlightViewModel(
 
             // Generate daily executive narrative for all apps combined
             if (groupedByApp.isNotEmpty()) {
-                val appNames = groupedByApp.keys.mapNotNull { pkg ->
-                    allItems.firstOrNull { it.packageName == pkg }?.displayName ?: appInfoProvider.getAppName(pkg) ?: pkg
-                }.distinct().joinToString(", ")
+                val appNamesList = mutableListOf<String>()
+                for (pkg in groupedByApp.keys) {
+                    val name = allItems.firstOrNull { it.packageName == pkg }?.displayName ?: appInfoProvider.getAppName(pkg)
+                    appNamesList.add(name)
+                }
+                val appNames = appNamesList.distinct().joinToString(", ")
 
-                val topDumps = groupedByApp.values.flatMap { it.take(2) }.mapNotNull {
-                    _state.value.analysisCache[it.screenshotPath]?.textResult?.fullText
-                }.take(6)
+                val yesterdayOverallSummary = repository.getAppDailyReasoning("ALL_APPS", yesterdayDateString).firstOrNull()?.summary
 
-                val allLabels = groupedByApp.values.flatMap { it }.flatMap { item ->
-                    _state.value.analysisCache[item.screenshotPath]?.labels?.map { it.text } ?: emptyList()
-                }.distinct().take(10)
+                val triagedAll = ContextTriagingService.triageSession(
+                    packageName = "ALL_APPS",
+                    appName = "Daily Summary ($appNames)",
+                    date = dateString,
+                    frames = allTriagedFrames,
+                    yesterdaySummary = yesterdayOverallSummary
+                )
 
-                val promptDumps = if (topDumps.isNotEmpty()) topDumps else listOf("Active real device sessions recorded today across: $appNames")
+                val promptDumps = if (triagedAll.deduplicatedTextSamples.isNotEmpty()) {
+                    triagedAll.deduplicatedTextSamples.take(8)
+                } else {
+                    listOf("Active real device sessions recorded today across: $appNames")
+                }
 
                 val overallResult = reasoningService.generateDailyNarrative(
                     packageName = "ALL_APPS",
                     appName = "Daily Summary ($appNames)",
                     date = dateString,
                     ocrDumps = promptDumps,
-                    labels = allLabels
+                    labels = triagedAll.aggregatedLabels,
+                    previousDaySummary = triagedAll.previousDaySummary
                 )
                 overallResult.onSuccess { overallReasoning ->
                     repository.saveAppDailyReasoning(overallReasoning)
@@ -247,7 +291,8 @@ class HighlightViewModel(
                         appName = "Daily Summary ($appNames)",
                         date = dateString,
                         ocrDumps = promptDumps,
-                        labels = allLabels
+                        labels = triagedAll.aggregatedLabels,
+                        previousDaySummary = triagedAll.previousDaySummary
                     ).getOrNull()
                     if (fallback != null) {
                         repository.saveAppDailyReasoning(fallback)
@@ -276,7 +321,7 @@ class HighlightViewModel(
                 // auto-select the date of the latest session in the timeline so we show some content!
                 val todayLocalDate = Clock.System.now().toLocalDateTime(tz).date
                 val sessionsForSelectedDate = sessions.filter { it.startTime.toLocalDateTime(tz).date == selectedLocalDate }
-                if (sessionsForSelectedDate.isEmpty() && sessions.isNotEmpty() && selectedLocalDate == todayLocalDate) {
+                if (sessionsForSelectedDate.isEmpty() && sessions.isNotEmpty() && (selectedLocalDate == todayLocalDate)) {
                     val latestSession = sessions.maxByOrNull { it.startTime }
                     if (latestSession != null) {
                         selectedDate = latestSession.startTime
@@ -413,9 +458,31 @@ class HighlightViewModel(
             }
 
             try {
+                // Check Room persistence first before running expensive vision analysis
+                val persistentAnalysis = repository.getAnalysisResult(item.screenshotPath)
+                if (persistentAnalysis != null) {
+                    HighlightAnalysisCache.put(item.screenshotPath, persistentAnalysis)
+                    val localEntities = localHeuristicService.performLocalHeuristics(listOf(persistentAnalysis.textResult.fullText))
+                    _state.update { current ->
+                        val updatedCache = current.analysisCache + (item.screenshotPath to persistentAnalysis)
+                        val updatedEntities = current.localEntitiesCache + (item.screenshotPath to localEntities)
+                        val updatedAnalyzing = current.analyzingPaths - item.screenshotPath
+                        current.copy(
+                            isAnalyzing = updatedAnalyzing.isNotEmpty(),
+                            analyzingPaths = updatedAnalyzing,
+                            analysisCache = updatedCache,
+                            localEntitiesCache = updatedEntities,
+                            currentResult = if (current.selectedScreenshot?.screenshotPath == item.screenshotPath) persistentAnalysis else current.currentResult,
+                            error = null
+                        )
+                    }
+                    return@withPermit
+                }
+
                 logger.d { "Running background ML Kit OCR on: ${item.screenshotPath}" }
                 val result = visionService.analyzeImageFromPath(item.screenshotPath)
                 result.onSuccess { analysis ->
+                    repository.saveAnalysisResult(item.screenshotPath, analysis)
                     HighlightAnalysisCache.put(item.screenshotPath, analysis)
                     val localEntities = localHeuristicService.performLocalHeuristics(listOf(analysis.textResult.fullText))
                     

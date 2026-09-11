@@ -23,6 +23,7 @@ actual val platformModule: Module = module {
     }
     single { get<TimelineDatabase>().sessionDao() }
     single { get<TimelineDatabase>().reasoningDao() }
+    single { get<TimelineDatabase>().analysisResultDao() }
     singleOf(::UserStorageManager)
 
     single<NotificationManager> { NoOpNotificationManager() }

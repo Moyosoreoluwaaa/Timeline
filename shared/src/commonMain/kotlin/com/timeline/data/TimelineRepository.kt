@@ -1,7 +1,11 @@
 package com.timeline.data
 
 import com.timeline.domain.Session
+import com.timeline.domain.ml.ImageAnalysisResult
+import com.timeline.domain.ml.RecognizedLabel
+import com.timeline.domain.ml.RecognizedTextResult
 import com.timeline.domain.reasoning.AppDailyReasoning
+import com.timeline.domain.reasoning.PiiRedactor
 import com.timeline.domain.repository.AuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -19,13 +23,18 @@ interface TimelineRepository {
 
     fun getAppDailyReasoning(packageName: String, date: String): Flow<AppDailyReasoning?>
     suspend fun saveAppDailyReasoning(reasoning: AppDailyReasoning)
+
+    suspend fun getAnalysisResult(screenshotId: String): ImageAnalysisResult?
+    suspend fun saveAnalysisResult(screenshotId: String, result: ImageAnalysisResult)
+    suspend fun purgeOldAnalysisResults(thresholdTimestamp: Long)
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimelineRepositoryImpl(
     private val sessionDao: SessionDao,
     private val reasoningDao: ReasoningDao,
-    private val authRepository: AuthRepository
+    private val analysisResultDao: AnalysisResultDao,
+    private val authRepository: AuthRepository,
 ) : TimelineRepository {
     override fun getTimeline(): Flow<List<Session>> = 
         authRepository.currentUser.flatMapLatest { user ->
@@ -86,6 +95,64 @@ class TimelineRepositoryImpl(
                 lastUpdated = Clock.System.now().toEpochMilliseconds()
             )
         )
+    }
+
+    override suspend fun getAnalysisResult(screenshotId: String): ImageAnalysisResult? {
+        val entity = analysisResultDao.getAnalysis(screenshotId) ?: return null
+        val keywords = entity.keywordsJson.split("|||").filter { it.isNotBlank() }
+        val labels = if (entity.labelsJson.isBlank()) emptyList() else {
+            entity.labelsJson.split("|||").mapNotNull { line ->
+                val parts = line.split(":::")
+                if (parts.size >= 3) {
+                    RecognizedLabel(
+                        text = parts[0],
+                        confidence = parts[1].toFloatOrNull() ?: 0f,
+                        index = parts[2].toIntOrNull() ?: 0
+                    )
+                } else null
+            }
+        }
+        return ImageAnalysisResult(
+            imagePath = screenshotId,
+            textResult = RecognizedTextResult(
+                fullText = entity.redactedFullText,
+                extractedKeywords = keywords
+            ),
+            labels = labels,
+            timestamp = entity.timestamp,
+            visualCategory = entity.visualCategory,
+            categoryConfidence = entity.categoryConfidence,
+            confidenceScore = entity.confidenceScore
+        )
+    }
+
+    override suspend fun saveAnalysisResult(screenshotId: String, result: ImageAnalysisResult) {
+        // Redact PII in-memory before storing into Room database (Zero unredacted storage guarantee)
+        val sanitizedText = PiiRedactor.redact(result.textResult.fullText)
+        val sanitizedKeywords = result.textResult.extractedKeywords
+            .asSequence()
+            .map { PiiRedactor.redact(it) }
+            .filter { !it.contains("[") && it.isNotBlank() }
+            .toList()
+        val keywordsJson = sanitizedKeywords.joinToString("|||")
+        val labelsJson = result.labels.joinToString("|||") { "${it.text}:::${it.confidence}:::${it.index}" }
+
+        analysisResultDao.insertAnalysis(
+            AnalysisResultEntity(
+                screenshotId = screenshotId,
+                redactedFullText = sanitizedText,
+                keywordsJson = keywordsJson,
+                labelsJson = labelsJson,
+                visualCategory = result.visualCategory,
+                categoryConfidence = result.categoryConfidence,
+                confidenceScore = result.confidenceScore,
+                timestamp = result.timestamp.takeIf { it > 0 } ?: Clock.System.now().toEpochMilliseconds()
+            )
+        )
+    }
+
+    override suspend fun purgeOldAnalysisResults(thresholdTimestamp: Long) {
+        analysisResultDao.purgeOldAnalysis(thresholdTimestamp)
     }
 
     private fun SessionEntity.toDomain(): Session = Session(

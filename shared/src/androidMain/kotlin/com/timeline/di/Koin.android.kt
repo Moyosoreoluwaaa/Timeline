@@ -32,6 +32,7 @@ actual val platformModule: Module = module {
     }
     single { get<TimelineDatabase>().sessionDao() }
     single { get<TimelineDatabase>().reasoningDao() }
+    single { get<TimelineDatabase>().analysisResultDao() }
     singleOf(::AndroidPermissionManager) { bind<PermissionManager>() }
     single { createDataStore(get<Context>()) }
     singleOf(::AndroidAppInfoProvider) { bind<AppInfoProvider>() }
