@@ -71,7 +71,7 @@ class GeminiReasoningService(private val logger: Logger) : ReasoningService {
         previousDaySummary: String?
     ): Result<AppDailyReasoning> {
         val apiKey = SecretConstants.GEMINI_API_KEY
-        if (apiKey.isEmpty() || (apiKey == "your_gemini_api_key_here")) {
+        if (apiKey.isEmpty() || apiKey == "your_gemini_api_key_here") {
             logger.w { "Gemini API key missing, falling back to local heuristic reasoning" }
             return LocalHeuristicService().generateDailyNarrative(packageName, appName, date, ocrDumps, labels, previousDaySummary)
         }

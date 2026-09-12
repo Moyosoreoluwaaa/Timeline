@@ -147,13 +147,16 @@ class HighlightViewModel(
             _state.update { it.copy(
                 isReasoningLoading = true,
                 reasoningStage = HighlightState.ReasoningStage.IDLE,
-                isPrivacyShieldActive = false
+                isPrivacyShieldActive = false,
+                reasoningProgress = 0.0f
             ) }
             
             val allTriagedFrames = mutableListOf<TriagedFrame>()
 
-            groupedByApp.forEach { (packageName, items) ->
-                if (PrivacyExclusionProvider.isPackageExcluded(packageName)) return@forEach
+            val groupedList = groupedByApp.toList()
+            groupedList.forEachIndexed { index, (packageName, items) ->
+                _state.update { it.copy(reasoningProgress = (index.toFloat() / groupedList.size.toFloat()) * 0.5f) }
+                if (PrivacyExclusionProvider.isPackageExcluded(packageName)) return@forEachIndexed
                 
                 // Collect or compute OCR results with Room persistence
                 val analyses = items.mapNotNull { item ->

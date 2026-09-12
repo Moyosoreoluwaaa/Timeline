@@ -37,7 +37,8 @@ data class HighlightState(
     val isSyncingDeviceUsage: Boolean = false,
     val reasoningStage: ReasoningStage = ReasoningStage.IDLE,
     val isPrivacyShieldActive: Boolean = false,
-    val categoryIcon: String? = null
+    val categoryIcon: String? = null,
+    val reasoningProgress: Float = 0f
 ) {
 
 enum class ReasoningStage {
