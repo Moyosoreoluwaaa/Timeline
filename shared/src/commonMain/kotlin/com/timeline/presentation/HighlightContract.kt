@@ -34,8 +34,15 @@ data class HighlightState(
     val isAiOptedIn: Boolean = false,
     val isPro: Boolean = false,
     val isUsagePermissionGranted: Boolean = true,
-    val isSyncingDeviceUsage: Boolean = false
+    val isSyncingDeviceUsage: Boolean = false,
+    val reasoningStage: ReasoningStage = ReasoningStage.IDLE,
+    val isPrivacyShieldActive: Boolean = false,
+    val categoryIcon: String? = null
 ) {
+
+enum class ReasoningStage {
+    IDLE, REDACTING, DEDUPLICATING, CONTEXTUALIZING, REASONING
+}
     val filteredScreenshots: List<HighlightScreenshotItem>
         get() {
             var list = screenshots

@@ -144,7 +144,11 @@ class HighlightViewModel(
         val groupedByApp = allItems.groupBy { it.packageName }
         
         viewModelScope.launch(Dispatchers.Default) {
-            _state.update { it.copy(isReasoningLoading = true) }
+            _state.update { it.copy(
+                isReasoningLoading = true,
+                reasoningStage = HighlightState.ReasoningStage.IDLE,
+                isPrivacyShieldActive = false
+            ) }
             
             val allTriagedFrames = mutableListOf<TriagedFrame>()
 
@@ -182,12 +186,18 @@ class HighlightViewModel(
                 val appName = items.firstOrNull()?.displayName ?: appInfoProvider.getAppName(packageName)
 
                 // Build TriagedFrames with sanitized text (PiiRedactor applied)
+                _state.update { it.copy(reasoningStage = HighlightState.ReasoningStage.REDACTING) }
                 val triagedFrames = items.zip(analyses).map { (item, analysis) ->
+                    val originalText = analysis.textResult.fullText
+                    val redactedText = PiiRedactor.redact(originalText)
+                    if (redactedText != originalText) {
+                        _state.update { it.copy(isPrivacyShieldActive = true) }
+                    }
                     TriagedFrame(
                         sessionId = item.sessionId,
                         packageName = packageName,
                         timestamp = item.timestamp.toEpochMilliseconds(),
-                        text = PiiRedactor.redact(analysis.textResult.fullText),
+                        text = redactedText,
                         labels = analysis.labels.map { it.text },
                         confidenceScore = analysis.confidenceScore,
                         visualCategory = analysis.visualCategory
@@ -196,9 +206,11 @@ class HighlightViewModel(
                 allTriagedFrames.addAll(triagedFrames)
 
                 // Retrieve yesterday's reasoning summary if present (strict 1-day prior check)
+                _state.update { it.copy(reasoningStage = HighlightState.ReasoningStage.CONTEXTUALIZING) }
                 val yesterdaySummary = repository.getAppDailyReasoning(packageName, yesterdayDateString).firstOrNull()?.summary
 
                 // Triage frames: intra-session Jaccard deduplication & confidence filtering
+                _state.update { it.copy(reasoningStage = HighlightState.ReasoningStage.DEDUPLICATING) }
                 val triaged = ContextTriagingService.triageSession(
                     packageName = packageName,
                     appName = appName,
@@ -214,6 +226,7 @@ class HighlightViewModel(
                 }
                 
                 logger.d { "Generating daily narrative for $appName on $dateString" }
+                _state.update { it.copy(reasoningStage = HighlightState.ReasoningStage.REASONING) }
                 val result = reasoningService.generateDailyNarrative(
                     packageName = packageName,
                     appName = appName,
@@ -226,7 +239,8 @@ class HighlightViewModel(
                 result.onSuccess { reasoning ->
                     repository.saveAppDailyReasoning(reasoning)
                     _state.update { it.copy(
-                        appDailyReasonings = it.appDailyReasonings + (packageName to reasoning)
+                        appDailyReasonings = it.appDailyReasonings + (packageName to reasoning),
+                        categoryIcon = getIconForMode(reasoning.cognitiveMode)
                     ) }
                 }.onFailure { err ->
                     logger.w(err) { "Reasoning failed for $packageName, applying local fallback" }
@@ -524,5 +538,14 @@ class HighlightViewModel(
         }
     }
 
-
+    private fun getIconForMode(mode: String): String {
+        return when (mode.lowercase()) {
+            "deep focus" -> "brain"
+            "communication" -> "chat"
+            "social" -> "people"
+            "productivity" -> "terminal"
+            "entertainment" -> "play"
+            else -> "info"
+        }
+    }
 }

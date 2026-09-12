@@ -239,7 +239,11 @@ fun HighlightScreen(
                                 AppDailyNarrativeSection(
                                     state = state,
                                     onOptInToggle = { viewModel.onEvent(HighlightEvent.ToggleAiOptIn) },
-                                    onGenerate = { viewModel.onEvent(HighlightEvent.GenerateReasoning) }
+                                    onGenerate = { viewModel.onEvent(HighlightEvent.GenerateReasoning) },
+                                    onCopy = {
+                                        clipboardManager.setText(AnnotatedString(it))
+                                        showCopiedSnackbar = true
+                                    }
                                 )
                             }
                             
@@ -634,7 +638,8 @@ private fun EntityRow(icon: androidx.compose.ui.graphics.vector.ImageVector, tex
 private fun AppDailyNarrativeSection(
     state: com.timeline.presentation.HighlightState,
     onOptInToggle: () -> Unit,
-    onGenerate: () -> Unit
+    onGenerate: () -> Unit,
+    onCopy: (String) -> Unit
 ) {
     if (!state.isAiOptedIn) {
         AiOptInBanner(onOptIn = onOptInToggle)
@@ -642,6 +647,13 @@ private fun AppDailyNarrativeSection(
     }
 
     if (state.isReasoningLoading) {
+        val stageText = when (state.reasoningStage) {
+            com.timeline.presentation.HighlightState.ReasoningStage.REDACTING -> "Sanitizing PII data (Privacy Shield active)..."
+            com.timeline.presentation.HighlightState.ReasoningStage.DEDUPLICATING -> "Deduplicating session captures..."
+            com.timeline.presentation.HighlightState.ReasoningStage.CONTEXTUALIZING -> "Injecting historical & contextual timeline..."
+            com.timeline.presentation.HighlightState.ReasoningStage.REASONING -> "Synthesizing Gemini executive narrative..."
+            else -> "Analyzing usage activity & generating executive narratives..."
+        }
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -671,7 +683,7 @@ private fun AppDailyNarrativeSection(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Analyzing usage activity & generating executive narratives...",
+                        text = stageText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -696,6 +708,21 @@ private fun AppDailyNarrativeSection(
     }
 
     if (reasoning != null) {
+        var showPrivacyInfo by remember { mutableStateOf(false) }
+
+        if (showPrivacyInfo) {
+            AlertDialog(
+                onDismissRequest = { showPrivacyInfo = false },
+                title = { Text("Privacy Shield Active") },
+                text = { Text("PII Redactor successfully detected and scrubbed sensitive data (emails, phone numbers, auth tokens, cards) locally on-device before Gemini reasoning.") },
+                confirmButton = {
+                    TextButton(onClick = { showPrivacyInfo = false }) {
+                        Text("Got it")
+                    }
+                }
+            )
+        }
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
@@ -720,16 +747,55 @@ private fun AppDailyNarrativeSection(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.weight(1f))
+
+                    if (state.isPrivacyShieldActive) {
+                        Badge(
+                            modifier = Modifier
+                                .padding(end = 6.dp)
+                                .clickable { showPrivacyInfo = true },
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Rounded.Shield, contentDescription = "Privacy Shield", modifier = Modifier.size(12.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Sanitized",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+
+                    val modeIcon = when (state.categoryIcon) {
+                        "brain" -> Icons.Rounded.Psychology
+                        "chat" -> Icons.Rounded.Forum
+                        "people" -> Icons.Rounded.People
+                        "terminal" -> Icons.Rounded.Terminal
+                        "play" -> Icons.Rounded.PlayArrow
+                        else -> Icons.Rounded.Info
+                    }
+
                     Badge(
                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                         contentColor = MaterialTheme.colorScheme.primary
                     ) {
-                        Text(
-                            text = reasoning.cognitiveMode,
+                        Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(modeIcon, contentDescription = null, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = reasoning.cognitiveMode,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
 
@@ -745,12 +811,32 @@ private fun AppDailyNarrativeSection(
 
                 if (reasoning.actionItems.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = "Detected Tasks & Next Steps",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Detected Tasks & Next Steps",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = {
+                                val taskBlock = reasoning.actionItems.joinToString("\n") { "• $it" }
+                                onCopy(taskBlock)
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.ContentCopy,
+                                contentDescription = "Copy Tasks",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(6.dp))
                     reasoning.actionItems.forEach { item ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(vertical = 2.dp)) {
