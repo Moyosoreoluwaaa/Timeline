@@ -48,6 +48,7 @@ actual fun AppNavigation(
     onExitApp: () -> Unit
 ) {
     val timelineViewModel: TimelineViewModel = koinViewModel()
+    val newHighlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
     val permissionViewModel: PermissionViewModel = koinViewModel()
     val authViewModel: AuthViewModel = koinViewModel()
@@ -56,6 +57,7 @@ actual fun AppNavigation(
     
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
     val permState by permissionViewModel.state.collectAsStateWithLifecycle()
+    val newHighlightState by newHighlightViewModel.state.collectAsStateWithLifecycle()
 
     val backStack = remember { mutableStateListOf<NavKey>() }
 
@@ -151,10 +153,18 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+                            is Route.HighlightLoading -> {
+                                com.timeline.ui.NewHighlightLoadingScreen(
+                                    screenshots = newHighlightState.dynamicScreenshots,
+                                    onFinished = {
+                                        backStack.removeAt(backStack.size - 1)
+                                        backStack.add(Route.Highlight)
+                                    }
+                                )
+                            }
                             is Route.Highlight -> {
-                                val highlightViewModel: com.timeline.presentation.HighlightViewModel = koinViewModel()
-                                com.timeline.ui.HighlightScreen(
-                                    viewModel = highlightViewModel,
+                                com.timeline.ui.NewHighlightScreen(
+                                    viewModel = newHighlightViewModel,
                                     onNavigateBack = {
                                         if (backStack.size > 1) {
                                             backStack.removeAt(backStack.size - 1)

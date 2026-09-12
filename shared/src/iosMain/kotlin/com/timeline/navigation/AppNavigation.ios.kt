@@ -55,7 +55,13 @@ actual fun AppNavigation(
             TimelineScreen(
                 viewModel = timelineViewModel,
                 onNavigateToSettings = { currentRoute = Route.Settings },
-                onNavigateToHighlight = { currentRoute = Route.Highlight }
+                onNavigateToHighlight = { currentRoute = Route.HighlightLoading }
+            )
+        }
+        Route.HighlightLoading -> {
+            com.timeline.ui.NewHighlightLoadingScreen(
+                screenshots = com.timeline.presentation.NewHighlightState().dynamicScreenshots,
+                onFinished = { currentRoute = Route.Highlight }
             )
         }
         Route.Highlight -> {

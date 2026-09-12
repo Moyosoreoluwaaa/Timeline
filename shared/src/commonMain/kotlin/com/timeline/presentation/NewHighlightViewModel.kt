@@ -27,12 +27,22 @@ class NewHighlightViewModel(
                 val allPaths = sessions.flatMap { s -> s.screenshots + s.segments.mapNotNull { it.screenshotPath } }.distinct()
                 val left = allPaths.take(3)
                 val right = allPaths.drop(3).take(3).ifEmpty { left }
+                val eveningPaths = allPaths.takeLast(3).ifEmpty { allPaths }
                 
-                _state.update {
-                    it.copy(
+                _state.update { current ->
+                    val updatedSegments = current.segments.map { segment ->
+                        when (segment.filter) {
+                            TimeOfDayFilter.MORNING -> segment.copy(screenshots = left)
+                            TimeOfDayFilter.AFTERNOON -> segment.copy(screenshots = right)
+                            TimeOfDayFilter.EVENING -> segment.copy(screenshots = eveningPaths)
+                            else -> segment
+                        }
+                    }
+                    current.copy(
                         dynamicScreenshots = allPaths,
                         sampleThumbnailsLeft = left,
-                        sampleThumbnailsRight = right
+                        sampleThumbnailsRight = right,
+                        segments = updatedSegments
                     )
                 }
             }
