@@ -70,8 +70,8 @@ fun UpgradeCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsTopBar(onBack: () -> Unit) {
-    TopAppBar(
+fun SettingsTopBar(onBack: () -> Unit, scrollBehavior: TopAppBarScrollBehavior? = null) {
+    CustomTopAppBar(
         title = { Text(AppStrings.SettingsTitle, style = MaterialTheme.typography.headlineLarge) },
         navigationIcon = {
             IconButton(
@@ -81,10 +81,7 @@ fun SettingsTopBar(onBack: () -> Unit) {
                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = AppStrings.ContentDescBack)
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
+        scrollBehavior = scrollBehavior
     )
 }
 

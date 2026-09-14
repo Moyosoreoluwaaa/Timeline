@@ -19,16 +19,45 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -37,7 +66,10 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineViewModel
-import com.timeline.ui.components.*
+import com.timeline.ui.components.BottomSummary
+import com.timeline.ui.components.TimelineEntry
+import com.timeline.ui.components.TimelineHeader
+import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
@@ -53,18 +85,18 @@ fun TimelineScreen(
     onNavigateToHighlight: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    
+
     val density = LocalDensity.current
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
-    
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimeFilters by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val fullHeight = constraints.maxHeight.toFloat()
-        val peekHeight = fullHeight * 0.55f 
-        val expandedHeight = 0f 
+        val peekHeight = fullHeight * 0.55f
+        val expandedHeight = 0f
 
         val anchors = remember(fullHeight) {
             DraggableAnchors {
@@ -74,11 +106,12 @@ fun TimelineScreen(
             }
         }
 
+        val velocityThresholdPx = with(density) { 100.dp.toPx() }
         val sheetState = remember {
             AnchoredDraggableState(
                 initialValue = SheetValue.Hidden,
-                positionalThreshold = { distance: Float -> distance * 0.5f },
-                velocityThreshold = { with(density) { 100.dp.toPx() } },
+                positionalThreshold = { distance -> distance * 0.5f },
+                velocityThreshold = { velocityThresholdPx },
                 snapAnimationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
                 decayAnimationSpec = exponentialDecay()
             )
@@ -156,8 +189,12 @@ fun TimelineScreen(
             ) { DatePicker(state = datePickerState) }
         }
 
+        val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
         Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             topBar = {
                 TimelineHeader(
                     selectedDate = state.selectedDate,
@@ -166,75 +203,70 @@ fun TimelineScreen(
                     onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
                     onFilterSelected = { viewModel.onEvent(TimelineEvent.FilterTime(it)) },
                     onNavigateToSettings = onNavigateToSettings,
-                    onSelectDateClick = { showDatePicker = true }
+                    onSelectDateClick = { showDatePicker = true },
+                    scrollBehavior = scrollBehavior
                 )
             }
         ) { padding ->
             val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
 
             Box(
                 modifier = Modifier
-                    .padding(padding)
+                    .padding(top = topPadding)
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = Dimensions.SpacingLarge, topEnd = Dimensions.SpacingLarge)),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            if (state.sessions.isEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(AppWeights.Full)
-                                        .fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (state.isLoading) {
-                                        CircularProgressIndicator()
-                                    } else {
-                                        Text(
-                                            AppStrings.TimelineNoActivity,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                    }
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .weight(AppWeights.Full)
-                                        .fillMaxWidth(),
-                                    contentPadding = PaddingValues(
-                                        bottom = navBarPadding + (Dimensions.SpacingGiant * 2)
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        if (state.sessions.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(AppWeights.Full)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (state.isLoading) {
+                                    CircularProgressIndicator()
+                                } else {
+                                    Text(
+                                        AppStrings.TimelineNoActivity,
+                                        style = MaterialTheme.typography.bodyLarge
                                     )
-                                ) {
-                                    itemsIndexed(
-                                        items = state.sessions,
-                                        key = { _, session -> session.id }
-                                    ) { index, session ->
-                                        TimelineEntry(
-                                            session = session,
-                                            isFirst = index == 0,
-                                            isLast = index == state.sessions.lastIndex,
-                                            modifier = Modifier.animateItem()
-                                        ) { viewModel.onEvent(TimelineEvent.SelectSession(session)) }
-                                    }
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .weight(AppWeights.Full)
+                                    .fillMaxWidth(),
+                                contentPadding = PaddingValues(
+                                    top = Dimensions.PaddingSmall,
+                                    bottom = navBarPadding + (Dimensions.PaddingLarge * 2)
+                                )
+                            ) {
+                                itemsIndexed(
+                                    items = state.sessions,
+                                    key = { _, session -> session.id }
+                                ) { index, session ->
+                                    TimelineEntry(
+                                        session = session,
+                                        isFirst = index == 0,
+                                        isLast = index == state.sessions.lastIndex,
+                                        modifier = Modifier.animateItem()
+                                    ) { viewModel.onEvent(TimelineEvent.SelectSession(session)) }
                                 }
                             }
                         }
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .navigationBarsPadding()
-                        ) {
-                            BottomSummary(
-                                summary = state.summary,
-                                onSummaryClick = onNavigateToHighlight
-                            )
-                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                    ) {
+                        BottomSummary(
+                            summary = state.summary,
+                            onSummaryClick = onNavigateToHighlight
+                        )
                     }
                 }
             }
@@ -262,7 +294,7 @@ fun TimelineScreen(
             }
         }
 
-        // Custom Draggable Sheet (Hierarchy-safe)
+        // Custom Draggable Sheet
         val cornerRadius by animateDpAsState(
             targetValue = if (expansionProgressProvider.value > 0.9f) 0.dp else 28.dp,
             label = "SheetCornerRadius"
@@ -299,7 +331,7 @@ fun TimelineScreen(
             }
         }
 
-        // Spectacular Full-Screen Image Overlay
+        // Full-Screen Image Overlay
         val imagePath = state.fullScreenImagePath
         AnimatedVisibility(
             visible = imagePath != null,

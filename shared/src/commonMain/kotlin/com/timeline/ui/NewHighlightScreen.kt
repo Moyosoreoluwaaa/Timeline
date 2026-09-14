@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -40,6 +41,8 @@ import com.timeline.presentation.HighlightSegment
 import com.timeline.presentation.NewHighlightEvent
 import com.timeline.presentation.NewHighlightViewModel
 import com.timeline.presentation.TimeOfDayFilter
+import com.timeline.ui.components.CustomTopAppBar
+import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.theme.Dimensions
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
@@ -56,6 +59,8 @@ fun NewHighlightScreen(
     var showLoading by remember { mutableStateOf(true) }
     var filterChipsExpanded by remember { mutableStateOf(false) }
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     AnimatedContent(
         targetState = showLoading,
         transitionSpec = {
@@ -71,46 +76,41 @@ fun NewHighlightScreen(
             )
         } else {
             Scaffold(
+                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
-                    Column(
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .clickable { filterChipsExpanded = !filterChipsExpanded }
-                    ) {
-                        TopAppBar(
-                            title = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = "Highlights",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            },
-                            navigationIcon = {
-                                IconButton(onClick = onNavigateBack) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                                        contentDescription = "Back",
-                                        modifier = Modifier.size(Dimensions.IconSmall)
-                                    )
-                                }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            )
-                        )
-                    }
+                    CustomTopAppBar(
+                        modifier = Modifier.clickable { filterChipsExpanded = !filterChipsExpanded },
+                        title = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "Highlights",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onNavigateBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                                    contentDescription = "Back",
+                                    modifier = Modifier.size(Dimensions.IconSmall)
+                                )
+                            }
+                        },
+                        scrollBehavior = scrollBehavior
+                    )
                 }
             ) { padding ->
+                val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
+                        .padding(top = topPadding)
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
                     PullToRefreshBox(

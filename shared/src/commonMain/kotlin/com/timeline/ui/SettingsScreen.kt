@@ -30,15 +30,15 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.dp
+import com.timeline.ui.components.CustomTopAppBar
+import com.timeline.ui.components.TopAppBarCutoutRadius
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
@@ -74,23 +74,26 @@ fun SettingsScreen(
     LaunchedEffect(Unit) { viewModel.onEvent(SettingsEvent.LoadSettings) }
 
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets.statusBars,
-        topBar = { SettingsTopBar(onBack = onBack) }
+        topBar = { SettingsTopBar(onBack = onBack, scrollBehavior = scrollBehavior) }
     ) { padding ->
+        val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
         Box(
             modifier = Modifier
-                .padding(padding)
+                .padding(top = topPadding)
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = Dimensions.SpacingLarge, topEnd = Dimensions.SpacingLarge)),
-                color = MaterialTheme.colorScheme.surfaceContainerLowest
-            ) {
+//            Surface(
+//                modifier = Modifier
+//                    .fillMaxSize()
+//                    .clip(RoundedCornerShape(topStart = Dimensions.SpacingLarge, topEnd = Dimensions.SpacingLarge)),
+//                color = MaterialTheme.colorScheme.surfaceContainerLowest
+//            ) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -289,4 +292,4 @@ fun SettingsScreen(
             }
         }
     }
-}
+//}
