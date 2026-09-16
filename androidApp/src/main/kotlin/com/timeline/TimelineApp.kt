@@ -31,6 +31,9 @@ class TimelineApp : Application(), Configuration.Provider {
         // Initialize RevenueCat
         configureRevenueCat()
 
+        // Schedule Background Highlight Digest Generation & Notifications
+        com.timeline.worker.DigestScheduler.schedule(this)
+
         Logger.d { "TimelineApp initialized with Koin in process: ${getAppProcessName()}" }
     }
 

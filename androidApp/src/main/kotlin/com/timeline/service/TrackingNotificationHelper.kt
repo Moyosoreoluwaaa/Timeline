@@ -46,14 +46,44 @@ class TrackingNotificationHelper(private val context: Context) {
         NotificationManagerCompat.from(context).notify(Constants.ACCESSIBILITY_LOST_NOTIFICATION_ID, notification)
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    fun showDigestNotification(title: String, text: String) {
+        val intent = Intent(context, Class.forName("com.timeline.MainActivity")).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to_highlight", true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 3, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, Constants.DIGEST_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_dialog_info)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(Constants.DIGEST_NOTIFICATION_ID, notification)
+    }
+
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        
+        val trackingChannel = NotificationChannel(
             Constants.TRACKING_CHANNEL_ID,
             "${AppStrings.AppName} Tracking",
             NotificationManager.IMPORTANCE_MIN
         )
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager?.createNotificationChannel(channel)
+        manager.createNotificationChannel(trackingChannel)
+
+        val digestChannel = NotificationChannel(
+            Constants.DIGEST_CHANNEL_ID,
+            "${AppStrings.AppName} Highlights",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Daily activity digests and narrative insights"
+        }
+        manager.createNotificationChannel(digestChannel)
     }
 
     companion object {

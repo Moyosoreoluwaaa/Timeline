@@ -22,8 +22,9 @@ class NewHighlightViewModel(
     private val repository: TimelineRepository,
     private val appInfoProvider: AppInfoProvider,
     private val deviceUsageSyncer: DeviceUsageSyncer,
-    private val logger: Logger
+    logger: Logger
 ) : ViewModel() {
+    private val logger = logger.withTag("NewHighlightViewModel")
 
     private val _state = MutableStateFlow(
         NewHighlightState(
@@ -35,19 +36,24 @@ class NewHighlightViewModel(
     private var timelineJob: Job? = null
 
     init {
+        logger.i { "Initializing NewHighlightViewModel" }
         checkPermissionAndLoadData()
     }
 
     fun checkPermissionAndLoadData() {
         val hasPerm = deviceUsageSyncer.hasPermission()
+        logger.d { "checkPermissionAndLoadData: hasPermission=$hasPerm" }
         _state.update { it.copy(isUsagePermissionGranted = hasPerm) }
         loadTimelineData()
     }
 
     private fun loadTimelineData() {
+        logger.i { "Starting loadTimelineData..." }
         timelineJob?.cancel()
         timelineJob = viewModelScope.launch {
+            logger.d { "Subscribing to repository.getTimeline() flow" }
             repository.getTimeline().collect { sessions ->
+                logger.i { "Received ${sessions.size} sessions from repository" }
                 processSessionsIntoSegments(sessions)
             }
         }
@@ -61,16 +67,20 @@ class NewHighlightViewModel(
         var targetDate = _state.value.selectedDate ?: now
         var targetLocalDate = targetDate.toLocalDateTime(tz).date
 
+        logger.d { "Processing sessions. Target LocalDate: $targetLocalDate, Total raw sessions: ${sessions.size}" }
+
         // Filter sessions for selected date
         var sessionsForDate = sessions.filter { it.startTime.toLocalDateTime(tz).date == targetLocalDate }
 
         // Auto-select date with sessions if selected date has none and is today
         if (sessionsForDate.isEmpty() && sessions.isNotEmpty() && targetLocalDate == todayLocalDate) {
+            logger.w { "Selected date $targetLocalDate has 0 sessions. Attempting auto-fallback to latest session." }
             val latestSession = sessions.maxByOrNull { it.startTime }
             if (latestSession != null) {
                 targetDate = latestSession.startTime
                 targetLocalDate = targetDate.toLocalDateTime(tz).date
                 sessionsForDate = sessions.filter { it.startTime.toLocalDateTime(tz).date == targetLocalDate }
+                logger.i { "Auto-fallback selected date to: $targetLocalDate with ${sessionsForDate.size} sessions" }
             }
         }
 
@@ -92,9 +102,16 @@ class NewHighlightViewModel(
             hour in 17..23 || hour in 0..5
         }
 
+        logger.d { "Categorized sessions - Morning: ${morningSessions.size}, Afternoon: ${afternoonSessions.size}, Evening: ${eveningSessions.size}" }
+
         // Fetch overall daily reasoning if available
         val dateString = targetLocalDate.toString()
         val dailyReasoning = repository.getAppDailyReasoning("ALL_APPS", dateString).firstOrNull()
+        if (dailyReasoning == null) {
+            logger.w { "No daily reasoning found for ALL_APPS on $dateString" }
+        } else {
+            logger.i { "Retrieved daily reasoning successfully: ${dailyReasoning.summary.take(60)}..." }
+        }
 
         val morningSegment = buildSegment(
             filter = TimeOfDayFilter.MORNING,
@@ -123,6 +140,8 @@ class NewHighlightViewModel(
         val actionItems = dailyReasoning?.actionItems
             ?: (morningSegment.actionItems + afternoonSegment.actionItems + eveningSegment.actionItems).distinct()
 
+        logger.i { "Updating state with built segments and ${actionItems.size} action items" }
+
         _state.update { current ->
             current.copy(
                 selectedDate = targetDate,
@@ -142,6 +161,7 @@ class NewHighlightViewModel(
         savedReasoning: com.timeline.domain.reasoning.AppDailyReasoning?
     ): HighlightSegment {
         if (sessions.isEmpty()) {
+            logger.d { "Building empty segment for filter: $filter" }
             val emptyNarrative = when (filter) {
                 TimeOfDayFilter.MORNING -> "A quiet morning with minimal device screen activity. Time was well spent offline."
                 TimeOfDayFilter.AFTERNOON -> "No active digital workflows recorded during the afternoon hours."
@@ -197,6 +217,8 @@ class NewHighlightViewModel(
         val narrative = savedReasoning?.summary ?: defaultNarrative
         val actionItems = savedReasoning?.actionItems ?: emptyList()
 
+        logger.d { "Built segment $title: $durationFormatted, ${appNames.size} apps, ${screenshots.size} screenshots" }
+
         return HighlightSegment(
             filter = filter,
             title = title,
@@ -220,6 +242,7 @@ class NewHighlightViewModel(
     }
 
     fun onEvent(event: NewHighlightEvent) {
+        logger.d { "onEvent received: $event" }
         when (event) {
             is NewHighlightEvent.SetFilter -> {
                 _state.update { it.copy(timeOfDayFilter = event.filter) }
@@ -231,16 +254,19 @@ class NewHighlightViewModel(
                 syncRealData()
             }
             is NewHighlightEvent.SelectDate -> {
+                logger.i { "Date selected: ${event.date}" }
                 _state.update { it.copy(selectedDate = event.date, isLoading = true) }
                 loadTimelineData()
             }
             is NewHighlightEvent.PreviewScreenshot -> {
+                logger.d { "Previewing screenshot path: ${event.path}" }
                 _state.update { it.copy(previewingScreenshotPath = event.path) }
             }
         }
     }
 
     private fun syncRealData() {
+        logger.i { "Starting syncRealData execution..." }
         viewModelScope.launch {
             _state.update { it.copy(isSyncing = true, isRefreshing = true) }
             try {

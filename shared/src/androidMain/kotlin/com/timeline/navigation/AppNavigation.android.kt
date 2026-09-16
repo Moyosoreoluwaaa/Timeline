@@ -61,6 +61,15 @@ actual fun AppNavigation(
 
     val backStack = remember { mutableStateListOf<NavKey>() }
 
+    // Check if launched from notification to open Highlight screen
+    LaunchedEffect(Unit) {
+        val activity = context as? android.app.Activity
+        if (activity?.intent?.getBooleanExtra("navigate_to_highlight", false) == true) {
+            activity.intent.removeExtra("navigate_to_highlight")
+            backStack.add(Route.Highlight)
+        }
+    }
+
     // Smart navigation logic
     LaunchedEffect(prefsState, backStack.lastOrNull()) {
         val state = prefsState ?: return@LaunchedEffect

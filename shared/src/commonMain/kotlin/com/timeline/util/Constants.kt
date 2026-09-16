@@ -9,7 +9,9 @@ object Constants {
     // Notification IDs
     const val TRACKING_NOTIFICATION_ID = 1001
     const val ACCESSIBILITY_LOST_NOTIFICATION_ID = 1002
+    const val DIGEST_NOTIFICATION_ID = 1003
     const val TRACKING_CHANNEL_ID = "tracking_channel"
+    const val DIGEST_CHANNEL_ID = "digest_channel"
     
     // Exclusion Policies
     val HARDCODED_EXCLUSIONS = setOf(
