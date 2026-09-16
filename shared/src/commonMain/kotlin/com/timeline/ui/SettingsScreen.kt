@@ -14,16 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ContactSupport
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -31,28 +32,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.unit.dp
-import com.timeline.ui.components.CustomTopAppBar
-import com.timeline.ui.components.TopAppBarCutoutRadius
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.size
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Icon
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.domain.model.TrialStatus
 import com.timeline.presentation.SettingsEvent
 import com.timeline.presentation.SettingsViewModel
-import com.timeline.ui.AppIcon
 import com.timeline.ui.components.InfoCard
 import com.timeline.ui.components.SettingCard
 import com.timeline.ui.components.SettingCategory
 import com.timeline.ui.components.SettingsTopBar
+import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.components.UpgradeCard
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
@@ -79,7 +79,15 @@ fun SettingsScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         contentWindowInsets = WindowInsets.statusBars,
-        topBar = { SettingsTopBar(onBack = onBack, scrollBehavior = scrollBehavior) }
+        topBar = {
+            SettingsTopBar(
+                isLoggedIn = state.isLoggedIn,
+                onBack = onBack,
+                onNavigateToAuth = onNavigateToAuth,
+                onLogout = { viewModel.onEvent(SettingsEvent.Logout) },
+                scrollBehavior = scrollBehavior
+            )
+        }
     ) { padding ->
         val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
         Box(
@@ -106,24 +114,6 @@ fun SettingsScreen(
                 ) {
                     item {
                         UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) })
-                    }
-
-                    item {
-                        if (state.isLoggedIn) {
-                            InfoCard(
-                                title = "Sign out of your account",
-                                description = "Sign out from your account.",
-                                icon = Icons.AutoMirrored.Filled.Logout,
-                                onClick = { viewModel.onEvent(SettingsEvent.Logout) }
-                            )
-                        } else {
-                            InfoCard(
-                                title = "Sign in to sync your data",
-                                description = "Sign in to sync your data across devices.",
-                                icon = Icons.AutoMirrored.Filled.Login,
-                                onClick = onNavigateToAuth
-                            )
-                        }
                     }
 
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
@@ -161,12 +151,12 @@ fun SettingsScreen(
                             description = if (isFeatureLocked) "Unlock with Trial or Pro" else AppStrings.SettingsAppExclusionsDesc,
                             isExpandable = !isFeatureLocked,
                             isExpanded = expandedSection == "permissions" && !isFeatureLocked,
-                            onHeaderClick = { 
+                            onHeaderClick = {
                                 if (isFeatureLocked) onNavigateToPaywall(false)
-                                else expandedSection = if (expandedSection == "permissions") null else "permissions" 
+                                else expandedSection = if (expandedSection == "permissions") null else "permissions"
                             },
                             trailing = {
-                                if (isFeatureLocked) Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                                if (isFeatureLocked) Icon(Icons.Rounded.Lock, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         ) {
                             Column(modifier = Modifier.padding(top = Dimensions.PaddingSmall)) {
@@ -216,20 +206,20 @@ fun SettingsScreen(
                             isExpanded = expandedSection == "data",
                             onHeaderClick = { expandedSection = if (expandedSection == "data") null else "data" },
                             trailing = {
-                                if (isFeatureLocked) Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
+                                if (isFeatureLocked) Icon(Icons.Rounded.Lock, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         ) {
                             Column(modifier = Modifier.padding(top = Dimensions.PaddingSmall)) {
                                 Text(
                                     if (isFeatureLocked) "Free users are capped at 7 days. Upgrade to extend."
-                                    else AppStrings.SettingsDataRetentionSelect, 
+                                    else AppStrings.SettingsDataRetentionSelect,
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Slider(
                                     value = state.dataRetentionDays.toFloat(),
-                                    onValueChange = { 
+                                    onValueChange = {
                                         val newValue = if (isFeatureLocked) it.toInt().coerceAtMost(7) else it.toInt()
-                                        viewModel.onEvent(SettingsEvent.SetDataRetention(newValue)) 
+                                        viewModel.onEvent(SettingsEvent.SetDataRetention(newValue))
                                     },
                                     valueRange = 1f..if (isFeatureLocked) 7f else 365f,
                                     steps = if (isFeatureLocked) 6 else 364,
@@ -242,30 +232,30 @@ fun SettingsScreen(
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 
                     item { SettingCategory(AppStrings.SettingsCategoryAbout) }
-                    item { 
+                    item {
                         InfoCard(
-                            title = AppStrings.SettingsAboutTimelineTitle, 
-                            description = AppStrings.SettingsAboutTimelineDesc, 
-                            icon = Icons.Default.Info
-                        ) 
+                            title = AppStrings.SettingsAboutTimelineTitle,
+                            description = AppStrings.SettingsAboutTimelineDesc,
+                            icon = Icons.Rounded.Info
+                        )
                     }
 
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 
                     item { SettingCategory(AppStrings.SettingsCategorySupport) }
-                    item { 
+                    item {
                         InfoCard(
-                            title = AppStrings.SettingsContactUsTitle, 
-                            description = AppStrings.SettingsContactUsDesc, 
+                            title = AppStrings.SettingsContactUsTitle,
+                            description = AppStrings.SettingsContactUsDesc,
                             icon = Icons.AutoMirrored.Filled.ContactSupport
-                        ) 
+                        )
                     }
-                    item { 
+                    item {
                         InfoCard(
-                            title = AppStrings.SettingsReportBugsTitle, 
-                            description = AppStrings.SettingsReportBugsDesc, 
-                            icon = Icons.Default.BugReport
-                        ) 
+                            title = AppStrings.SettingsReportBugsTitle,
+                            description = AppStrings.SettingsReportBugsDesc,
+                            icon = Icons.Rounded.BugReport
+                        )
                     }
 
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
