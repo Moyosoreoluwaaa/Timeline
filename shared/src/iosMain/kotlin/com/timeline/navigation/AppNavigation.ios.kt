@@ -55,7 +55,10 @@ actual fun AppNavigation(
             TimelineScreen(
                 viewModel = timelineViewModel,
                 onNavigateToSettings = { currentRoute = Route.Settings },
-                onNavigateToHighlight = { currentRoute = Route.HighlightLoading }
+                onNavigateToHighlight = { currentRoute = Route.HighlightLoading },
+                onBoundsCalculated = { step, bounds ->
+                    // Pass bounds to your tutorial overlay state if needed
+                }
             )
         }
         Route.HighlightLoading -> {

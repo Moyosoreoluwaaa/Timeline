@@ -24,11 +24,14 @@ import com.timeline.presentation.PaywallViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
+import com.timeline.tutorial.AppRootContainer
+import com.timeline.tutorial.TutorialEvent
+import com.timeline.tutorial.TutorialScreen
+import com.timeline.tutorial.TutorialViewModel
 import com.timeline.ui.AuthScreen
+import com.timeline.ui.InsightsHostScreen
 import com.timeline.ui.LocalNavAnimatedVisibilityScope
 import com.timeline.ui.LocalSharedTransitionScope
-import com.timeline.ui.InsightsHostScreen
-import com.timeline.ui.TimelineScreen
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.paywall.NewPaywallScreen
@@ -48,13 +51,14 @@ actual fun AppNavigation(
     onExitApp: () -> Unit
 ) {
     val timelineViewModel: TimelineViewModel = koinViewModel()
+    val tutorialViewModel: TutorialViewModel = koinViewModel()
     val newHighlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
     val permissionViewModel: PermissionViewModel = koinViewModel()
     val authViewModel: AuthViewModel = koinViewModel()
     val userPreferences: UserPreferences = koinInject()
     val context = LocalContext.current
-    
+
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
     val permState by permissionViewModel.state.collectAsStateWithLifecycle()
     val newHighlightState by newHighlightViewModel.state.collectAsStateWithLifecycle()
@@ -70,26 +74,18 @@ actual fun AppNavigation(
         }
     }
 
-    // Smart navigation logic
-    LaunchedEffect(prefsState, backStack.lastOrNull()) {
+    // Direct navigation logic (bypassing Auth)
+    LaunchedEffect(prefsState, permState.allGranted, backStack.lastOrNull()) {
         val state = prefsState ?: return@LaunchedEffect
-        val isLoggedIn = state.isLoggedIn
         val currentRoute = backStack.lastOrNull()
-        
-        if (!isLoggedIn) {
-            if (currentRoute != Route.Auth) {
-                backStack.clear()
-                backStack.add(Route.Auth)
-            }
-        } else {
-            if (currentRoute == null || currentRoute == Route.Auth) {
-                val needsOnboarding = !state.isPermissionsCompleted || !permState.allGranted
-                backStack.clear()
-                if (needsOnboarding) {
-                    backStack.add(Route.Permission)
-                } else {
-                    backStack.add(Route.Timeline)
-                }
+
+        if (currentRoute == null) {
+            val needsOnboarding = !state.isPermissionsCompleted || !permState.allGranted
+            backStack.clear()
+            if (needsOnboarding) {
+                backStack.add(Route.Permission)
+            } else {
+                backStack.add(Route.Timeline)
             }
         }
     }
@@ -104,10 +100,10 @@ actual fun AppNavigation(
     if (backStack.isNotEmpty()) {
         val currentRoute = backStack.last()
 
-        BackHandler(enabled = backStack.size > 1 || currentRoute == Route.Auth) {
+        BackHandler(enabled = backStack.size > 1) {
             if (backStack.size > 1) {
                 backStack.removeAt(backStack.size - 1)
-            } else if (currentRoute == Route.Auth) {
+            } else {
                 onExitApp()
             }
         }
@@ -131,9 +127,13 @@ actual fun AppNavigation(
                                 AuthScreen(
                                     viewModel = authViewModel,
                                     platformContext = context,
-                                    onAuthSuccess = { }
+                                    onAuthSuccess = {
+                                        backStack.clear()
+                                        backStack.add(Route.Timeline)
+                                    }
                                 )
                             }
+
                             is Route.Permission -> {
                                 PermissionScreen(
                                     viewModel = permissionViewModel,
@@ -151,9 +151,28 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.Timeline -> {
-                                TimelineScreen(
-                                    viewModel = timelineViewModel,
+                                LaunchedEffect(
+                                    permState.allGranted,
+                                    prefsState?.isPermissionsCompleted
+                                ) {
+                                    val isFullyGranted =
+                                        permState.allGranted && prefsState?.isPermissionsCompleted == true
+                                    if (isFullyGranted) {
+                                        tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
+                                    }
+                                }
+
+                                AppRootContainer(
+                                    timelineViewModel = timelineViewModel,
+                                    tutorialViewModel = tutorialViewModel,
+                                    onNavigateRoute = { routeName ->
+                                        when (routeName) {
+                                            TutorialScreen.SETTINGS.name -> backStack.add(Route.Settings)
+                                            TutorialScreen.HIGHLIGHT.name -> backStack.add(Route.Highlight)
+                                        }
+                                    },
                                     onNavigateToSettings = {
                                         backStack.add(Route.Settings)
                                     },
@@ -162,6 +181,7 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.HighlightLoading -> {
                                 com.timeline.ui.NewHighlightLoadingScreen(
                                     screenshots = newHighlightState.dynamicScreenshots,
@@ -171,6 +191,7 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.Highlight -> {
                                 com.timeline.ui.NewHighlightScreen(
                                     viewModel = newHighlightViewModel,
@@ -181,6 +202,7 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.Insights -> {
                                 InsightsHostScreen(
                                     onNavigateBack = {
@@ -190,6 +212,7 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.Settings -> {
                                 SettingsScreen(
                                     viewModel = settingsViewModel,
@@ -209,6 +232,7 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.CustomerCenter -> {
                                 CustomerCenter(
                                     onDismiss = {
@@ -218,6 +242,7 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
+
                             is Route.Paywall -> {
                                 val paywallViewModel: PaywallViewModel = koinViewModel()
                                 NewPaywallScreen(
@@ -235,16 +260,8 @@ actual fun AppNavigation(
                                     }
                                 )
                             }
-                            is Route.FullScreenImage -> {
-//                                FullScreenImageScreen(
-//                                    path = route.path,
-//                                    onBack = {
-//                                        if (backStack.size > 1) {
-//                                            backStack.removeAt(backStack.size - 1)
-//                                        }
-//                                    }
-//                                )
-                            }
+
+                            is Route.FullScreenImage -> {}
                         }
                     }
                 }

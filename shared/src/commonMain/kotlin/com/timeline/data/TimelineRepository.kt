@@ -18,6 +18,7 @@ interface TimelineRepository {
     fun getApplicationTimeline(packageName: String): Flow<List<Session>>
     suspend fun getSession(id: String): Session?
     suspend fun saveSession(session: Session)
+    suspend fun seedMockData()
     suspend fun associateAnonymousSessions(userId: String)
     suspend fun migrateGuestSessions(userId: String, pathMap: Map<String, String>)
 
@@ -52,6 +53,27 @@ class TimelineRepositoryImpl(
     override suspend fun saveSession(session: Session) {
         val currentUid = session.userId ?: authRepository.getCurrentUser()?.uid
         sessionDao.insertSession(session.toEntity(currentUid))
+    }
+
+    override suspend fun seedMockData() {
+        val now = Clock.System.now()
+        val mockSession = Session(
+            id = "mock_session_101",
+            userId = authRepository.getCurrentUser()?.uid,
+            packageName = "com.timeline.demo",
+            startTime = now,
+            endTime = now,
+            durationMinutes = 15,
+            screenshots = listOf("mock_screenshot_1.jpg"),
+            segments = listOf(
+                com.timeline.domain.SessionSegment(
+                    timestamp = now,
+                    screenshotPath = "mock_screenshot_1.jpg",
+                    activityDescription = "Initial tutorial walkthrough session"
+                )
+            )
+        )
+        saveSession(mockSession)
     }
 
     override suspend fun associateAnonymousSessions(userId: String) {

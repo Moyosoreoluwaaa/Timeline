@@ -20,7 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
@@ -91,19 +94,24 @@ fun SessionDetailHeader(
     }
 }
 
+// Updated SessionDetailFooter with bounds calculation for SPOTLIGHT_SESSION_NAVIGATOR
 @Composable
 fun SessionDetailFooter(
     prevSession: Session?,
     nextSession: Session?,
     onPrevClick: () -> Unit,
-    onNextClick: () -> Unit
+    onNextClick: () -> Unit,
+    onBoundsCalculated: ((Rect) -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding() // Keep controls safely above navigation gestures
+            .navigationBarsPadding()
             .padding(horizontal = Dimensions.PaddingLarge)
-            .padding(bottom = Dimensions.PaddingLarge),
+            .padding(bottom = Dimensions.PaddingLarge)
+            .onGloballyPositioned { coordinates ->
+                onBoundsCalculated?.invoke(coordinates.boundsInRoot())
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom
     ) {

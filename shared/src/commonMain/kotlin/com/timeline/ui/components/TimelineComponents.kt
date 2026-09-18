@@ -167,18 +167,18 @@ fun FullScreenImageOverlay(
 @Composable
 fun BottomSummary(
     summary: TimelineSummary?,
-    onSummaryClick: () -> Unit
+    onSummaryClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     if (summary == null) return
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .padding(Dimensions.PaddingMedium)
             .navigationBarsPadding()
             .fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface, // Matches the top bar unscrolled color
-//        tonalElevation = Dimensions.ModalElevation,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = Dimensions.ModalElevation
     ) {
         Row(
@@ -199,7 +199,7 @@ fun BottomSummary(
                 Text(
                     text = AppStrings.TimelineTotalUsage,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface // Full opacity white/color
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "${summary.totalHours}h ${summary.totalMinutes}m",
@@ -216,7 +216,7 @@ fun BottomSummary(
                 Text(
                     text = AppStrings.TimelineSessionsCount,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface // Full opacity white/color
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = summary.sessionCount.toString(),
@@ -233,7 +233,7 @@ fun BottomSummary(
                 Text(
                     text = AppStrings.TimelineMostUsed,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface // Full opacity white/color
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.Half)) {
                     summary.mostUsedApps.forEach { app ->

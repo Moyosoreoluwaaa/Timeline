@@ -23,6 +23,7 @@ import com.timeline.domain.usecase.MigrateGuestDataUseCase
 import com.timeline.domain.usecase.SyncUserAccountUseCase
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.StaticConfig
+import com.timeline.tutorial.TutorialViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModelOf
@@ -58,6 +59,7 @@ val appModule = module {
     viewModelOf(::PaywallViewModel)
     viewModelOf(::HighlightViewModel)
     viewModelOf(::NewHighlightViewModel)
+    viewModelOf(::TutorialViewModel)
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {

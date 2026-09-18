@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -56,16 +55,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineViewModel
+import com.timeline.tutorial.TutorialStep
+import com.timeline.tutorial.spotlightTarget
 import com.timeline.ui.components.BottomSummary
 import com.timeline.ui.components.TimelineEntry
 import com.timeline.ui.components.TimelineHeader
@@ -77,23 +81,28 @@ import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 import kotlin.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalFoundationApi::class,
+    ExperimentalSharedTransitionApi::class
+)
 @Composable
 fun TimelineScreen(
     viewModel: TimelineViewModel = koinViewModel(),
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToHighlight: () -> Unit = {}
+    onNavigateToHighlight: () -> Unit = {},
+    onBoundsCalculated: (TutorialStep, Rect) -> Unit = { _, _ -> },
+    modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    val density = LocalDensity.current
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimeFilters by remember { mutableStateOf(false) }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val fullHeight = constraints.maxHeight.toFloat()
         val peekHeight = fullHeight * 0.55f
         val expandedHeight = 0f
@@ -106,15 +115,8 @@ fun TimelineScreen(
             }
         }
 
-        val velocityThresholdPx = with(density) { 100.dp.toPx() }
         val sheetState = remember {
-            AnchoredDraggableState(
-                initialValue = SheetValue.Hidden,
-                positionalThreshold = { distance -> distance * 0.5f },
-                velocityThreshold = { velocityThresholdPx },
-                snapAnimationSpec = spring(dampingRatio = 0.85f, stiffness = 400f),
-                decayAnimationSpec = exponentialDecay()
-            )
+            AnchoredDraggableState(initialValue = SheetValue.Hidden)
         }
 
         LaunchedEffect(anchors) {
@@ -181,7 +183,13 @@ fun TimelineScreen(
                 confirmButton = {
                     TextButton(onClick = {
                         datePickerState.selectedDateMillis?.let {
-                            viewModel.onEvent(TimelineEvent.SelectDate(Instant.fromEpochMilliseconds(it)))
+                            viewModel.onEvent(
+                                TimelineEvent.SelectDate(
+                                    Instant.fromEpochMilliseconds(
+                                        it
+                                    )
+                                )
+                            )
                         }
                         showDatePicker = false
                     }) { Text(AppStrings.TimelineOk) }
@@ -208,8 +216,10 @@ fun TimelineScreen(
                 )
             }
         ) { padding ->
-            val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-            val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
+            val navBarPadding =
+                WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val topPadding =
+                (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
 
             Box(
                 modifier = Modifier
@@ -252,7 +262,12 @@ fun TimelineScreen(
                                         session = session,
                                         isFirst = index == 0,
                                         isLast = index == state.sessions.lastIndex,
-                                        modifier = Modifier.animateItem()
+                                        modifier = Modifier
+                                            .animateItem()
+                                            .spotlightTarget(
+                                                TutorialStep.SPOTLIGHT_APP_ENTRY,
+                                                onBoundsCalculated
+                                            )
                                     ) { viewModel.onEvent(TimelineEvent.SelectSession(session)) }
                                 }
                             }
@@ -262,10 +277,22 @@ fun TimelineScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .navigationBarsPadding()
+                            .onGloballyPositioned { coordinates: LayoutCoordinates ->
+                                if (coordinates.isAttached) {
+                                    onBoundsCalculated(
+                                        TutorialStep.SPOTLIGHT_SUMMARY_BAR,
+                                        coordinates.boundsInWindow()
+                                    )
+                                }
+                            }
                     ) {
                         BottomSummary(
                             summary = state.summary,
-                            onSummaryClick = onNavigateToHighlight
+                            onSummaryClick = onNavigateToHighlight,
+                            modifier = Modifier.spotlightTarget(
+                                TutorialStep.SPOTLIGHT_SUMMARY_BAR,
+                                onBoundsCalculated
+                            )
                         )
                     }
                 }
@@ -303,10 +330,14 @@ fun TimelineScreen(
         Box(
             modifier = Modifier
                 .offset {
-                    val y = if (sheetState.anchors.size > 0) sheetState.requireOffset() else fullHeight
+                    val y =
+                        if (sheetState.anchors.size > 0) sheetState.requireOffset() else fullHeight
                     IntOffset(0, y.roundToInt())
                 }
-                .anchoredDraggable(sheetState, Orientation.Vertical)
+                .anchoredDraggable(
+                    state = sheetState,
+                    orientation = Orientation.Vertical,
+                )
                 .fillMaxWidth()
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius))
@@ -314,9 +345,11 @@ fun TimelineScreen(
                 .zIndex(11f)
         ) {
             if (state.selectedSession != null) {
-                val currentIndex = state.sessions.indexOfFirst { it.id == state.selectedSession?.id }
+                val currentIndex =
+                    state.sessions.indexOfFirst { it.id == state.selectedSession?.id }
                 val prevSession = if (currentIndex > 0) state.sessions[currentIndex - 1] else null
-                val nextSession = if (currentIndex != -1 && currentIndex < state.sessions.lastIndex) state.sessions[currentIndex + 1] else null
+                val nextSession =
+                    if (currentIndex != -1 && currentIndex < state.sessions.lastIndex) state.sessions[currentIndex + 1] else null
 
                 SessionDetailSheet(
                     state = state,
@@ -326,7 +359,8 @@ fun TimelineScreen(
                     onEvent = viewModel::onEvent,
                     onShowFullScreenImage = { path ->
                         viewModel.onEvent(TimelineEvent.ShowFullScreenImage(path))
-                    }
+                    },
+                    onBoundsCalculated = onBoundsCalculated
                 )
             }
         }
@@ -335,8 +369,18 @@ fun TimelineScreen(
         val imagePath = state.fullScreenImagePath
         AnimatedVisibility(
             visible = imagePath != null,
-            enter = fadeIn(spring(stiffness = 500f)) + scaleIn(spring(dampingRatio = 0.8f, stiffness = 400f), initialScale = 0.92f),
-            exit = fadeOut(spring(stiffness = 500f)) + scaleOut(spring(dampingRatio = 0.8f, stiffness = 400f), targetScale = 0.92f),
+            enter = fadeIn(spring(stiffness = 500f)) + scaleIn(
+                spring(
+                    dampingRatio = 0.8f,
+                    stiffness = 400f
+                ), initialScale = 0.92f
+            ),
+            exit = fadeOut(spring(stiffness = 500f)) + scaleOut(
+                spring(
+                    dampingRatio = 0.8f,
+                    stiffness = 400f
+                ), targetScale = 0.92f
+            ),
             modifier = Modifier.fillMaxSize().zIndex(100f)
         ) {
             if (imagePath != null && sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -362,7 +406,12 @@ fun TimelineScreen(
                                 .sharedElement(
                                     rememberSharedContentState(key = "image-$imagePath"),
                                     animatedVisibilityScope = animatedVisibilityScope,
-                                    boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 380f) }
+                                    boundsTransform = { _, _ ->
+                                        spring(
+                                            dampingRatio = 0.8f,
+                                            stiffness = 380f
+                                        )
+                                    }
                                 )
                         )
                     }

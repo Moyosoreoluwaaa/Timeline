@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -15,11 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.timeline.domain.Session
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineState
+import com.timeline.tutorial.TutorialStep
 import com.timeline.ui.components.*
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
@@ -35,7 +40,8 @@ fun SessionDetailSheet(
     prevSession: Session?,
     nextSession: Session?,
     onEvent: (TimelineEvent) -> Unit,
-    onShowFullScreenImage: (String) -> Unit
+    onShowFullScreenImage: (String) -> Unit,
+    onBoundsCalculated: ((TutorialStep, Rect) -> Unit)? = null
 ) {
     val session = state.selectedSession ?: return
 
@@ -80,20 +86,18 @@ fun SessionDetailSheet(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
                         ) {
-                            val segmentsWithScreenshots =
-                                session.segments.filter { it.screenshotPath != null }
-                            items(segmentsWithScreenshots) { segment ->
+                            val segmentsWithScreenshots = session.segments.filter { it.screenshotPath != null }
+                            itemsIndexed(segmentsWithScreenshots) { index, segment ->
                                 val path = segment.screenshotPath!!
-                                val modifier =
-                                    if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                                        with(sharedTransitionScope) {
+                                val sharedModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+                                    with(sharedTransitionScope) {
                                         Modifier.sharedElement(
                                             rememberSharedContentState(key = "image-$path"),
                                             animatedVisibilityScope = animatedVisibilityScope,
                                             boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 380f) }
                                         )
                                     }
-                                    } else Modifier
+                                } else Modifier
 
                                 ScreenshotImage(
                                     path = path,
@@ -102,7 +106,14 @@ fun SessionDetailSheet(
                                         .width(Dimensions.SpacingMega)
                                         .height(Dimensions.SpacingUltra)
                                         .clip(MaterialTheme.shapes.small)
-                                        .then(modifier)
+                                        .then(sharedModifier)
+                                        .then(
+                                            if (index == 0 && onBoundsCalculated != null) {
+                                                Modifier.onGloballyPositioned { coords ->
+                                                    onBoundsCalculated(TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL, coords.boundsInRoot())
+                                                }
+                                            } else Modifier
+                                        )
                                         .clickable { onShowFullScreenImage(path) }
                                 )
                             }
@@ -127,7 +138,10 @@ fun SessionDetailSheet(
                         prevSession = prevSession,
                         nextSession = nextSession,
                         onPrevClick = { onEvent(TimelineEvent.SelectPreviousSession) },
-                        onNextClick = { onEvent(TimelineEvent.SelectNextSession) }
+                        onNextClick = { onEvent(TimelineEvent.SelectNextSession) },
+                        onBoundsCalculated = { rect ->
+                            onBoundsCalculated?.invoke(TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR, rect)
+                        }
                     )
                 }
             }
