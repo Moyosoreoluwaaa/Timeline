@@ -15,7 +15,6 @@ import kotlin.time.Clock
 
 interface TimelineRepository {
     fun getTimeline(): Flow<List<Session>>
-    suspend fun insertSessions(sessions: List<Session>)
     fun getApplicationTimeline(packageName: String): Flow<List<Session>>
     suspend fun getSession(id: String): Session?
     suspend fun saveSession(session: Session)
@@ -34,7 +33,6 @@ interface TimelineRepository {
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimelineRepositoryImpl(
     private val sessionDao: SessionDao,
-    private val piiRedactor: PiiRedactor,
     private val reasoningDao: ReasoningDao,
     private val analysisResultDao: AnalysisResultDao,
     private val authRepository: AuthRepository,
@@ -43,18 +41,6 @@ class TimelineRepositoryImpl(
         authRepository.currentUser.flatMapLatest { user ->
             sessionDao.getSessions(user?.uid).map { entities -> entities.map { it.toDomain() } }
         }
-
-    override suspend fun insertSessions(sessions: List<Session>) {
-        val entities = sessions.map { session ->
-            val redactedSegments = session.segments.map { segment ->
-                segment.copy(
-                    activityDescription = segment.activityDescription?.let { piiRedactor.redact(it) }
-                )
-            }
-            session.copy(segments = redactedSegments).toEntity()
-        }
-        sessionDao.insertSessions(entities)
-    }
 
     override fun getApplicationTimeline(packageName: String): Flow<List<Session>> =
         authRepository.currentUser.flatMapLatest { user ->

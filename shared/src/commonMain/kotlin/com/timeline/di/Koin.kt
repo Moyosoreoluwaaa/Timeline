@@ -24,9 +24,6 @@ import com.timeline.domain.usecase.SyncUserAccountUseCase
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.StaticConfig
 import com.timeline.domain.reasoning.PiiRedactor
-import com.timeline.tutorial.SeedTutorialDataUseCase
-import com.timeline.tutorial.TutorialMockDataSource
-import com.timeline.tutorial.TutorialMockDataSourceImpl
 import com.timeline.tutorial.TutorialViewModel
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -42,7 +39,6 @@ expect val platformModule: Module
 val appModule = module {
     single { Logger(config = StaticConfig()) }
     singleOf(::TimelineRepositoryImpl) { bind<TimelineRepository>() }
-    singleOf(::TutorialMockDataSourceImpl) { bind<TutorialMockDataSource>() }
     singleOf(::TimelineExclusionPolicy) { bind<ExclusionPolicy>() }
     singleOf(::UserPreferences)
     singleOf(::RevenueCatSubscriptionManager) { bind<SubscriptionManager>() }
@@ -56,7 +52,6 @@ val appModule = module {
     factoryOf(::SignInWithGoogleUseCase)
     factoryOf(::MigrateGuestDataUseCase)
     factoryOf(::SyncUserAccountUseCase)
-    factoryOf(::SeedTutorialDataUseCase)
 
     viewModelOf(::TimelineViewModel)
     viewModelOf(::MetricsViewModel)

@@ -1,11 +1,13 @@
 package com.timeline.tutorial
 
 import androidx.compose.ui.geometry.Rect
+import com.timeline.domain.Session
 
 data class TutorialState(
     val currentStep: TutorialStep = TutorialStep.PREREQUISITE_CHECK,
     val isActive: Boolean = false,
     val isPreparingData: Boolean = false,
+    val tutorialSessions: List<Session> = emptyList(),
     val selectedSessionId: String? = null,
     val targetBoundsMap: Map<TutorialStep, Rect> = emptyMap()
 ) {

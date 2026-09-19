@@ -41,9 +41,6 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE (:userId IS NULL AND userId IS NULL) OR (userId = :userId) ORDER BY startTime DESC")
     fun getSessions(userId: String?): Flow<List<SessionEntity>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSessions(sessions: List<SessionEntity>)
-
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun getSessionById(id: String): SessionEntity?
 

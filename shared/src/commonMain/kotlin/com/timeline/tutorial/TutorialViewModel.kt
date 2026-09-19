@@ -3,6 +3,7 @@ package com.timeline.tutorial
 import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.timeline.domain.Session
 import com.timeline.domain.UserPreferences
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class TutorialViewModel(
-    private val seedTutorialDataUseCase: SeedTutorialDataUseCase,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
@@ -43,16 +43,83 @@ class TutorialViewModel(
                 )
             }
 
-            val targetSession = seedTutorialDataUseCase()
+            val mockSessions = createMockSessions()
 
             _state.update {
                 it.copy(
                     isPreparingData = false,
-                    selectedSessionId = targetSession?.id,
+                    tutorialSessions = mockSessions,
+                    selectedSessionId = mockSessions.firstOrNull()?.id,
                     currentStep = TutorialStep.SPOTLIGHT_APP_ENTRY
                 )
             }
         }
+    }
+
+    private fun createMockSessions(): List<Session> {
+        val now = kotlin.time.Clock.System.now()
+        val nowMillis = now.toEpochMilliseconds()
+
+        val session1 = Session(
+            id = "tutorial_session_youtube",
+            packageName = "com.google.android.youtube",
+            displayName = "YouTube",
+            startTime = now.minus(kotlin.time.Duration.parse("1h")),
+            endTime = now.minus(kotlin.time.Duration.parse("45m")),
+            durationMinutes = 15,
+            durationSeconds = 0,
+            screenshots = listOf("mock_youtube_1.jpg"),
+            segments = listOf(
+                com.timeline.domain.SessionSegment(
+                    timestamp = now.minus(kotlin.time.Duration.parse("1h")),
+                    screenshotPath = "mock_youtube_1.jpg",
+                    activityDescription = "Browsing Subscriptions"
+                )
+            )
+        )
+
+        val session2 = Session(
+            id = "tutorial_session_timeline_records_middle",
+            packageName = "com.timeline_records",
+            displayName = "Timeline Records",
+            startTime = now.minus(kotlin.time.Duration.parse("40m")),
+            endTime = now.minus(kotlin.time.Duration.parse("15m")),
+            durationMinutes = 25,
+            durationSeconds = 0,
+            screenshots = listOf("mock_timeline_records1.jpg", "mock_timeline_records2.jpg"),
+            segments = listOf(
+                com.timeline.domain.SessionSegment(
+                    timestamp = now.minus(kotlin.time.Duration.parse("40m")),
+                    screenshotPath = "mock_timeline_records1.jpg",
+                    activityDescription = "Watching Android Dev Tutorial"
+                ),
+                com.timeline.domain.SessionSegment(
+                    timestamp = now.minus(kotlin.time.Duration.parse("25m")),
+                    screenshotPath = "mock_timeline_records2.jpg",
+                    activityDescription = "Using Timeline"
+                )
+            )
+        )
+
+        val session3 = Session(
+            id = "tutorial_session_x",
+            packageName = "com.twitter.android",
+            displayName = "X",
+            startTime = now.minus(kotlin.time.Duration.parse("10m")),
+            endTime = now,
+            durationMinutes = 10,
+            durationSeconds = 0,
+            screenshots = listOf("mock_x_1.jpg"),
+            segments = listOf(
+                com.timeline.domain.SessionSegment(
+                    timestamp = now.minus(kotlin.time.Duration.parse("10m")),
+                    screenshotPath = "mock_x_1.jpg",
+                    activityDescription = "Scrolling timeline"
+                )
+            )
+        )
+
+        return listOf(session1, session2, session3)
     }
 
     private fun advanceStep() {
@@ -137,7 +204,7 @@ class TutorialViewModel(
 
     private fun dismissTutorial() {
         viewModelScope.launch {
-            _state.update { it.copy(isActive = false) }
+            _state.update { it.copy(isActive = false, tutorialSessions = emptyList<Session>()) }
             userPreferences.setTutorialCompleted(true)
         }
     }

@@ -46,6 +46,11 @@ fun AppRootContainer(
         }
     }
 
+    // Sync tutorial data to timeline
+    LaunchedEffect(tutorialState.tutorialSessions) {
+        timelineViewModel.updateTutorialSessions(tutorialState.tutorialSessions)
+    }
+
     // Auto-sync timeline & header overlay states with active tutorial step
     LaunchedEffect(tutorialState.currentStep, timelineState.sessions) {
         when (tutorialState.currentStep) {

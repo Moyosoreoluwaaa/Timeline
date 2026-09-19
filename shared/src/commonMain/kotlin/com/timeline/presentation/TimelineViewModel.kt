@@ -12,6 +12,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -28,6 +29,10 @@ class TimelineViewModel(
     private val appInfoProvider: AppInfoProvider,
     private val exclusionPolicy: ExclusionPolicy
 ) : ViewModel() {
+    
+    // In-memory tutorial sessions when in active mode
+    private val _tutorialSessions = MutableStateFlow<List<Session>>(emptyList())
+    val tutorialSessions: StateFlow<List<Session>> = _tutorialSessions.asStateFlow()
 
     private val _refreshTrigger = MutableStateFlow(0)
     private val _selectedDate = MutableStateFlow<Instant>(Clock.System.now())
@@ -41,6 +46,7 @@ class TimelineViewModel(
     val state: StateFlow<TimelineState> = combine(
         repository.getTimeline(),
         exclusionPolicy.getExcludedPackages(),
+        _tutorialSessions,
         _selectedDate,
         _selectedPackageName,
         _selectedSession,
@@ -49,15 +55,18 @@ class TimelineViewModel(
         _timeFilter,
         _isLoading
     ) { args: Array<Any?> ->
-        val sessions = args[0] as List<Session>
+        val sessionsFromDb = args[0] as List<Session>
         val excluded = args[1] as Set<String>
-        var date = args[2] as Instant
-        val packageName = args[3] as String?
-        val session = args[4] as Session?
-        val fullScreenImage = args[5] as String?
-        val expanded = args[6] as Boolean
-        val filter = args[7] as TimeFilter
-        val loading = args[8] as Boolean
+        val tutorialSessions = args[2] as List<Session>
+        var date = args[3] as Instant
+        val packageName = args[4] as String?
+        val session = args[5] as Session?
+        val fullScreenImage = args[6] as String?
+        val expanded = args[7] as Boolean
+        val filter = args[8] as TimeFilter
+        val loading = args[9] as Boolean
+
+        val sessions = if (tutorialSessions.isNotEmpty()) tutorialSessions else sessionsFromDb
 
         // If there are sessions in the database, but none for today, auto-select the latest session's date
         val tz = TimeZone.currentSystemDefault()
@@ -138,6 +147,10 @@ class TimelineViewModel(
 
     private val _effects = Channel<TimelineEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
+
+    fun updateTutorialSessions(sessions: List<Session>) {
+        _tutorialSessions.value = sessions
+    }
 
     fun onEvent(event: TimelineEvent) {
         Logger.d { "TimelineViewModel onEvent: $event" }
