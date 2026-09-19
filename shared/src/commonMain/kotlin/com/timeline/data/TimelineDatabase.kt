@@ -41,6 +41,9 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE (:userId IS NULL AND userId IS NULL) OR (userId = :userId) ORDER BY startTime DESC")
     fun getSessions(userId: String?): Flow<List<SessionEntity>>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSessions(sessions: List<SessionEntity>)
+
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun getSessionById(id: String): SessionEntity?
 
@@ -138,8 +141,10 @@ abstract class TimelineDatabase : RoomDatabase() {
     abstract fun analysisResultDao(): AnalysisResultDao
 }
 
-@Suppress("NO_ACTUAL_FOR_EXPECT")
-expect object TimelineDatabaseConstructor : RoomDatabaseConstructor<TimelineDatabase>
+@Suppress("NO_ACTUAL_FOR_EXPECT", "EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
+expect object TimelineDatabaseConstructor : RoomDatabaseConstructor<TimelineDatabase> {
+    override fun initialize(): TimelineDatabase
+}
 
 expect fun getDatabaseBuilder(context: Any? = null): RoomDatabase.Builder<TimelineDatabase>
 

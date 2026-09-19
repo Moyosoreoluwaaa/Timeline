@@ -48,7 +48,10 @@ fun AppRootContainer(
             TutorialStep.EXPAND_BOTTOM_SHEET,
             TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> {
                 if (timelineState.selectedSession == null && timelineState.sessions.isNotEmpty()) {
-                    timelineViewModel.onEvent(TimelineEvent.SelectSession(timelineState.sessions.first()))
+                    val middleIndex = timelineState.sessions.size / 2
+                    timelineViewModel.onEvent(
+                        TimelineEvent.SelectSession(timelineState.sessions[middleIndex])
+                    )
                 }
             }
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {

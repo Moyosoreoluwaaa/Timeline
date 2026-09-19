@@ -3,19 +3,17 @@ package com.timeline.tutorial
 import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.timeline.data.TimelineRepository
 import com.timeline.domain.UserPreferences
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class TutorialViewModel(
-    private val repository: TimelineRepository,
+    private val seedTutorialDataUseCase: SeedTutorialDataUseCase,
     private val userPreferences: UserPreferences
 ) : ViewModel() {
 
@@ -45,15 +43,12 @@ class TutorialViewModel(
                 )
             }
 
-            // Use first() instead of collect so the coroutine unblocks
-            val sessions = repository.getTimeline().first()
-            if (sessions.isEmpty()) {
-                repository.seedMockData()
-            }
+            val targetSession = seedTutorialDataUseCase()
 
             _state.update {
                 it.copy(
                     isPreparingData = false,
+                    selectedSessionId = targetSession?.id,
                     currentStep = TutorialStep.SPOTLIGHT_APP_ENTRY
                 )
             }

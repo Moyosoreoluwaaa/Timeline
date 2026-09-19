@@ -185,9 +185,7 @@ fun TimelineScreen(
                         datePickerState.selectedDateMillis?.let {
                             viewModel.onEvent(
                                 TimelineEvent.SelectDate(
-                                    Instant.fromEpochMilliseconds(
-                                        it
-                                    )
+                                    Instant.fromEpochMilliseconds(it)
                                 )
                             )
                         }
@@ -258,15 +256,21 @@ fun TimelineScreen(
                                     items = state.sessions,
                                     key = { _, session -> session.id }
                                 ) { index, session ->
+                                    val isMiddleItem = index == state.sessions.size / 2
+
                                     TimelineEntry(
                                         session = session,
                                         isFirst = index == 0,
                                         isLast = index == state.sessions.lastIndex,
                                         modifier = Modifier
                                             .animateItem()
-                                            .spotlightTarget(
-                                                TutorialStep.SPOTLIGHT_APP_ENTRY,
-                                                onBoundsCalculated
+                                            .then(
+                                                if (isMiddleItem) {
+                                                    Modifier.spotlightTarget(
+                                                        TutorialStep.SPOTLIGHT_APP_ENTRY,
+                                                        onBoundsCalculated
+                                                    )
+                                                } else Modifier
                                             )
                                     ) { viewModel.onEvent(TimelineEvent.SelectSession(session)) }
                                 }
@@ -342,6 +346,14 @@ fun TimelineScreen(
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(topStart = cornerRadius, topEnd = cornerRadius))
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .then(
+                    if (!state.isSheetExpanded) {
+                        Modifier.spotlightTarget(
+                            TutorialStep.EXPAND_BOTTOM_SHEET,
+                            onBoundsCalculated
+                        )
+                    } else Modifier
+                )
                 .zIndex(11f)
         ) {
             if (state.selectedSession != null) {
@@ -403,6 +415,10 @@ fun TimelineScreen(
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
                                 .fillMaxSize()
+                                .spotlightTarget(
+                                    TutorialStep.FULL_SCREEN_IMAGE_PREVIEW,
+                                    onBoundsCalculated
+                                )
                                 .sharedElement(
                                     rememberSharedContentState(key = "image-$imagePath"),
                                     animatedVisibilityScope = animatedVisibilityScope,
