@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.timeline.domain.reasoning.HighlightReasoningMode
 import com.timeline.domain.repository.AuthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +34,9 @@ data class PreferencesState(
     val isUsageTrackingEnabled: Boolean,
     val isScreenshotCaptureEnabled: Boolean,
     val isAiReasoningEnabled: Boolean,
+    val highlightReasoningMode: HighlightReasoningMode = HighlightReasoningMode.BALANCED,
+    val digestFrequency: Int = 3,
+    val digestHours: List<Int> = listOf(12, 17, 21),
     val dataRetentionDays: Int,
     val isLoggedIn: Boolean,
     val trialStartedAt: Long?, // null = not started
@@ -45,6 +49,9 @@ object UserPreferenceKeys {
     val IS_USAGE_TRACKING_ENABLED = booleanPreferencesKey("is_usage_tracking_enabled")
     val IS_SCREENSHOT_CAPTURE_ENABLED = booleanPreferencesKey("is_screenshot_capture_enabled")
     val IS_AI_REASONING_ENABLED = booleanPreferencesKey("is_ai_reasoning_enabled")
+    val HIGHLIGHT_REASONING_MODE = stringPreferencesKey("highlight_reasoning_mode")
+    val DIGEST_FREQUENCY = intPreferencesKey("digest_frequency")
+    val DIGEST_HOURS = stringPreferencesKey("digest_hours")
     val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
     val MIGRATION_STATUS = stringPreferencesKey("migration_status")
     val MIGRATION_TARGET_USER_ID = stringPreferencesKey("migration_target_user_id")
@@ -71,6 +78,20 @@ class UserPreferences(
     val state: Flow<PreferencesState> = authRepository.currentUser.flatMapLatest { user ->
         val userId = user?.uid
         dataStore.data.map { prefs ->
+            val modeStr = prefs[UserPreferenceKeys.HIGHLIGHT_REASONING_MODE]
+            val reasoningMode = modeStr?.let {
+                try {
+                    HighlightReasoningMode.valueOf(it)
+                } catch (_: Exception) {
+                    HighlightReasoningMode.BALANCED
+                }
+            } ?: HighlightReasoningMode.BALANCED
+
+            val frequency = prefs[UserPreferenceKeys.DIGEST_FREQUENCY] ?: 3
+            val hoursStr = prefs[UserPreferenceKeys.DIGEST_HOURS]
+            val hoursList = hoursStr?.split(",")?.mapNotNull { it.trim().toIntOrNull() }?.filter { it in 0..23 }
+                ?: listOf(12, 17, 21)
+
             PreferencesState(
                 isPermissionsCompleted = prefs[UserPreferenceKeys.IS_PERMISSIONS_COMPLETED]
                     ?: false,
@@ -79,6 +100,9 @@ class UserPreferences(
                 isScreenshotCaptureEnabled = prefs[UserPreferenceKeys.IS_SCREENSHOT_CAPTURE_ENABLED]
                     ?: true,
                 isAiReasoningEnabled = prefs[UserPreferenceKeys.IS_AI_REASONING_ENABLED] ?: true,
+                highlightReasoningMode = reasoningMode,
+                digestFrequency = frequency,
+                digestHours = hoursList,
                 dataRetentionDays = prefs[UserPreferenceKeys.dataRetentionDays(userId)] ?: 30,
                 isLoggedIn = prefs[UserPreferenceKeys.IS_LOGGED_IN] ?: false,
                 trialStartedAt = prefs[UserPreferenceKeys.trialStartedAt(userId)],
@@ -86,6 +110,17 @@ class UserPreferences(
                     ?: "Welcome",
                 isTutorial = prefs[UserPreferenceKeys.IS_TUTORIAL_COMPLETED] ?: false
             )
+        }
+    }
+
+    suspend fun setHighlightReasoningMode(mode: HighlightReasoningMode) {
+        dataStore.edit { it[UserPreferenceKeys.HIGHLIGHT_REASONING_MODE] = mode.name }
+    }
+
+    suspend fun setDigestSchedule(frequency: Int, hours: List<Int>) {
+        dataStore.edit {
+            it[UserPreferenceKeys.DIGEST_FREQUENCY] = frequency.coerceIn(1, 6)
+            it[UserPreferenceKeys.DIGEST_HOURS] = hours.take(6).joinToString(",")
         }
     }
 

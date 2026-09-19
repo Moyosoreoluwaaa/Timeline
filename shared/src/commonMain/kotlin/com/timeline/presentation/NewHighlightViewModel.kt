@@ -88,6 +88,14 @@ class NewHighlightViewModel(
             s.screenshots + s.segments.mapNotNull { it.screenshotPath }
         }.distinct()
 
+        val uniqueApps = sessionsForDate.map { s ->
+            com.timeline.domain.AppMetadata(
+                packageName = s.packageName,
+                name = s.displayName ?: appInfoProvider.getAppName(s.packageName),
+                icon = s.icon ?: appInfoProvider.getAppIcon(s.packageName)
+            )
+        }.distinctBy { it.packageName }.take(3)
+
         // Categorize into Morning (6am - 12pm), Afternoon (12pm - 5pm), Evening (5pm - 6am)
         val morningSessions = sessionsForDate.filter { s ->
             val hour = s.startTime.toLocalDateTime(tz).hour
@@ -148,6 +156,7 @@ class NewHighlightViewModel(
                 dynamicScreenshots = allScreenshotPaths,
                 segments = listOf(morningSegment, afternoonSegment, eveningSegment),
                 overallActionItems = actionItems,
+                topApps = uniqueApps,
                 isLoading = false
             )
         }
@@ -261,6 +270,15 @@ class NewHighlightViewModel(
             is NewHighlightEvent.PreviewScreenshot -> {
                 logger.d { "Previewing screenshot path: ${event.path}" }
                 _state.update { it.copy(previewingScreenshotPath = event.path) }
+            }
+            is NewHighlightEvent.SetReasoningMode -> {
+                logger.i { "Reasoning mode updated: ${event.mode}" }
+                _state.update { it.copy(reasoningMode = event.mode, isLoading = true) }
+                loadTimelineData()
+            }
+            is NewHighlightEvent.SelectApp -> {
+                logger.i { "App selected: ${event.packageName}" }
+                _state.update { it.copy(selectedAppPackage = event.packageName) }
             }
         }
     }

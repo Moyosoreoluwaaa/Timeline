@@ -20,7 +20,8 @@ interface ReasoningService {
         date: String,
         ocrDumps: List<String>,
         labels: List<String>,
-        previousDaySummary: String? = null
+        previousDaySummary: String? = null,
+        mode: HighlightReasoningMode = HighlightReasoningMode.BALANCED
     ): Result<AppDailyReasoning>
 }
 
@@ -46,15 +47,15 @@ class LocalHeuristicService : ReasoningService {
         date: String,
         ocrDumps: List<String>,
         labels: List<String>,
-        previousDaySummary: String?
+        previousDaySummary: String?,
+        mode: HighlightReasoningMode
     ): Result<AppDailyReasoning> {
         val sanitizedDumps = ocrDumps.map { PiiRedactor.redact(it) }
         val combined = sanitizedDumps.joinToString("\n")
-        val lowerCombined = combined.lowercase()
         val lowerPkg = packageName.lowercase()
 
         // Infer cognitive mode from package name, labels, and text content
-        val mode = when {
+        val cognitiveMode = when {
             lowerPkg.contains("slack") || lowerPkg.contains("message") || lowerPkg.contains("telegram") || lowerPkg.contains("whatsapp") || lowerPkg.contains("mail") -> "Communication"
             lowerPkg.contains("code") || lowerPkg.contains("git") || lowerPkg.contains("docs") || lowerPkg.contains("studio") || lowerPkg.contains("sheet") -> "Deep Focus"
             lowerPkg.contains("chrome") || lowerPkg.contains("browser") || lowerPkg.contains("search") -> "Information Seeking"
@@ -78,15 +79,25 @@ class LocalHeuristicService : ReasoningService {
         }
 
         val baseSummary = when (mode) {
-            "Communication" -> "Coordinated and shared updates with team members in $appName."
-            "Deep Focus" -> "Maintained high concentration on planning, documentation, and feature delivery in $appName."
-            "Information Seeking" -> "Researched documentation, reference materials, and project resources in $appName."
-            "Creative" -> "Designed and explored creative workflows and visual assets in $appName."
-            else -> "Engaged in focused digital activity and productive task completion in $appName."
+            HighlightReasoningMode.CONCISE -> "Active usage session in $appName."
+            HighlightReasoningMode.BALANCED -> when (cognitiveMode) {
+                "Communication" -> "Coordinated and shared updates with team members in $appName."
+                "Deep Focus" -> "Maintained high concentration on planning and documentation in $appName."
+                "Information Seeking" -> "Researched resources in $appName."
+                "Creative" -> "Explored visual workflows in $appName."
+                else -> "Engaged in focused activity in $appName."
+            }
+            HighlightReasoningMode.EXPLANATORY -> when (cognitiveMode) {
+                "Communication" -> "Focused on maintaining team alignment through proactive messaging and review of project threads within $appName."
+                "Deep Focus" -> "Dedicated time to deep work, focusing on technical architecture, documentation, or implementation tasks within $appName."
+                "Information Seeking" -> "Conducted comprehensive research, navigating documentation and online resources to support current work within $appName."
+                "Creative" -> "Invested time in design iterations, exploring visual concepts and prototyping new ideas within $appName."
+                else -> "Engaged in a productive, sustained work session, focusing on task execution and workflow management within $appName."
+            }
         }
 
-        val summary = if (!previousDaySummary.isNullOrBlank()) {
-            "$baseSummary (Continuing progress from yesterday)"
+        val summary = if (!previousDaySummary.isNullOrBlank() && mode != HighlightReasoningMode.CONCISE) {
+            "$baseSummary (Continuing progress from yesterday: ${previousDaySummary.take(40)}...)"
         } else {
             baseSummary
         }
@@ -96,8 +107,8 @@ class LocalHeuristicService : ReasoningService {
                 packageName = packageName,
                 date = date,
                 summary = summary,
-                cognitiveMode = mode,
-                actionItems = detectedTasks.distinct().take(4)
+                cognitiveMode = cognitiveMode,
+                actionItems = if (mode == HighlightReasoningMode.CONCISE) emptyList() else detectedTasks.distinct().take(4)
             )
         )
     }

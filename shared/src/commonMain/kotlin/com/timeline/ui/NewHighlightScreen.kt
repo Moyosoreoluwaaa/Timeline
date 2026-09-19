@@ -58,6 +58,7 @@ fun NewHighlightScreen(
 
     var showLoading by remember { mutableStateOf(true) }
     var filterChipsExpanded by remember { mutableStateOf(false) }
+    var showModeMenu by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -102,6 +103,43 @@ fun NewHighlightScreen(
                                 )
                             }
                         },
+                        actions = {
+                            Box {
+                                TextButton(onClick = { showModeMenu = true }) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = state.reasoningMode.displayName,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showModeMenu,
+                                    onDismissRequest = { showModeMenu = false }
+                                ) {
+                                    com.timeline.domain.reasoning.HighlightReasoningMode.entries.forEach { mode ->
+                                        DropdownMenuItem(
+                                            text = { Text(mode.displayName) },
+                                            onClick = {
+                                                showModeMenu = false
+                                                viewModel.onEvent(NewHighlightEvent.SetReasoningMode(mode))
+                                                showLoading = true
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        },
                         scrollBehavior = scrollBehavior
                     )
                 }
@@ -110,7 +148,7 @@ fun NewHighlightScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = topPadding)
+                        .padding(top = topPadding, bottom = padding.calculateBottomPadding())
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
                     PullToRefreshBox(
@@ -121,13 +159,80 @@ fun NewHighlightScreen(
                         },
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        HighlightCardStack(
-                            segments = state.segments,
-                            activeFilter = state.timeOfDayFilter,
-                            onSelectFilter = { filter ->
-                                viewModel.onEvent(NewHighlightEvent.SetFilter(filter))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .padding(vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Top 3 Apps Interactive Row
+                            if (state.topApps.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "Top Active Apps",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    LazyRow(
+                                        modifier = Modifier.fillMaxWidth(1f),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        items(state.topApps) { app ->
+                                            val isSelected = state.selectedAppPackage == app.packageName
+                                            Surface(
+                                                modifier = Modifier.clickable {
+                                                    val newSelection = if (isSelected) null else app.packageName
+                                                    viewModel.onEvent(NewHighlightEvent.SelectApp(newSelection))
+                                                },
+                                                shape = RoundedCornerShape(16.dp),
+                                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                border = if (isSelected) BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary) else null
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(24.dp)
+                                                            .clip(CircleShape),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        AppIcon(icon = app.icon, contentDescription = null, modifier = Modifier.size(24.dp))
+                                                    }
+//                                                    Text(
+//                                                        text = app.name,
+//                                                        style = MaterialTheme.typography.labelMedium,
+//                                                        fontWeight = FontWeight.SemiBold,
+//                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+//                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                        )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(550.dp)
+                            ) {
+                                HighlightCardStack(
+                                    segments = state.segments,
+                                    activeFilter = state.timeOfDayFilter,
+                                    onSelectFilter = { filter ->
+                                        viewModel.onEvent(NewHighlightEvent.SetFilter(filter))
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -155,7 +260,7 @@ private fun HighlightCardStack(
 
     Box(
         modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomCenter
+        contentAlignment = Alignment.TopCenter
     ) {
         sortedSegments.forEachIndexed { stackIndex, segment ->
             val isFrontmost = stackIndex == sortedSegments.lastIndex
@@ -235,67 +340,66 @@ private fun HighlightSegmentCard(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Bar (Peeking Region)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onHeaderClick)
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            if (!isFrontmost) {
+                // Header Bar (Peeking Region - Fixed for background cards)
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onHeaderClick)
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(iconColor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = iconColor,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(iconColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = iconColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                text = segment.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = segment.timeRange,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
-                    Column {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = iconColor.copy(alpha = 0.12f)
+                    ) {
                         Text(
-                            text = segment.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = segment.timeRange,
+                            text = segment.duration,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = FontWeight.Bold,
+                            color = iconColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = iconColor.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = segment.duration,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = iconColor,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-
-            // Body Content (Full visibility when frontmost)
-            if (isFrontmost) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            } else {
+                // Body Content (Full visibility with scrolling header when frontmost)
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -303,6 +407,62 @@ private fun HighlightSegmentCard(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Scrolling Header for the active card
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(iconColor.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = iconColor,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = segment.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = segment.timeRange,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = iconColor.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = segment.duration,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = iconColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
                     // Narrative Text
                     NewHighlightContentState(text = segment.narrative)
 

@@ -2,6 +2,19 @@ package com.timeline.domain.reasoning
 
 import kotlinx.serialization.Serializable
 
+enum class HighlightReasoningMode {
+    CONCISE,
+    BALANCED,
+    EXPLANATORY;
+
+    val displayName: String
+        get() = when (this) {
+            CONCISE -> "Concise"
+            BALANCED -> "Balanced"
+            EXPLANATORY -> "Explanatory"
+        }
+}
+
 @Serializable
 data class AppDailyReasoning(
     val packageName: String,

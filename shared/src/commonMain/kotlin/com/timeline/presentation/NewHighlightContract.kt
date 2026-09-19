@@ -23,7 +23,10 @@ data class NewHighlightState(
     val dynamicScreenshots: List<String> = emptyList(),
     val segments: List<HighlightSegment> = emptyList(),
     val overallActionItems: List<String> = emptyList(),
-    val previewingScreenshotPath: String? = null
+    val previewingScreenshotPath: String? = null,
+    val reasoningMode: com.timeline.domain.reasoning.HighlightReasoningMode = com.timeline.domain.reasoning.HighlightReasoningMode.BALANCED,
+    val selectedAppPackage: String? = null,
+    val topApps: List<com.timeline.domain.AppMetadata> = emptyList()
 )
 
 enum class TimeOfDayFilter {
@@ -36,4 +39,6 @@ sealed interface NewHighlightEvent {
     data object SyncRealData : NewHighlightEvent
     data class SelectDate(val date: Instant?) : NewHighlightEvent
     data class PreviewScreenshot(val path: String?) : NewHighlightEvent
+    data class SetReasoningMode(val mode: com.timeline.domain.reasoning.HighlightReasoningMode) : NewHighlightEvent
+    data class SelectApp(val packageName: String?) : NewHighlightEvent
 }

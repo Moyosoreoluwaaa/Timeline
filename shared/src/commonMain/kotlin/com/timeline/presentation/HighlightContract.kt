@@ -38,7 +38,8 @@ data class HighlightState(
     val reasoningStage: ReasoningStage = ReasoningStage.IDLE,
     val isPrivacyShieldActive: Boolean = false,
     val categoryIcon: String? = null,
-    val reasoningProgress: Float = 0f
+    val reasoningProgress: Float = 0f,
+    val currentReasoningMode: com.timeline.domain.reasoning.HighlightReasoningMode = com.timeline.domain.reasoning.HighlightReasoningMode.BALANCED
 ) {
 
 enum class ReasoningStage {
@@ -87,6 +88,7 @@ sealed interface HighlightEvent {
     data object GenerateReasoning : HighlightEvent
     data object SyncRealData : HighlightEvent
     data object ClearSearch : HighlightEvent
+    data class SetReasoningMode(val mode: com.timeline.domain.reasoning.HighlightReasoningMode) : HighlightEvent
 }
 
 sealed interface HighlightEffect {

@@ -75,7 +75,10 @@ class HighlightViewModel(
     private fun observePreferences() {
         viewModelScope.launch {
             userPreferences.state.collect { prefs ->
-                _state.update { it.copy(isAiOptedIn = prefs.isAiReasoningEnabled) }
+                _state.update { it.copy(
+                    isAiOptedIn = prefs.isAiReasoningEnabled,
+                    currentReasoningMode = prefs.highlightReasoningMode
+                ) }
             }
         }
         viewModelScope.launch {
@@ -120,6 +123,13 @@ class HighlightViewModel(
                 }
             }
             is HighlightEvent.GenerateReasoning -> generateDailyReasoning()
+            is HighlightEvent.SetReasoningMode -> {
+                viewModelScope.launch {
+                    userPreferences.setHighlightReasoningMode(event.mode)
+                    _state.update { it.copy(currentReasoningMode = event.mode) }
+                    generateDailyReasoning()
+                }
+            }
         }
     }
 
@@ -236,7 +246,8 @@ class HighlightViewModel(
                     date = dateString,
                     ocrDumps = validDumps,
                     labels = triaged.aggregatedLabels,
-                    previousDaySummary = triaged.previousDaySummary
+                    previousDaySummary = triaged.previousDaySummary,
+                    mode = _state.value.currentReasoningMode
                 )
                 
                 result.onSuccess { reasoning ->
@@ -253,7 +264,8 @@ class HighlightViewModel(
                         date = dateString,
                         ocrDumps = validDumps,
                         labels = triaged.aggregatedLabels,
-                        previousDaySummary = triaged.previousDaySummary
+                        previousDaySummary = triaged.previousDaySummary,
+                        mode = _state.value.currentReasoningMode
                     ).getOrNull()
                     if (fallbackReasoning != null) {
                         repository.saveAppDailyReasoning(fallbackReasoning)
@@ -295,7 +307,8 @@ class HighlightViewModel(
                     date = dateString,
                     ocrDumps = promptDumps,
                     labels = triagedAll.aggregatedLabels,
-                    previousDaySummary = triagedAll.previousDaySummary
+                    previousDaySummary = triagedAll.previousDaySummary,
+                    mode = _state.value.currentReasoningMode
                 )
                 overallResult.onSuccess { overallReasoning ->
                     repository.saveAppDailyReasoning(overallReasoning)
@@ -309,7 +322,8 @@ class HighlightViewModel(
                         date = dateString,
                         ocrDumps = promptDumps,
                         labels = triagedAll.aggregatedLabels,
-                        previousDaySummary = triagedAll.previousDaySummary
+                        previousDaySummary = triagedAll.previousDaySummary,
+                        mode = _state.value.currentReasoningMode
                     ).getOrNull()
                     if (fallback != null) {
                         repository.saveAppDailyReasoning(fallback)
