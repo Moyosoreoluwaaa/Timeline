@@ -49,9 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,6 +87,10 @@ import kotlin.time.Instant
 @Composable
 fun TimelineScreen(
     viewModel: TimelineViewModel = koinViewModel(),
+    showTimeFilters: Boolean = false,
+    onToggleTimeFilters: () -> Unit = {},
+    showDatePicker: Boolean = false,
+    onShowDatePickerChange: (Boolean) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToHighlight: () -> Unit = {},
     onBoundsCalculated: (TutorialStep, Rect) -> Unit = { _, _ -> },
@@ -98,9 +100,6 @@ fun TimelineScreen(
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
-
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimeFilters by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val fullHeight = constraints.maxHeight.toFloat()
@@ -179,7 +178,7 @@ fun TimelineScreen(
                 initialSelectedDateMillis = state.selectedDate?.toEpochMilliseconds()
             )
             DatePickerDialog(
-                onDismissRequest = { showDatePicker = false },
+                onDismissRequest = { onShowDatePickerChange(false) },
                 confirmButton = {
                     TextButton(onClick = {
                         datePickerState.selectedDateMillis?.let {
@@ -189,7 +188,7 @@ fun TimelineScreen(
                                 )
                             )
                         }
-                        showDatePicker = false
+                        onShowDatePickerChange(false)
                     }) { Text(AppStrings.TimelineOk) }
                 }
             ) { DatePicker(state = datePickerState) }
@@ -206,11 +205,12 @@ fun TimelineScreen(
                     selectedDate = state.selectedDate,
                     selectedFilter = state.timeFilter,
                     showTimeFilters = showTimeFilters,
-                    onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
+                    onToggleTimeFilters = onToggleTimeFilters,
                     onFilterSelected = { viewModel.onEvent(TimelineEvent.FilterTime(it)) },
                     onNavigateToSettings = onNavigateToSettings,
-                    onSelectDateClick = { showDatePicker = true },
-                    scrollBehavior = scrollBehavior
+                    onSelectDateClick = { onShowDatePickerChange(true) },
+                    scrollBehavior = scrollBehavior,
+                    onBoundsCalculated = onBoundsCalculated
                 )
             }
         ) { padding ->

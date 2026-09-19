@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -36,12 +35,14 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.timeline.presentation.TimeFilter
+import com.timeline.tutorial.TutorialStep
+import com.timeline.tutorial.spotlightTarget
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.TimeFormatter
-import timeline.shared.generated.resources.Res
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,11 +56,11 @@ fun TimelineHeader(
     onNavigateToSettings: () -> Unit,
     onSelectDateClick: () -> Unit,
     isSettingsActive: Boolean = false,
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior? = null,
+    onBoundsCalculated: (TutorialStep, Rect) -> Unit = { _, _ -> }
 ) {
     val yellowAccent = Color(0xFFFFD54F)
 
-    // Dynamic top bar colors depending on scroll state
     val topBarColors = TopAppBarDefaults.topAppBarColors(
         containerColor = MaterialTheme.colorScheme.surface,
         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -70,13 +71,6 @@ fun TimelineHeader(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-//                ImageAppIcon(
-//                    resource = Res.drawable.timeline_app_icon,
-//                    contentDescription = "TimelineIcon",
-//                    modifier = Modifier
-//                        .size(32.dp)
-//                        .padding(end = 4.dp)
-//                )
                 Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
                 Column {
                     Text(
@@ -85,11 +79,15 @@ fun TimelineHeader(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // Badge container with transparent background, rounded corners, and yellow date text
                     Surface(
                         color = Color.Transparent,
                         shape = MaterialTheme.shapes.small,
-                        modifier = Modifier.clickable(onClick = onSelectDateClick)
+                        modifier = Modifier
+                            .clickable(onClick = onSelectDateClick)
+                            .spotlightTarget(
+                                TutorialStep.SPOTLIGHT_DATE_PICKER,
+                                onBoundsCalculated
+                            )
                     ) {
                         Text(
                             text = selectedDate?.let { TimeFormatter.formatDate(it) } ?: "Today, September 14, 2026",
@@ -101,7 +99,13 @@ fun TimelineHeader(
             }
         },
         actions = {
-            IconButton(onClick = onToggleTimeFilters) {
+            IconButton(
+                onClick = onToggleTimeFilters,
+                modifier = Modifier.spotlightTarget(
+                    TutorialStep.SPOTLIGHT_TIME_FILTER_ICON,
+                    onBoundsCalculated
+                )
+            ) {
                 Icon(
                     imageVector = if (showTimeFilters) Icons.Filled.Schedule else Icons.Outlined.Schedule,
                     contentDescription = "Toggle Time Filters"
@@ -126,7 +130,11 @@ fun TimelineHeader(
                 TimelineFilterSection(
                     selectedFilter = selectedFilter,
                     onFilterSelected = onFilterSelected,
-                    backgroundColor = topBarColors.containerColor
+                    backgroundColor = topBarColors.containerColor,
+                    modifier = Modifier.spotlightTarget(
+                        TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION,
+                        onBoundsCalculated
+                    )
                 )
             }
         }
@@ -137,10 +145,11 @@ fun TimelineHeader(
 fun TimelineFilterSection(
     selectedFilter: TimeFilter,
     onFilterSelected: (TimeFilter) -> Unit,
-    backgroundColor: Color
+    backgroundColor: Color,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(backgroundColor)
             .horizontalScroll(rememberScrollState())

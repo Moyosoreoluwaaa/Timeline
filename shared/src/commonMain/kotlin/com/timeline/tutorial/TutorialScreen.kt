@@ -1,7 +1,5 @@
 package com.timeline.tutorial
 
-import androidx.compose.ui.geometry.Rect
-
 enum class TutorialScreen {
     TIMELINE,
     HIGHLIGHT,
@@ -42,6 +40,21 @@ enum class TutorialStep(
         screen = TutorialScreen.TIMELINE,
         title = "Session Controls",
         description = "Use Previous and Next controls to cycle between sessions."
+    ),
+    SPOTLIGHT_TIME_FILTER_ICON(
+        screen = TutorialScreen.TIMELINE,
+        title = "Time Filter Icon",
+        description = "Tap the clock icon to reveal filter options by time of day."
+    ),
+    SPOTLIGHT_TIME_FILTER_SECTION(
+        screen = TutorialScreen.TIMELINE,
+        title = "Time Filter Options",
+        description = "Filter your timeline sessions by Morning, Afternoon, or Evening."
+    ),
+    SPOTLIGHT_DATE_PICKER(
+        screen = TutorialScreen.TIMELINE,
+        title = "Date Picker",
+        description = "Tap the date container to select and view usage logs from previous dates."
     ),
     SPOTLIGHT_SUMMARY_BAR(
         screen = TutorialScreen.TIMELINE,

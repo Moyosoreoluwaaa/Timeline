@@ -80,9 +80,19 @@ class TutorialViewModel(
             }
 
             TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> {
+                // Dismiss sheet and transition to Clock Icon spotlight
                 _effects.trySend(TutorialEffect.SetSheetExpanded(false))
-                TutorialStep.SPOTLIGHT_SUMMARY_BAR
+                TutorialStep.SPOTLIGHT_TIME_FILTER_ICON
             }
+
+            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> {
+                // Expanding the time filter menu for the filter section step
+                TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION
+            }
+
+            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_PICKER
+
+            TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
 
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))

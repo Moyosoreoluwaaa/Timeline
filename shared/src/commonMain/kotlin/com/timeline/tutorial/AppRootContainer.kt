@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,6 +27,9 @@ fun AppRootContainer(
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
     val timelineState by timelineViewModel.state.collectAsStateWithLifecycle()
 
+    var showTimeFilters by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
     LaunchedEffect(tutorialViewModel) {
         tutorialViewModel.effects.collect { effect ->
             when (effect) {
@@ -40,7 +46,7 @@ fun AppRootContainer(
         }
     }
 
-    // Auto-sync timeline session state based on active tutorial step
+    // Auto-sync timeline & header overlay states with active tutorial step
     LaunchedEffect(tutorialState.currentStep, timelineState.sessions) {
         when (tutorialState.currentStep) {
             TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL,
@@ -54,12 +60,37 @@ fun AppRootContainer(
                     )
                 }
             }
+
+            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> {
+                // Clear session selection & collapse header overlays
+                if (timelineState.selectedSession != null) {
+                    timelineViewModel.onEvent(TimelineEvent.SelectSession(null))
+                }
+                showTimeFilters = false
+                showDatePicker = false
+            }
+
+            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> {
+                // Show filter options row
+                showTimeFilters = true
+                showDatePicker = false
+            }
+
+            TutorialStep.SPOTLIGHT_DATE_PICKER -> {
+                // Open DatePicker Dialog directly and collapse filter row
+                showTimeFilters = false
+                showDatePicker = true
+            }
+
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
-                // Dismiss bottom sheet so summary bar at screen bottom is exposed in spotlight
+                // Dismiss DatePicker and reset bottom sheet
+                showTimeFilters = false
+                showDatePicker = false
                 if (timelineState.selectedSession != null) {
                     timelineViewModel.onEvent(TimelineEvent.SelectSession(null))
                 }
             }
+
             else -> {}
         }
     }
@@ -67,6 +98,10 @@ fun AppRootContainer(
     Box(modifier = modifier.fillMaxSize()) {
         TimelineScreen(
             viewModel = timelineViewModel,
+            showTimeFilters = showTimeFilters,
+            onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
+            showDatePicker = showDatePicker,
+            onShowDatePickerChange = { showDatePicker = it },
             onNavigateToSettings = onNavigateToSettings,
             onNavigateToHighlight = onNavigateToHighlight,
             onBoundsCalculated = { step: TutorialStep, bounds: Rect ->
