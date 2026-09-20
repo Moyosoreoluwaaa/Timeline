@@ -42,7 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.domain.model.TrialStatus
@@ -54,6 +56,7 @@ import com.timeline.ui.components.SettingCategory
 import com.timeline.ui.components.SettingsTopBar
 import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.components.UpgradeCard
+import androidx.compose.ui.text.style.TextOverflow
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
@@ -96,12 +99,6 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
-//            Surface(
-//                modifier = Modifier
-//                    .fillMaxSize()
-//                    .clip(RoundedCornerShape(topStart = Dimensions.SpacingLarge, topEnd = Dimensions.SpacingLarge)),
-//                color = MaterialTheme.colorScheme.surfaceContainerLowest
-//            ) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -114,6 +111,66 @@ fun SettingsScreen(
                 ) {
                     item {
                         UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) })
+                    }
+
+                    item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
+
+                    item { SettingCategory("Highlight Preferences") }
+                    item {
+                        SettingCard(
+                            title = "Reasoning Mode",
+                            description = "Choose AI depth",
+                            status = state.highlightReasoningMode.displayName,
+                            isExpandable = true,
+                            isExpanded = expandedSection == "reasoning_mode",
+                            onHeaderClick = { expandedSection = if (expandedSection == "reasoning_mode") null else "reasoning_mode" }
+                        ) {
+                            Column(modifier = Modifier.padding(top = Dimensions.PaddingSmall), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                com.timeline.domain.reasoning.HighlightReasoningMode.entries.forEach { mode ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(MaterialTheme.shapes.small)
+                                            .clickable {
+                                                viewModel.onEvent(SettingsEvent.SetReasoningMode(mode))
+                                                expandedSection = null
+                                            }
+                                            .padding(vertical = Dimensions.Half, horizontal = Dimensions.PaddingSmall),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = mode.displayName,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = if (state.highlightReasoningMode == mode) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        if (state.highlightReasoningMode == mode) {
+                                            RadioButton(selected = true, onClick = null)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    item {
+                        SettingCard(
+                            title = "Highlight Schedule & Frequency",
+                            description = "Configure delivery times",
+                            status = "${state.digestFrequency}x daily",
+                            isExpandable = true,
+                            isExpanded = expandedSection == "digest_schedule",
+                            onHeaderClick = { expandedSection = if (expandedSection == "digest_schedule") null else "digest_schedule" }
+                        ) {
+                            Column(modifier = Modifier.padding(top = Dimensions.PaddingSmall), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Digest Frequency (${state.digestFrequency} times daily)", style = MaterialTheme.typography.bodyMedium)
+                                Slider(
+                                    value = state.digestFrequency.toFloat(),
+                                    onValueChange = { viewModel.onEvent(SettingsEvent.SetDigestFrequency(it.toInt())) },
+                                    valueRange = 1f..6f,
+                                    steps = 5
+                                )
+                            }
+                        }
                     }
 
                     item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
@@ -282,4 +339,3 @@ fun SettingsScreen(
             }
         }
     }
-//}

@@ -40,7 +40,10 @@ class SettingsViewModel(
             dataRetentionDays = prefs.dataRetentionDays,
             isLoggedIn = prefs.isLoggedIn,
             isPro = isPro,
-            trialStatus = calculateTrialStatus(prefs.trialStartedAt)
+            trialStatus = calculateTrialStatus(prefs.trialStartedAt),
+            highlightReasoningMode = prefs.highlightReasoningMode,
+            digestFrequency = prefs.digestFrequency,
+            digestHours = prefs.digestHours
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState())
 
@@ -82,6 +85,23 @@ class SettingsViewModel(
             is SettingsEvent.SetDataRetention -> {
                 viewModelScope.launch {
                     userPreferences.setDataRetentionDays(event.days)
+                }
+            }
+            is SettingsEvent.SetReasoningMode -> {
+                viewModelScope.launch {
+                    userPreferences.setHighlightReasoningMode(event.mode)
+                }
+            }
+            is SettingsEvent.SetDigestFrequency -> {
+                viewModelScope.launch {
+                    val currentHours = state.value.digestHours
+                    userPreferences.setDigestSchedule(event.frequency, currentHours)
+                }
+            }
+            is SettingsEvent.SetDigestHours -> {
+                viewModelScope.launch {
+                    val currentFreq = state.value.digestFrequency
+                    userPreferences.setDigestSchedule(currentFreq, event.hours)
                 }
             }
             SettingsEvent.Logout -> {

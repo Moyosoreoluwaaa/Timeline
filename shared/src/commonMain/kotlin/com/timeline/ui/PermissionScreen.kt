@@ -29,6 +29,7 @@ import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionScreen(
     viewModel: PermissionViewModel,
@@ -104,17 +105,28 @@ private fun OnboardingStepContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModeSelectionStep(
     onEvent: (PermissionEvent) -> Unit,
     onOpenTimeline: () -> Unit,
     onNavigateToPaywall: () -> Unit
 ) {
+    var selectedPreference by remember { mutableStateOf<String?>(null) }
+    var showTimingModal by remember { mutableStateOf(false) }
+    var sliderValue by remember { mutableStateOf(3f) }
+    var sliderActive by remember { mutableStateOf(false) }
+
+    val animatedAlpha by animateFloatAsState(
+        targetValue = if (sliderActive) 1f else 0.4f,
+        animationSpec = tween(300)
+    )
+
     OnboardingLayout(
         topBar = {
             Column {
-                Text(text = AppStrings.OnboardingModeTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                Text(text = AppStrings.OnboardingModeSubtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Text(text = "How would you prefer to see your highlights?", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                Text(text = "Choose your preferred highlight style and frequency.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
         },
         bottomBar = {
@@ -125,52 +137,95 @@ private fun ModeSelectionStep(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
         ) {
-            // Pro Mode (Behind, Taller)
-            ModeCard(
-                title = AppStrings.OnboardingProModeTitle,
-                desc = AppStrings.OnboardingProModeDesc,
-                isPro = true,
-                onClick = onNavigateToPaywall,
-                buttonText = AppStrings.OnboardingProModeButton
-            )
-            
-            // Basic Mode (In front)
-            ModeCard(
-                title = AppStrings.OnboardingBasicModeTitle,
-                desc = AppStrings.OnboardingBasicModeDesc,
-                onClick = onOpenTimeline,
-                buttonText = AppStrings.OnboardingBasicModeButton
+            // Floating Modal Card with Animated Highlight Preview
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(150.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 4.dp,
+                shadowElevation = 4.dp
+            ) {
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = when(selectedPreference) {
+                                "Concise" -> "Brief summary: Focused check-ins & peak productivity."
+                                "Detailed" -> "Comprehensive breakdown: Active digital workflows across apps."
+                                else -> "Balanced daily narrative and smart summaries."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 2x1 Top Row (2 options)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = { selectedPreference = "Balanced"; showTimingModal = true },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Balanced")
+                }
+                OutlinedButton(
+                    onClick = { selectedPreference = "Concise"; showTimingModal = true },
+                    modifier = Modifier.weight(1f).height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                ) {
+                    Text("Concise")
+                }
+            }
+
+            // Bottom Spanning Row (1 option)
+            OnboardingActionButton(
+                text = "Detailed Pro Mode",
+                onClick = { selectedPreference = "Detailed"; onNavigateToPaywall() },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
-}
 
-@Composable
-private fun ModeCard(
-    title: String,
-    desc: String,
-    onClick: () -> Unit,
-    buttonText: String,
-    isPro: Boolean = false
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(if (isPro) 320.dp else 280.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = if (isPro) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column(modifier = Modifier.padding(Dimensions.PaddingLarge)) {
-            if (isPro) {
-                Badge(containerColor = MaterialTheme.colorScheme.primary) { Text(AppStrings.OnboardingProModeBadge) }
-                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+    if (showTimingModal) {
+        ModalBottomSheet(
+            onDismissRequest = { showTimingModal = false },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Highlight Timing & Frequency", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = "${sliderValue.toInt()} times daily",
+                    style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = animatedAlpha))
+                )
+                Slider(
+                    value = sliderValue,
+                    onValueChange = { sliderValue = it; sliderActive = true },
+                    onValueChangeFinished = { sliderActive = false },
+                    valueRange = 1f..6f,
+                    steps = 5,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = {
+                        showTimingModal = false
+                        onOpenTimeline()
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Confirm & Start")
+                }
             }
-            Text(text = title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-            Text(text = desc, style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.weight(1f))
-            OnboardingActionButton(text = buttonText, onClick = onClick)
         }
     }
 }

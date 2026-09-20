@@ -13,13 +13,21 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
     
     private val logger = Logger.withTag("RevenueCatSubscriptionManager")
 
+    companion object {
+        /**
+         * Feature flag to temporarily grant free access to all Pro / paywalled features.
+         * Set this to `false` when preparing the app build for the Google Play Store to re-enable paywalls.
+         */
+        var isFreeAccessEnabled: Boolean = true
+    }
+
     private val _customerInfo = MutableStateFlow<CustomerInfo?>(null)
     override val customerInfo: StateFlow<CustomerInfo?> = _customerInfo.asStateFlow()
 
     private val _offerings = MutableStateFlow<Offerings?>(null)
     override val offerings: StateFlow<Offerings?> = _offerings.asStateFlow()
 
-    private val _isPro = MutableStateFlow(false)
+    private val _isPro = MutableStateFlow(isFreeAccessEnabled)
     override val isPro: StateFlow<Boolean> = _isPro.asStateFlow()
 
     private val _isPurchasing = MutableStateFlow(false)
@@ -128,13 +136,13 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
     }
 
     override fun checkEntitlement(entitlementId: String): Boolean =
-        _customerInfo.value?.entitlements?.active?.containsKey(entitlementId) == true
+        isFreeAccessEnabled || _customerInfo.value?.entitlements?.active?.containsKey(entitlementId) == true
 
     private fun updateCustomerInfo(info: CustomerInfo) {
         _customerInfo.value = info
-        val proActive = info.entitlements.active.containsKey(revenueCatEntitlementId)
+        val proActive = isFreeAccessEnabled || info.entitlements.active.containsKey(revenueCatEntitlementId)
         _isPro.value = proActive
-        logger.d { "Customer info updated. isPro: $proActive" }
+        logger.d { "Customer info updated. isFreeAccessEnabled: $isFreeAccessEnabled, isPro: $proActive" }
     }
 
     override fun onCustomerInfoUpdated(customerInfo: CustomerInfo) {
