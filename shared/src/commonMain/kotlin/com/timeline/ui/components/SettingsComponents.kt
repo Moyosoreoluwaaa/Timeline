@@ -137,10 +137,11 @@ fun SettingItem(
     title: String,
     icon: ImageVector? = null,
     trailing: (@Composable () -> Unit)? = null,
+    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth().height(56.dp),
+        modifier = modifier.fillMaxWidth().height(56.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.Subtitle),
         shape = MaterialTheme.shapes.medium
     ) {

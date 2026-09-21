@@ -56,30 +56,60 @@ enum class TutorialStep(
         title = "Date Picker",
         description = "Tap the date container to select and view usage logs from previous dates."
     ),
+    SPOTLIGHT_SETTINGS_ICON(
+        screen = TutorialScreen.TIMELINE,
+        title = "Configure Preferences",
+        description = "Tap the settings gear icon to customize tracking and data options."
+    ),
+    SPOTLIGHT_HIGHLIGHTS_PREFERENCE(
+        screen = TutorialScreen.SETTINGS,
+        title = "Highlights & Reasoning",
+        description = "Tap this preference option to customize your Gemini narrative style and frequency."
+    ),
+    SPOTLIGHT_REASONING_BALANCED(
+        screen = TutorialScreen.SETTINGS,
+        title = "Balanced Narrative",
+        description = "Select the 'Balanced' option for a mix of detail and conciseness in your highlights."
+    ),
+    SPOTLIGHT_REASONING_SLIDER(
+        screen = TutorialScreen.SETTINGS,
+        title = "Digest Frequency",
+        description = "Use this slider to adjust how often Gemini generates your timeline highlights."
+    ),
+    SPOTLIGHT_TRACKING_OPTIONS(
+        screen = TutorialScreen.SETTINGS,
+        title = "Tracking Controls",
+        description = "Toggle app interaction logging and screenshot captures here."
+    ),
+    SPOTLIGHT_APP_EXCLUSIONS(
+        screen = TutorialScreen.SETTINGS,
+        title = "Manage App Exclusion",
+        description = "Tap here to exclude specific private apps from being tracked."
+    ),
+    SPOTLIGHT_EXCLUSION_MOCK_ITEM(
+        screen = TutorialScreen.SETTINGS,
+        title = "Exclude Apps",
+        description = "Toggle the switch next to any app to prevent it from appearing in your timeline."
+    ),
+    SPOTLIGHT_DATA_RETENTION(
+        screen = TutorialScreen.SETTINGS,
+        title = "Adjust Data Retention",
+        description = "Tap here to adjust how many days your local screenshots and logs are kept."
+    ),
+    SPOTLIGHT_RETENTION_SHEET_CONTENT(
+        screen = TutorialScreen.SETTINGS,
+        title = "Retention Period",
+        description = "Drag the slider to set your preferred data cleanup frequency."
+    ),
     SPOTLIGHT_SUMMARY_BAR(
         screen = TutorialScreen.TIMELINE,
         title = "Usage Summary Bar",
         description = "Collapse the sheet and tap the summary bar to open highlights."
     ),
-    SPOTLIGHT_HIGHLIGHT_METRICS(
+    SPOTLIGHT_HIGHLIGHT_CARD(
         screen = TutorialScreen.HIGHLIGHT,
-        title = "Usage Analytics",
-        description = "Review overall screen time trends and category metrics."
-    ),
-    SPOTLIGHT_MASTER_CAPTURE_TOGGLE(
-        screen = TutorialScreen.SETTINGS,
-        title = "Master Capture Toggle",
-        description = "Enable or disable global usage tracking and screenshot logging."
-    ),
-    SPOTLIGHT_EXCLUSION_LIST(
-        screen = TutorialScreen.SETTINGS,
-        title = "App Exclusion List",
-        description = "Specify apps that should be ignored by the tracking engine."
-    ),
-    SPOTLIGHT_RETENTION_DURATION(
-        screen = TutorialScreen.SETTINGS,
-        title = "Data Retention Settings",
-        description = "Configure auto-deletion thresholds for local screenshots."
+        title = "Interactive Highlights",
+        description = "Tap any highlight card to inspect details and complete the tutorial."
     ),
     COMPLETED(
         screen = TutorialScreen.TIMELINE,

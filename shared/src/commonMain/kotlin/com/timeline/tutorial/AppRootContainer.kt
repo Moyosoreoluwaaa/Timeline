@@ -19,7 +19,6 @@ import com.timeline.ui.TimelineScreen
 fun AppRootContainer(
     timelineViewModel: TimelineViewModel,
     tutorialViewModel: TutorialViewModel,
-    onNavigateRoute: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToHighlight: () -> Unit,
     modifier: Modifier = Modifier
@@ -29,22 +28,6 @@ fun AppRootContainer(
 
     var showTimeFilters by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
-
-    LaunchedEffect(tutorialViewModel) {
-        tutorialViewModel.effects.collect { effect ->
-            when (effect) {
-                is TutorialEffect.NavigateToScreen -> onNavigateRoute(effect.screen.name)
-                is TutorialEffect.SetSheetExpanded -> timelineViewModel.onEvent(TimelineEvent.ToggleSheet(effect.expanded))
-                is TutorialEffect.TriggerFullScreenImage -> {
-                    if (effect.path != null) {
-                        timelineViewModel.onEvent(TimelineEvent.ShowFullScreenImage(effect.path))
-                    } else {
-                        timelineViewModel.onEvent(TimelineEvent.DismissFullScreenImage)
-                    }
-                }
-            }
-        }
-    }
 
     // Sync tutorial data to timeline
     LaunchedEffect(tutorialState.tutorialSessions) {
@@ -67,7 +50,6 @@ fun AppRootContainer(
             }
 
             TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> {
-                // Clear session selection & collapse header overlays
                 if (timelineState.selectedSession != null) {
                     timelineViewModel.onEvent(TimelineEvent.SelectSession(null))
                 }
@@ -76,19 +58,16 @@ fun AppRootContainer(
             }
 
             TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> {
-                // Show filter options row
                 showTimeFilters = true
                 showDatePicker = false
             }
 
             TutorialStep.SPOTLIGHT_DATE_PICKER -> {
-                // Open DatePicker Dialog directly and collapse filter row
                 showTimeFilters = false
                 showDatePicker = true
             }
 
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
-                // Dismiss DatePicker and reset bottom sheet
                 showTimeFilters = false
                 showDatePicker = false
                 if (timelineState.selectedSession != null) {
@@ -112,11 +91,6 @@ fun AppRootContainer(
             onBoundsCalculated = { step: TutorialStep, bounds: Rect ->
                 tutorialViewModel.onEvent(TutorialEvent.UpdateTargetBounds(step, bounds))
             }
-        )
-
-        TutorialShowcaseOverlay(
-            state = tutorialState,
-            onEvent = tutorialViewModel::onEvent
         )
     }
 }

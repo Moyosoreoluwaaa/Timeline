@@ -159,21 +159,36 @@ class TutorialViewModel(
 
             TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_PICKER
 
-            TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
+            TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SETTINGS_ICON
+
+            TutorialStep.SPOTLIGHT_SETTINGS_ICON -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.SETTINGS))
+                TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE
+            }
+
+            TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE -> TutorialStep.SPOTLIGHT_REASONING_BALANCED
+            TutorialStep.SPOTLIGHT_REASONING_BALANCED -> TutorialStep.SPOTLIGHT_REASONING_SLIDER
+            TutorialStep.SPOTLIGHT_REASONING_SLIDER -> TutorialStep.SPOTLIGHT_TRACKING_OPTIONS
+            TutorialStep.SPOTLIGHT_TRACKING_OPTIONS -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
+            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> TutorialStep.SPOTLIGHT_EXCLUSION_MOCK_ITEM
+            TutorialStep.SPOTLIGHT_EXCLUSION_MOCK_ITEM -> TutorialStep.SPOTLIGHT_DATA_RETENTION
+            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.SPOTLIGHT_RETENTION_SHEET_CONTENT
+
+            TutorialStep.SPOTLIGHT_RETENTION_SHEET_CONTENT -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
+                TutorialStep.SPOTLIGHT_SUMMARY_BAR
+            }
 
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))
-                TutorialStep.SPOTLIGHT_HIGHLIGHT_METRICS
+                TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD
             }
 
-            TutorialStep.SPOTLIGHT_HIGHLIGHT_METRICS -> {
-                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.SETTINGS))
-                TutorialStep.SPOTLIGHT_MASTER_CAPTURE_TOGGLE
+            TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
+                TutorialStep.COMPLETED
             }
 
-            TutorialStep.SPOTLIGHT_MASTER_CAPTURE_TOGGLE -> TutorialStep.SPOTLIGHT_EXCLUSION_LIST
-            TutorialStep.SPOTLIGHT_EXCLUSION_LIST -> TutorialStep.SPOTLIGHT_RETENTION_DURATION
-            TutorialStep.SPOTLIGHT_RETENTION_DURATION -> TutorialStep.COMPLETED
             TutorialStep.COMPLETED -> {
                 dismissTutorial()
                 return

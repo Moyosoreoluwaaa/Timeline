@@ -111,7 +111,13 @@ fun TimelineHeader(
                     contentDescription = "Toggle Time Filters"
                 )
             }
-            IconButton(onClick = onNavigateToSettings) {
+            IconButton(
+                onClick = onNavigateToSettings,
+                modifier = Modifier.spotlightTarget(
+                    TutorialStep.SPOTLIGHT_SETTINGS_ICON,
+                    onBoundsCalculated
+                )
+            ) {
                 Icon(
                     imageVector = if (isSettingsActive) Icons.Filled.Settings else Icons.Outlined.Settings,
                     contentDescription = "Settings"

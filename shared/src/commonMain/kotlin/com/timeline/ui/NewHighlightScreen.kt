@@ -75,6 +75,10 @@ import com.timeline.presentation.HighlightSegment
 import com.timeline.presentation.NewHighlightEvent
 import com.timeline.presentation.NewHighlightViewModel
 import com.timeline.presentation.TimeOfDayFilter
+import com.timeline.tutorial.TutorialEvent
+import com.timeline.tutorial.TutorialStep
+import com.timeline.tutorial.TutorialViewModel
+import com.timeline.tutorial.spotlightTarget
 import com.timeline.ui.components.CustomTopAppBar
 import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.theme.Dimensions
@@ -86,9 +90,11 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun NewHighlightScreen(
     viewModel: NewHighlightViewModel = koinViewModel(),
+    tutorialViewModel: TutorialViewModel = koinViewModel(),
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
 
     var showLoading by remember { mutableStateOf(true) }
     var filterChipsExpanded by remember { mutableStateOf(false) }
@@ -160,21 +166,28 @@ fun NewHighlightScreen(
                     ) {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
+                                .fillMaxSize()
                                 .padding(vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(550.dp)
+                                    .fillMaxHeight()
                             ) {
                                 HighlightCardStack(
                                     segments = state.segments,
                                     activeFilter = state.timeOfDayFilter,
                                     onSelectFilter = { filter ->
-                                        viewModel.onEvent(NewHighlightEvent.SetFilter(filter))
+                                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
+                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                        } else {
+                                            viewModel.onEvent(NewHighlightEvent.SetFilter(filter))
+                                        }
+                                    },
+                                    tutorialStep = tutorialState.currentStep,
+                                    onBoundsCalculated = { step, bounds ->
+                                        tutorialViewModel.onEvent(TutorialEvent.UpdateTargetBounds(step, bounds))
                                     }
                                 )
                             }
@@ -191,6 +204,8 @@ private fun HighlightCardStack(
     segments: List<HighlightSegment>,
     activeFilter: TimeOfDayFilter,
     onSelectFilter: (TimeOfDayFilter) -> Unit,
+    tutorialStep: TutorialStep? = null,
+    onBoundsCalculated: (TutorialStep, androidx.compose.ui.geometry.Rect) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val defaultOrder = remember {
@@ -235,7 +250,11 @@ private fun HighlightCardStack(
                 elevation = elevation,
                 onHeaderClick = {
                     onSelectFilter(segment.filter)
-                }
+                },
+                modifier = if (isFrontmost) Modifier.spotlightTarget(
+                    TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD,
+                    onBoundsCalculated
+                ) else Modifier
             )
         }
     }
@@ -247,7 +266,8 @@ private fun HighlightSegmentCard(
     isFrontmost: Boolean,
     offsetFromTop: Dp,
     elevation: Dp,
-    onHeaderClick: () -> Unit
+    onHeaderClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val (icon, iconColor, containerColor) = when (segment.filter) {
         TimeOfDayFilter.MORNING -> Triple(
@@ -273,7 +293,7 @@ private fun HighlightSegmentCard(
     }
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight()
             .padding(top = offsetFromTop)

@@ -8,7 +8,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -62,8 +65,45 @@ actual fun AppNavigation(
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
     val permState by permissionViewModel.state.collectAsStateWithLifecycle()
     val newHighlightState by newHighlightViewModel.state.collectAsStateWithLifecycle()
+    val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
 
     val backStack = remember { mutableStateListOf<NavKey>() }
+
+    LaunchedEffect(tutorialViewModel) {
+        tutorialViewModel.effects.collect { effect ->
+            when (effect) {
+                is com.timeline.tutorial.TutorialEffect.NavigateToScreen -> {
+                    when (effect.screen) {
+                        com.timeline.tutorial.TutorialScreen.TIMELINE -> {
+                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
+                                backStack.removeAt(backStack.size - 1)
+                            }
+                        }
+                        com.timeline.tutorial.TutorialScreen.HIGHLIGHT -> {
+                            if (backStack.lastOrNull() != Route.Highlight) {
+                                backStack.add(Route.Highlight)
+                            }
+                        }
+                        com.timeline.tutorial.TutorialScreen.SETTINGS -> {
+                            if (backStack.lastOrNull() != Route.Settings) {
+                                backStack.add(Route.Settings)
+                            }
+                        }
+                    }
+                }
+                is com.timeline.tutorial.TutorialEffect.SetSheetExpanded -> {
+                    timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ToggleSheet(effect.expanded))
+                }
+                is com.timeline.tutorial.TutorialEffect.TriggerFullScreenImage -> {
+                    if (effect.path != null) {
+                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ShowFullScreenImage(effect.path))
+                    } else {
+                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.DismissFullScreenImage)
+                    }
+                }
+            }
+        }
+    }
 
     // Check if launched from notification to open Highlight screen
     LaunchedEffect(Unit) {
@@ -110,160 +150,167 @@ actual fun AppNavigation(
 
         SharedTransitionLayout {
             CompositionLocalProvider(LocalSharedTransitionScope provides this) {
-                AnimatedContent(
-                    targetState = currentRoute,
-                    label = "NavTransition",
-                    transitionSpec = {
-                        if (targetState is Route.FullScreenImage || initialState is Route.FullScreenImage) {
-                            fadeIn(tween(500)) togetherWith fadeOut(tween(500))
-                        } else {
-                            fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+                    AnimatedContent(
+                        targetState = currentRoute,
+                        label = "NavTransition",
+                        transitionSpec = {
+                            if (targetState is Route.FullScreenImage || initialState is Route.FullScreenImage) {
+                                fadeIn(tween(500)) togetherWith fadeOut(tween(500))
+                            } else {
+                                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+                            }
                         }
-                    }
-                ) { route ->
-                    CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
-                        when (route) {
-                            is Route.Auth -> {
-                                AuthScreen(
-                                    viewModel = authViewModel,
-                                    platformContext = context,
-                                    onAuthSuccess = {
-                                        backStack.clear()
-                                        backStack.add(Route.Timeline)
-                                    }
-                                )
-                            }
-
-                            is Route.Permission -> {
-                                PermissionScreen(
-                                    viewModel = permissionViewModel,
-                                    onNavigateToUsageStats = onNavigateToUsageStats,
-                                    onNavigateToOverlay = onNavigateToOverlay,
-                                    onNavigateToNotification = onNavigateToNotification,
-                                    onNavigateToAccessibility = onNavigateToAccessibility,
-                                    onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
-                                    onAllGranted = {
-                                        backStack.clear()
-                                        backStack.add(Route.Timeline)
-                                    },
-                                    onNavigateToPaywall = {
-                                        backStack.add(Route.Paywall())
-                                    }
-                                )
-                            }
-
-                            is Route.Timeline -> {
-                                LaunchedEffect(
-                                    permState.allGranted,
-                                    prefsState?.isPermissionsCompleted
-                                ) {
-                                    val isFullyGranted =
-                                        permState.allGranted && prefsState?.isPermissionsCompleted == true
-                                    if (isFullyGranted) {
-                                        tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
-                                    }
+                    ) { route ->
+                        CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
+                            when (route) {
+                                is Route.Auth -> {
+                                    AuthScreen(
+                                        viewModel = authViewModel,
+                                        platformContext = context,
+                                        onAuthSuccess = {
+                                            backStack.clear()
+                                            backStack.add(Route.Timeline)
+                                        }
+                                    )
                                 }
 
-                                AppRootContainer(
-                                    timelineViewModel = timelineViewModel,
-                                    tutorialViewModel = tutorialViewModel,
-                                    onNavigateRoute = { routeName ->
-                                        when (routeName) {
-                                            TutorialScreen.SETTINGS.name -> backStack.add(Route.Settings)
-                                            TutorialScreen.HIGHLIGHT.name -> backStack.add(Route.Highlight)
+                                is Route.Permission -> {
+                                    PermissionScreen(
+                                        viewModel = permissionViewModel,
+                                        onNavigateToUsageStats = onNavigateToUsageStats,
+                                        onNavigateToOverlay = onNavigateToOverlay,
+                                        onNavigateToNotification = onNavigateToNotification,
+                                        onNavigateToAccessibility = onNavigateToAccessibility,
+                                        onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
+                                        onAllGranted = {
+                                            backStack.clear()
+                                            backStack.add(Route.Timeline)
+                                        },
+                                        onNavigateToPaywall = {
+                                            backStack.add(Route.Paywall())
                                         }
-                                    },
-                                    onNavigateToSettings = {
-                                        backStack.add(Route.Settings)
-                                    },
-                                    onNavigateToHighlight = {
-                                        backStack.add(Route.Highlight)
-                                    }
-                                )
-                            }
+                                    )
+                                }
 
-                            is Route.HighlightLoading -> {
-                                com.timeline.ui.NewHighlightLoadingScreen(
-                                    screenshots = newHighlightState.dynamicScreenshots,
-                                    onFinished = {
-                                        backStack.removeAt(backStack.size - 1)
-                                        backStack.add(Route.Highlight)
+                                is Route.Timeline -> {
+                                    LaunchedEffect(
+                                        permState.allGranted,
+                                        prefsState?.isPermissionsCompleted
+                                    ) {
+                                        val isFullyGranted =
+                                            permState.allGranted && prefsState?.isPermissionsCompleted == true
+                                        if (isFullyGranted) {
+                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
+                                        }
                                     }
-                                )
-                            }
 
-                            is Route.Highlight -> {
-                                com.timeline.ui.NewHighlightScreen(
-                                    viewModel = newHighlightViewModel,
-                                    onNavigateBack = {
-                                        if (backStack.size > 1) {
+                                    AppRootContainer(
+                                        timelineViewModel = timelineViewModel,
+                                        tutorialViewModel = tutorialViewModel,
+                                        onNavigateToSettings = {
+                                            if (tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_SETTINGS_ICON) {
+                                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                            } else {
+                                                backStack.add(Route.Settings)
+                                            }
+                                        },
+                                        onNavigateToHighlight = {
+                                            backStack.add(Route.Highlight)
+                                        }
+                                    )
+                                }
+
+                                is Route.HighlightLoading -> {
+                                    com.timeline.ui.NewHighlightLoadingScreen(
+                                        screenshots = newHighlightState.dynamicScreenshots,
+                                        onFinished = {
                                             backStack.removeAt(backStack.size - 1)
+                                            backStack.add(Route.Highlight)
                                         }
-                                    }
-                                )
-                            }
+                                    )
+                                }
 
-                            is Route.Insights -> {
-                                InsightsHostScreen(
-                                    onNavigateBack = {
-                                        if (backStack.size > 1) {
-                                            backStack.removeAt(backStack.size - 1)
+                                is Route.Highlight -> {
+                                    com.timeline.ui.NewHighlightScreen(
+                                        viewModel = newHighlightViewModel,
+                                        tutorialViewModel = tutorialViewModel,
+                                        onNavigateBack = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
                                         }
-                                    }
-                                )
-                            }
+                                    )
+                                }
 
-                            is Route.Settings -> {
-                                SettingsScreen(
-                                    viewModel = settingsViewModel,
-                                    onNavigateToPaywall = { isDeals ->
-                                        backStack.add(Route.Paywall(isDealsVariant = isDeals))
-                                    },
-                                    onNavigateToCustomerCenter = {
-                                        backStack.add(Route.CustomerCenter)
-                                    },
-                                    onNavigateToAuth = {
-                                        backStack.add(Route.Auth)
-                                    },
-                                    onBack = {
-                                        if (backStack.size > 1) {
-                                            backStack.removeAt(backStack.size - 1)
+                                is Route.Insights -> {
+                                    InsightsHostScreen(
+                                        onNavigateBack = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
                                         }
-                                    }
-                                )
-                            }
+                                    )
+                                }
 
-                            is Route.CustomerCenter -> {
-                                CustomerCenter(
-                                    onDismiss = {
-                                        if (backStack.size > 1) {
-                                            backStack.removeAt(backStack.size - 1)
+                                is Route.Settings -> {
+                                    SettingsScreen(
+                                        viewModel = settingsViewModel,
+                                        tutorialViewModel = tutorialViewModel,
+                                        onNavigateToPaywall = { isDeals ->
+                                            backStack.add(Route.Paywall(isDealsVariant = isDeals))
+                                        },
+                                        onNavigateToCustomerCenter = {
+                                            backStack.add(Route.CustomerCenter)
+                                        },
+                                        onNavigateToAuth = {
+                                            backStack.add(Route.Auth)
+                                        },
+                                        onBack = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
                                         }
-                                    }
-                                )
-                            }
+                                    )
+                                }
 
-                            is Route.Paywall -> {
-                                val paywallViewModel: PaywallViewModel = koinViewModel()
-                                NewPaywallScreen(
-                                    viewModel = paywallViewModel,
-                                    style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
-                                    onDismiss = {
-                                        if (backStack.size > 1) {
-                                            backStack.removeAt(backStack.size - 1)
+                                is Route.CustomerCenter -> {
+                                    CustomerCenter(
+                                        onDismiss = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
                                         }
-                                    },
-                                    onPurchaseSuccess = {
-                                        if (backStack.size > 1) {
-                                            backStack.removeAt(backStack.size - 1)
-                                        }
-                                    }
-                                )
-                            }
+                                    )
+                                }
 
-                            is Route.FullScreenImage -> {}
+                                is Route.Paywall -> {
+                                    val paywallViewModel: PaywallViewModel = koinViewModel()
+                                    NewPaywallScreen(
+                                        viewModel = paywallViewModel,
+                                        style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
+                                        onDismiss = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
+                                        },
+                                        onPurchaseSuccess = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
+                                        }
+                                    )
+                                }
+
+                                is Route.FullScreenImage -> {}
+                            }
                         }
                     }
+
+                    com.timeline.tutorial.TutorialShowcaseOverlay(
+                        state = tutorialState,
+                        onEvent = tutorialViewModel::onEvent
+                    )
                 }
             }
         }
