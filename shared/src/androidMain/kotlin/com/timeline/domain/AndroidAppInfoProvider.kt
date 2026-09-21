@@ -46,7 +46,8 @@ class AndroidAppInfoProvider(private val context: Context) : AppInfoProvider {
                 .map { appInfo ->
                     AppMetadata(
                         packageName = appInfo.packageName,
-                        name = packageManager.getApplicationLabel(appInfo).toString()
+                        name = packageManager.getApplicationLabel(appInfo).toString(),
+                        icon = getAppIcon(appInfo.packageName)
                     )
                 }
                 .sortedBy { it.name }

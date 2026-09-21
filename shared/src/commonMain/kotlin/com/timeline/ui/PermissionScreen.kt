@@ -125,8 +125,8 @@ private fun ModeSelectionStep(
     OnboardingLayout(
         topBar = {
             Column {
-                Text(text = "How would you prefer to see your highlights?", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                Text(text = "Choose your preferred highlight style and frequency.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                Text(text = AppStrings.PermissionModeTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+                Text(text = AppStrings.PermissionModeSubtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
         },
         bottomBar = {
@@ -150,9 +150,9 @@ private fun ModeSelectionStep(
                         Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
                         Text(
                             text = when(selectedPreference) {
-                                "Concise" -> "Brief summary: Focused check-ins & peak productivity."
-                                "Detailed" -> "Comprehensive breakdown: Active digital workflows across apps."
-                                else -> "Balanced daily narrative and smart summaries."
+                                "Concise" -> AppStrings.PermissionModeConciseBrief
+                                "Detailed" -> AppStrings.PermissionModeDetailedBrief
+                                else -> AppStrings.PermissionModeBalancedBrief
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
@@ -170,7 +170,7 @@ private fun ModeSelectionStep(
                     modifier = Modifier.weight(1f).height(56.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Balanced")
+                    Text(AppStrings.PermissionModeBalanced)
                 }
                 OutlinedButton(
                     onClick = { selectedPreference = "Concise"; showTimingModal = true },
@@ -178,13 +178,13 @@ private fun ModeSelectionStep(
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                 ) {
-                    Text("Concise")
+                    Text(AppStrings.PermissionModeConcise)
                 }
             }
 
             // Bottom Spanning Row (1 option)
             OnboardingActionButton(
-                text = "Detailed Pro Mode",
+                text = AppStrings.PermissionModeDetailedPro,
                 onClick = { selectedPreference = "Detailed"; onNavigateToPaywall() },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -202,9 +202,9 @@ private fun ModeSelectionStep(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Highlight Timing & Frequency", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Text(AppStrings.PermissionTimingTitle, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 Text(
-                    text = "${sliderValue.toInt()} times daily",
+                    text = AppStrings.SettingsFrequencyLabel.replace("%d", sliderValue.toInt().toString()),
                     style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = animatedAlpha))
                 )
                 Slider(
@@ -223,7 +223,7 @@ private fun ModeSelectionStep(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Confirm & Start")
+                    Text(AppStrings.PermissionConfirmStart)
                 }
             }
         }
@@ -417,27 +417,27 @@ private fun PermissionCardStackStep(
                 )
                 Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
                 Text(
-                    text = "Accessibility & Privacy",
+                    text = AppStrings.PermissionAccessibilityPrivacy,
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
                 Text(
-                    text = "Timeline uses Accessibility to detect app switches and capture visual context for your daily highlights. Data processing happens on-device and through secure cloud services to improve app functionality and deliver the best highlights.",
+                    text = AppStrings.PermissionAccessibilityPrivacyDesc,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
                 OnboardingActionButton(
-                    text = "I Understand & Accept",
+                    text = AppStrings.ButtonUnderstandContinue,
                     onClick = {
                         showPrivacySheet = false
                         onEvent(PermissionEvent.GrantPermission("accessibility"))
                     }
                 )
                 OnboardingTextButton(
-                    text = "Cancel",
+                    text = AppStrings.ButtonCancel,
                     onClick = { showPrivacySheet = false }
                 )
             }

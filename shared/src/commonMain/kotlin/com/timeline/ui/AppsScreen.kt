@@ -58,7 +58,7 @@ fun AppsScreenContent(scrollState: LazyListState) {
         }
 
         item {
-            InsightCard(text = "You spent ${state.categoryInsightText}.")
+            InsightCard(text = AppStrings.InsightsYouSpent.replace("%s", state.categoryInsightText))
         }
 
         val displayedApps = if (state.isAppsListExpanded) state.topApps else state.topApps.take(3)
@@ -80,7 +80,7 @@ fun AppsScreenContent(scrollState: LazyListState) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (state.isAppsListExpanded) "Collapse" else AppStrings.InsightsSeeAllApps.replace("%d", state.appCount.toString()),
+                        text = if (state.isAppsListExpanded) AppStrings.CommonCollapse else AppStrings.InsightsSeeAllApps.replace("%d", state.appCount.toString()),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -130,7 +130,7 @@ fun AppUsageCard(app: AppTimeShare) {
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "${app.minutes / 60}h ${app.minutes % 60}m",
+                            text = "${app.minutes / 60}${AppStrings.CommonH} ${app.minutes % 60}${AppStrings.CommonM}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -175,7 +175,7 @@ fun InsightCard(text: String) {
             Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
             Column {
                 Text(
-                    text = "Insight",
+                    text = AppStrings.CommonInsight,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

@@ -90,7 +90,7 @@ fun HighlightScreen(
                     ) {
                         Icon(
                             imageVector = if (isActive) Icons.Rounded.Star else Icons.Rounded.Edit,
-                            contentDescription = if (isActive) "AI Active (Starburst)" else "Pen (Toggle Reasoning)",
+                            contentDescription = if (isActive) AppStrings.HighlightAiActive else AppStrings.HighlightPenToggle,
                             tint = penTint,
                             modifier = Modifier.size(Dimensions.IconSmall)
                         )
@@ -202,7 +202,7 @@ fun HighlightScreen(
                         ) {
                             Icon(Icons.Rounded.Settings, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Grant Usage Access", color = MaterialTheme.colorScheme.onError)
+                            Text(AppStrings.HighlightGrantUsageAccess, color = MaterialTheme.colorScheme.onError)
                         }
                     }
                 }
@@ -401,7 +401,7 @@ private fun SessionHighlightCard(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Analyzing content in background...",
+                            text = AppStrings.HighlightAnalyzingContent,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -423,7 +423,7 @@ private fun SessionHighlightCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Preloading queued",
+                            text = AppStrings.HighlightPreloadingQueued,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)
                         )
@@ -648,11 +648,11 @@ private fun AppDailyNarrativeSection(
 
     if (state.isReasoningLoading) {
         val stageText = when (state.reasoningStage) {
-            com.timeline.presentation.HighlightState.ReasoningStage.REDACTING -> "Sanitizing PII data (Privacy Shield active)..."
-            com.timeline.presentation.HighlightState.ReasoningStage.DEDUPLICATING -> "Deduplicating session captures..."
-            com.timeline.presentation.HighlightState.ReasoningStage.CONTEXTUALIZING -> "Injecting historical & contextual timeline..."
-            com.timeline.presentation.HighlightState.ReasoningStage.REASONING -> "Synthesizing Gemini executive narrative..."
-            else -> "Analyzing usage activity & generating executive narratives..."
+            com.timeline.presentation.HighlightState.ReasoningStage.REDACTING -> AppStrings.HighlightSanitizingPii
+            com.timeline.presentation.HighlightState.ReasoningStage.DEDUPLICATING -> AppStrings.HighlightDeduplicating
+            com.timeline.presentation.HighlightState.ReasoningStage.CONTEXTUALIZING -> AppStrings.HighlightContextualizing
+            com.timeline.presentation.HighlightState.ReasoningStage.REASONING -> AppStrings.HighlightReasoning
+            else -> AppStrings.HighlightAnalyzingUsage
         }
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -675,7 +675,7 @@ private fun AppDailyNarrativeSection(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Gemini Reasoning Engine",
+                            text = AppStrings.HighlightGeminiEngine,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -708,9 +708,9 @@ private fun AppDailyNarrativeSection(
 
     val narrativeTitle = if (selectedPackage != null) {
         val appName = state.filteredScreenshots.firstOrNull()?.displayName ?: selectedPackage
-        "AI Narrative Insight • $appName"
+        AppStrings.HighlightAiNarrativeInsight.replace("%s", appName)
     } else {
-        "Daily Executive Narrative • All Apps"
+        AppStrings.HighlightDailyNarrative
     }
 
     if (reasoning != null) {
@@ -719,11 +719,11 @@ private fun AppDailyNarrativeSection(
         if (showPrivacyInfo) {
             AlertDialog(
                 onDismissRequest = { showPrivacyInfo = false },
-                title = { Text("Privacy Shield Active") },
-                text = { Text("PII Redactor successfully detected and scrubbed sensitive data (emails, phone numbers, auth tokens, cards) locally on-device before Gemini reasoning.") },
+                title = { Text(AppStrings.HighlightPrivacyShieldActive) },
+                text = { Text(AppStrings.HighlightPrivacyShieldDesc) },
                 confirmButton = {
                     TextButton(onClick = { showPrivacyInfo = false }) {
-                        Text("Got it")
+                        Text(AppStrings.HighlightGotIt)
                     }
                 }
             )
@@ -766,10 +766,10 @@ private fun AppDailyNarrativeSection(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Rounded.Shield, contentDescription = "Privacy Shield", modifier = Modifier.size(12.dp))
+                                Icon(Icons.Rounded.Shield, contentDescription = AppStrings.HighlightPrivacyShieldActive, modifier = Modifier.size(12.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Sanitized",
+                                    text = AppStrings.HighlightSanitized,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -822,7 +822,7 @@ private fun AppDailyNarrativeSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Detected Tasks & Next Steps",
+                            text = AppStrings.HighlightTasksNextSteps,
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
@@ -837,7 +837,7 @@ private fun AppDailyNarrativeSection(
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.ContentCopy,
-                                contentDescription = "Copy Tasks",
+                                contentDescription = AppStrings.HighlightCopyTasks,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -862,7 +862,7 @@ private fun AppDailyNarrativeSection(
         ) {
             Icon(Icons.Rounded.Psychology, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(if (selectedPackage != null) "Generate AI Narrative for this app" else "Synthesize Daily Gemini Narrative")
+            Text(if (selectedPackage != null) AppStrings.HighlightGenerateAiNarrativeApp else AppStrings.HighlightSynthesizeDailyNarrative)
         }
     }
 }
@@ -881,14 +881,14 @@ private fun AiOptInBanner(onOptIn: () -> Unit) {
                 Icon(Icons.Rounded.Security, null, tint = MaterialTheme.colorScheme.secondary)
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "AI Activity Reasoning",
+                    text = AppStrings.HighlightAiActivityReasoning,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Turn your raw screen captures into meaningful narratives. Data is processed via Gemini Cloud for reasoning. No data is used for model training.",
+                text = AppStrings.HighlightAiReasoningDesc,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -898,7 +898,7 @@ private fun AiOptInBanner(onOptIn: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Enable AI Narratives")
+                Text(AppStrings.HighlightEnableAiNarratives)
             }
         }
     }
@@ -943,7 +943,7 @@ private fun EmptyHighlightState(
 
         Text(
             text = if (isUsagePermissionGranted)
-                "No activity captured yet. Use your apps or tap Sync to load your recent timeline activity."
+                AppStrings.HighlightNoActivityCaptured
             else
                 AppStrings.RealDataPermissionBannerDesc,
             style = MaterialTheme.typography.bodyMedium,
