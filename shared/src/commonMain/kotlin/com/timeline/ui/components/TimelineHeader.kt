@@ -85,7 +85,7 @@ fun TimelineHeader(
                         modifier = Modifier
                             .clickable(onClick = onSelectDateClick)
                             .spotlightTarget(
-                                TutorialStep.SPOTLIGHT_DATE_PICKER,
+                                TutorialStep.SPOTLIGHT_DATE_CONTAINER,
                                 onBoundsCalculated
                             )
                     ) {

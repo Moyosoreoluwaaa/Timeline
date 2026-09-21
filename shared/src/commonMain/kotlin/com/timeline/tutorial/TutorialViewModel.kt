@@ -157,7 +157,9 @@ class TutorialViewModel(
                 TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION
             }
 
-            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_PICKER
+            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_CONTAINER
+
+            TutorialStep.SPOTLIGHT_DATE_CONTAINER -> TutorialStep.SPOTLIGHT_DATE_PICKER
 
             TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SETTINGS_ICON
 
@@ -166,15 +168,14 @@ class TutorialViewModel(
                 TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE
             }
 
-            TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE -> TutorialStep.SPOTLIGHT_REASONING_BALANCED
-            TutorialStep.SPOTLIGHT_REASONING_BALANCED -> TutorialStep.SPOTLIGHT_REASONING_SLIDER
-            TutorialStep.SPOTLIGHT_REASONING_SLIDER -> TutorialStep.SPOTLIGHT_TRACKING_OPTIONS
+            TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE -> TutorialStep.SPOTLIGHT_REASONING_SHEET
+            TutorialStep.SPOTLIGHT_REASONING_SHEET -> TutorialStep.SPOTLIGHT_TRACKING_OPTIONS
             TutorialStep.SPOTLIGHT_TRACKING_OPTIONS -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
-            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> TutorialStep.SPOTLIGHT_EXCLUSION_MOCK_ITEM
-            TutorialStep.SPOTLIGHT_EXCLUSION_MOCK_ITEM -> TutorialStep.SPOTLIGHT_DATA_RETENTION
-            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.SPOTLIGHT_RETENTION_SHEET_CONTENT
+            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET
+            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> TutorialStep.SPOTLIGHT_DATA_RETENTION
+            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.SPOTLIGHT_RETENTION_SHEET
 
-            TutorialStep.SPOTLIGHT_RETENTION_SHEET_CONTENT -> {
+            TutorialStep.SPOTLIGHT_RETENTION_SHEET -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
                 TutorialStep.SPOTLIGHT_SUMMARY_BAR
             }

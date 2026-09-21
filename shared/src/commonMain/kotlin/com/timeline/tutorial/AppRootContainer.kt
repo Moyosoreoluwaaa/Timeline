@@ -62,6 +62,11 @@ fun AppRootContainer(
                 showDatePicker = false
             }
 
+            TutorialStep.SPOTLIGHT_DATE_CONTAINER -> {
+                showTimeFilters = false
+                showDatePicker = false
+            }
+
             TutorialStep.SPOTLIGHT_DATE_PICKER -> {
                 showTimeFilters = false
                 showDatePicker = true

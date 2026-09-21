@@ -49,11 +49,7 @@ fun SettingsScreen(
                 scrollState.animateScrollToItem(0)
             }
 
-            TutorialStep.SPOTLIGHT_REASONING_BALANCED -> {
-                showReasoningSheet = true
-            }
-
-            TutorialStep.SPOTLIGHT_REASONING_SLIDER -> {
+            TutorialStep.SPOTLIGHT_REASONING_SHEET -> {
                 showReasoningSheet = true
             }
 
@@ -67,7 +63,7 @@ fun SettingsScreen(
                 scrollState.animateScrollToItem(8)
             }
 
-            TutorialStep.SPOTLIGHT_EXCLUSION_MOCK_ITEM -> {
+            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> {
                 showExclusionsSheet = true
             }
 
@@ -77,7 +73,7 @@ fun SettingsScreen(
                 scrollState.animateScrollToItem(9)
             }
 
-            TutorialStep.SPOTLIGHT_RETENTION_SHEET_CONTENT -> {
+            TutorialStep.SPOTLIGHT_RETENTION_SHEET -> {
                 showRetentionSheet = true
             }
 
@@ -307,10 +303,29 @@ fun SettingsScreen(
 
     if (showReasoningSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showReasoningSheet = false },
+            onDismissRequest = {
+                showReasoningSheet = false
+                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
+                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                }
+            },
             containerColor = MaterialTheme.colorScheme.surface
         ) {
-            Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
+            Column(
+                modifier = Modifier
+                    .padding(Dimensions.PaddingMedium)
+                    .spotlightTarget(
+                        TutorialStep.SPOTLIGHT_REASONING_SHEET,
+                        onBoundsCalculated = { step, bounds ->
+                            tutorialViewModel.onEvent(
+                                TutorialEvent.UpdateTargetBounds(
+                                    step,
+                                    bounds
+                                )
+                            )
+                        }
+                    )
+            ) {
                 Text(AppStrings.SettingsReasoningMode, style = MaterialTheme.typography.titleLarge)
                 com.timeline.domain.reasoning.HighlightReasoningMode.entries.forEach { mode ->
                     ListItem(
@@ -323,39 +338,16 @@ fun SettingsScreen(
                         },
                         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier
-                            .clickable { viewModel.onEvent(SettingsEvent.SetReasoningMode(mode)) }
-                            .then(
-                                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_REASONING_BALANCED &&
-                                    mode == com.timeline.domain.reasoning.HighlightReasoningMode.BALANCED
-                                ) {
-                                    Modifier.spotlightTarget(
-                                        TutorialStep.SPOTLIGHT_REASONING_BALANCED,
-                                        onBoundsCalculated = { step, bounds ->
-                                            tutorialViewModel.onEvent(
-                                                TutorialEvent.UpdateTargetBounds(
-                                                    step,
-                                                    bounds
-                                                )
-                                            )
-                                        }
-                                    )
-                                } else Modifier)
+                            .clickable {
+                                viewModel.onEvent(SettingsEvent.SetReasoningMode(mode))
+                                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
+                                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                }
+                            }
                     )
                 }
                 Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                Column(
-                    modifier = Modifier.spotlightTarget(
-                        TutorialStep.SPOTLIGHT_REASONING_SLIDER,
-                        onBoundsCalculated = { step, bounds ->
-                            tutorialViewModel.onEvent(
-                                TutorialEvent.UpdateTargetBounds(
-                                    step,
-                                    bounds
-                                )
-                            )
-                        }
-                    )
-                ) {
+                Column {
                     Text(
                         AppStrings.SettingsFrequencyLabel.replace(
                             "%d",
@@ -390,10 +382,29 @@ fun SettingsScreen(
         val appsToDisplay = if (tutorialState.isActive) mockApps else state.availableApps
 
         ModalBottomSheet(
-            onDismissRequest = { showExclusionsSheet = false },
+            onDismissRequest = {
+                showExclusionsSheet = false
+                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET) {
+                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                }
+            },
             containerColor = MaterialTheme.colorScheme.surface
         ) {
-            LazyColumn(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(Dimensions.PaddingMedium)
+                    .spotlightTarget(
+                        TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET,
+                        onBoundsCalculated = { step, bounds ->
+                            tutorialViewModel.onEvent(
+                                TutorialEvent.UpdateTargetBounds(
+                                    step,
+                                    bounds
+                                )
+                            )
+                        }
+                    )
+            ) {
                 item {
                     Text(
                         AppStrings.SettingsAppExclusionsTitle,
@@ -420,22 +431,12 @@ fun SettingsScreen(
                                         viewModel.onEvent(
                                             SettingsEvent.ToggleExclusion(app.packageName)
                                         )
+                                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET) {
+                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                        }
                                     })
                             },
-                            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                            modifier = if (tutorialState.isActive && app.packageName == "com.whatsapp") {
-                                Modifier.spotlightTarget(
-                                    TutorialStep.SPOTLIGHT_EXCLUSION_MOCK_ITEM,
-                                    onBoundsCalculated = { step, bounds ->
-                                        tutorialViewModel.onEvent(
-                                            TutorialEvent.UpdateTargetBounds(
-                                                step,
-                                                bounds
-                                            )
-                                        )
-                                    }
-                                )
-                            } else Modifier
+                            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface)
                         )
                     }
                 }
@@ -446,14 +447,19 @@ fun SettingsScreen(
     if (showRetentionSheet) {
         val isFeatureLocked = state.trialStatus != TrialStatus.ACTIVE && !state.isPro
         ModalBottomSheet(
-            onDismissRequest = { showRetentionSheet = false },
+            onDismissRequest = {
+                showRetentionSheet = false
+                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_RETENTION_SHEET) {
+                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                }
+            },
             containerColor = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier
                     .padding(Dimensions.PaddingMedium)
                     .spotlightTarget(
-                        TutorialStep.SPOTLIGHT_RETENTION_SHEET_CONTENT,
+                        TutorialStep.SPOTLIGHT_RETENTION_SHEET,
                         onBoundsCalculated = { step, bounds ->
                             tutorialViewModel.onEvent(
                                 TutorialEvent.UpdateTargetBounds(
@@ -474,6 +480,9 @@ fun SettingsScreen(
                         val newValue =
                             if (isFeatureLocked) it.toInt().coerceAtMost(7) else it.toInt()
                         viewModel.onEvent(SettingsEvent.SetDataRetention(newValue))
+                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_RETENTION_SHEET) {
+                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                        }
                     },
                     valueRange = 1f..if (isFeatureLocked) 7f else 60f,
                     steps = if (isFeatureLocked) 6 else 60,

@@ -51,10 +51,15 @@ enum class TutorialStep(
         title = "Time Filter Options",
         description = "Filter your timeline sessions by Morning, Afternoon, or Evening."
     ),
+    SPOTLIGHT_DATE_CONTAINER(
+        screen = TutorialScreen.TIMELINE,
+        title = "Date Selector",
+        description = "Tap the date header to view usage logs from previous dates."
+    ),
     SPOTLIGHT_DATE_PICKER(
         screen = TutorialScreen.TIMELINE,
         title = "Date Picker",
-        description = "Tap the date container to select and view usage logs from previous dates."
+        description = "Select and view usage logs from previous dates."
     ),
     SPOTLIGHT_SETTINGS_ICON(
         screen = TutorialScreen.TIMELINE,
@@ -64,17 +69,12 @@ enum class TutorialStep(
     SPOTLIGHT_HIGHLIGHTS_PREFERENCE(
         screen = TutorialScreen.SETTINGS,
         title = "Highlights & Reasoning",
-        description = "Tap this preference option to customize your Gemini narrative style and frequency."
+        description = "Adjust your narrative style and digest frequency."
     ),
-    SPOTLIGHT_REASONING_BALANCED(
+    SPOTLIGHT_REASONING_SHEET(
         screen = TutorialScreen.SETTINGS,
-        title = "Balanced Narrative",
-        description = "Select the 'Balanced' option for a mix of detail and conciseness in your highlights."
-    ),
-    SPOTLIGHT_REASONING_SLIDER(
-        screen = TutorialScreen.SETTINGS,
-        title = "Digest Frequency",
-        description = "Use this slider to adjust how often Gemini generates your timeline highlights."
+        title = "Reasoning Mode",
+        description = "Select your preferred narrative style and adjust digest frequency in this sheet."
     ),
     SPOTLIGHT_TRACKING_OPTIONS(
         screen = TutorialScreen.SETTINGS,
@@ -86,7 +86,7 @@ enum class TutorialStep(
         title = "Manage App Exclusion",
         description = "Tap here to exclude specific private apps from being tracked."
     ),
-    SPOTLIGHT_EXCLUSION_MOCK_ITEM(
+    SPOTLIGHT_EXCLUSIONS_SHEET(
         screen = TutorialScreen.SETTINGS,
         title = "Exclude Apps",
         description = "Toggle the switch next to any app to prevent it from appearing in your timeline."
@@ -96,7 +96,7 @@ enum class TutorialStep(
         title = "Adjust Data Retention",
         description = "Tap here to adjust how many days your local screenshots and logs are kept."
     ),
-    SPOTLIGHT_RETENTION_SHEET_CONTENT(
+    SPOTLIGHT_RETENTION_SHEET(
         screen = TutorialScreen.SETTINGS,
         title = "Retention Period",
         description = "Drag the slider to set your preferred data cleanup frequency."
