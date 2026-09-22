@@ -40,9 +40,6 @@ fun SessionDetailSheet(
 ) {
     val session = state.selectedSession ?: return
 
-    val sharedTransitionScope = LocalSharedTransitionScope.current
-    val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -84,15 +81,6 @@ fun SessionDetailSheet(
                             val segmentsWithScreenshots = session.segments.filter { it.screenshotPath != null }
                             itemsIndexed(segmentsWithScreenshots) { index, segment ->
                                 val path = segment.screenshotPath!!
-                                val sharedModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                                    with(sharedTransitionScope) {
-                                        Modifier.sharedElement(
-                                            rememberSharedContentState(key = "image-$path"),
-                                            animatedVisibilityScope = animatedVisibilityScope,
-                                            boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 380f) }
-                                        )
-                                    }
-                                } else Modifier
 
                                 ScreenshotImage(
                                     path = path,
@@ -100,8 +88,8 @@ fun SessionDetailSheet(
                                     modifier = Modifier
                                         .width(Dimensions.SpacingMega)
                                         .height(Dimensions.SpacingUltra)
+                                        .clickable { onShowFullScreenImage(path) }
                                         .clip(MaterialTheme.shapes.small)
-                                        .then(sharedModifier)
                                         .then(
                                             if (index == 0 && onBoundsCalculated != null) {
                                                 Modifier.onGloballyPositioned { coords ->
@@ -109,7 +97,6 @@ fun SessionDetailSheet(
                                                 }
                                             } else Modifier
                                         )
-                                        .clickable { onShowFullScreenImage(path) }
                                 )
                             }
                         }

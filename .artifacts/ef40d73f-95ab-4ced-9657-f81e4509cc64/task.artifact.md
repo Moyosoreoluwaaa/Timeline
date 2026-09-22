@@ -1,0 +1,4 @@
+- `[x]` Synchronize isSheetExpanded with sheetState currentValue in TimelineScreen
+- `[x]` Add animated expansionProgress using animateFloatAsState
+- `[x]` Render full screen image overlay inside a full screen Dialog
+- `[x]` Reduce vertical top padding in SessionDetailHeader

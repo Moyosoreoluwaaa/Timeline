@@ -51,8 +51,8 @@ fun SessionDetailHeader(
             .zIndex(1f)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clip(MaterialTheme.shapes.medium)
-            .padding(vertical = Dimensions.PaddingLarge)
-            .padding(Dimensions.PaddingMedium),
+            .padding(vertical = Dimensions.PaddingSmall)
+            .padding(horizontal = Dimensions.PaddingMedium),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -164,8 +164,6 @@ fun ExpandedSessionContent(
     onImageClick: (String?) -> Unit
 ) {
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val sharedTransitionScope = LocalSharedTransitionScope.current
-    val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
 
     LazyColumn(
         modifier = Modifier
@@ -205,16 +203,6 @@ fun ExpandedSessionContent(
                         ) {
                             items(segmentsWithScreenshots) { segment ->
                                 val path = segment.screenshotPath!!
-                                val sharedModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                                    with(sharedTransitionScope) {
-                                        Modifier.sharedElement(
-                                            rememberSharedContentState(key = "image-$path"),
-                                            animatedVisibilityScope = animatedVisibilityScope,
-                                            boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 380f) }
-                                        )
-                                    }
-                                } else Modifier
-
                                 Column(
                                     modifier = Modifier
                                         .width(Dimensions.SpacingMega)
@@ -246,7 +234,6 @@ fun ExpandedSessionContent(
                                             .fillMaxWidth()
                                             .height(Dimensions.SpacingUltra)
                                             .clip(MaterialTheme.shapes.small)
-                                            .then(sharedModifier)
                                     )
                                 }
                             }
