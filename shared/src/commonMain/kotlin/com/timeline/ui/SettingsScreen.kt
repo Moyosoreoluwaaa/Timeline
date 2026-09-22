@@ -369,15 +369,11 @@ fun SettingsScreen(
 
     if (showExclusionsSheet) {
         val isFeatureLocked = state.trialStatus != TrialStatus.ACTIVE && !state.isPro
+        val timelineIcon = rememberAppIcon("com.timeline_records")
         val mockApps = listOf(
-            com.timeline.presentation.AppInfo("com.whatsapp", "WhatsApp", null, false),
-            com.timeline.presentation.AppInfo(
-                "com.google.android.apps.messaging",
-                "Messages",
-                null,
-                false
-            ),
-            com.timeline.presentation.AppInfo("com.android.settings", "Settings", null, true)
+            com.timeline.presentation.AppInfo("com.timeline_records", "Timeline", timelineIcon, false),
+            com.timeline.presentation.AppInfo("com.google.android.youtube", "YouTube", rememberAppIcon("com.google.android.youtube"), false),
+            com.timeline.presentation.AppInfo("com.google.android.gm", "Gmail", rememberAppIcon("com.google.android.gm"), true)
         )
         val appsToDisplay = if (tutorialState.isActive) mockApps else state.availableApps
 

@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class TutorialViewModel(
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val appInfoProvider: com.timeline.domain.AppInfoProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TutorialState())
@@ -56,9 +57,8 @@ class TutorialViewModel(
         }
     }
 
-    private fun createMockSessions(): List<Session> {
+    private suspend fun createMockSessions(): List<Session> {
         val now = kotlin.time.Clock.System.now()
-        val nowMillis = now.toEpochMilliseconds()
 
         val session1 = Session(
             id = "tutorial_session_youtube",
@@ -68,6 +68,7 @@ class TutorialViewModel(
             endTime = now.minus(kotlin.time.Duration.parse("45m")),
             durationMinutes = 15,
             durationSeconds = 0,
+            icon = appInfoProvider.getAppIcon("com.google.android.youtube"),
             screenshots = listOf("mock_youtube_1.jpg"),
             segments = listOf(
                 com.timeline.domain.SessionSegment(
@@ -77,25 +78,26 @@ class TutorialViewModel(
                 )
             )
         )
-
+        val timelineIcon = appInfoProvider.getAppIcon("com.timeline_records")
         val session2 = Session(
-            id = "tutorial_session_timeline_records_middle",
+            id = "tutorial_session_timeline_middle",
             packageName = "com.timeline_records",
-            displayName = "Timeline Records",
+            displayName = "Timeline",
             startTime = now.minus(kotlin.time.Duration.parse("40m")),
             endTime = now.minus(kotlin.time.Duration.parse("15m")),
             durationMinutes = 25,
             durationSeconds = 0,
-            screenshots = listOf("mock_timeline_records1.jpg", "mock_timeline_records2.jpg"),
+            icon = timelineIcon,
+            screenshots = listOf("mock_timeline1.jpg", "mock_timeline2.jpg"),
             segments = listOf(
                 com.timeline.domain.SessionSegment(
                     timestamp = now.minus(kotlin.time.Duration.parse("40m")),
-                    screenshotPath = "mock_timeline_records1.jpg",
+                    screenshotPath = "mock_timeline1.jpg",
                     activityDescription = "Watching Android Dev Tutorial"
                 ),
                 com.timeline.domain.SessionSegment(
                     timestamp = now.minus(kotlin.time.Duration.parse("25m")),
-                    screenshotPath = "mock_timeline_records2.jpg",
+                    screenshotPath = "mock_timeline2.jpg",
                     activityDescription = "Using Timeline"
                 )
             )
@@ -109,6 +111,7 @@ class TutorialViewModel(
             endTime = now,
             durationMinutes = 10,
             durationSeconds = 0,
+            icon = appInfoProvider.getAppIcon("com.twitter.android"),
             screenshots = listOf("mock_x_1.jpg"),
             segments = listOf(
                 com.timeline.domain.SessionSegment(
