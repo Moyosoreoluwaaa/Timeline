@@ -1,6 +1,10 @@
 package com.timeline.navigation
 
 import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import kotlinx.coroutines.launch
 import com.timeline.ui.TimelineScreen
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.presentation.SettingsViewModel
@@ -52,27 +56,47 @@ actual fun AppNavigation(
             )
         }
         Route.Timeline -> {
-            TimelineScreen(
-                viewModel = timelineViewModel,
-                onNavigateToSettings = { currentRoute = Route.Settings },
-                onNavigateToHighlight = { currentRoute = Route.HighlightLoading },
-                onBoundsCalculated = { step, bounds ->
-                    // Pass bounds to your tutorial overlay state if needed
+            val pagerState = rememberPagerState(initialPage = 1) { 3 }
+            val coroutineScope = rememberCoroutineScope()
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> {
+                        val highlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
+                        com.timeline.ui.NewHighlightScreen(
+                            viewModel = highlightViewModel,
+                            onNavigateBack = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                            }
+                        )
+                    }
+                    1 -> {
+                        TimelineScreen(
+                            viewModel = timelineViewModel,
+                            onNavigateToSettings = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(2) }
+                            },
+                            onNavigateToHighlight = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(0) }
+                            },
+                            onBoundsCalculated = { step, bounds -> }
+                        )
+                    }
+                    2 -> {
+                        SettingsScreen(
+                            viewModel = settingsViewModel,
+                            onNavigateToPaywall = { isDeals -> currentRoute = Route.Paywall(isDeals) },
+                            onNavigateToAuth = { currentRoute = Route.Auth },
+                            onBack = {
+                                coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                            }
+                        )
+                    }
                 }
-            )
-        }
-        Route.HighlightLoading -> {
-            com.timeline.ui.NewHighlightLoadingScreen(
-                screenshots = com.timeline.presentation.NewHighlightState().dynamicScreenshots,
-                onFinished = { currentRoute = Route.Highlight }
-            )
-        }
-        Route.Highlight -> {
-            val highlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
-            com.timeline.ui.NewHighlightScreen(
-                viewModel = highlightViewModel,
-                onNavigateBack = { currentRoute = Route.Timeline }
-            )
+            }
         }
         Route.Insights -> {
             InsightsHostScreen(

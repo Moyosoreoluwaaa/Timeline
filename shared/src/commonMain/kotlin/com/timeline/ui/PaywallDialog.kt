@@ -222,6 +222,50 @@ fun PaywallScreen(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
+
+                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+
+                // Restore Purchases Button
+                TextButton(
+                    onClick = { /* TODO: Implement restore purchases, using https://google.com as placeholder */ },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = AppStrings.PaywallRestorePurchases,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Medium)
+                    )
+                }
+
+                // Privacy Policy & Terms of Use Links
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { /* TODO: Open https://google.com for Privacy Policy */ }) {
+                        Text(
+                            text = AppStrings.PaywallPrivacyPolicy,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low)
+                        )
+                    }
+
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low),
+                        modifier = Modifier.padding(horizontal = Dimensions.PaddingSmall)
+                    )
+
+                    TextButton(onClick = { /* TODO: Open https://google.com for Terms of Use */ }) {
+                        Text(
+                            text = AppStrings.PaywallTermsOfUse,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low)
+                        )
+                    }
+                }
             }
         }
     }

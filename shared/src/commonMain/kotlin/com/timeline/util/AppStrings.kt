@@ -311,6 +311,9 @@ object AppStrings {
     const val PaywallSave50 = "Save 20%"
     const val PaywallStartTrial = "Start 7-Day Free Trial"
     const val PaywallCancelAnytime = "Cancel anytime. No commitments."
+    const val PaywallRestorePurchases = "Restore Purchases"
+    const val PaywallPrivacyPolicy = "Privacy Policy"
+    const val PaywallTermsOfUse = "Terms of Use"
 
     // Accessibility / Content Descriptions
     const val ContentDescClose = "Close"

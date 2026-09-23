@@ -8,15 +8,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
@@ -29,7 +28,6 @@ import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.tutorial.AppRootContainer
 import com.timeline.tutorial.TutorialEvent
-import com.timeline.tutorial.TutorialScreen
 import com.timeline.tutorial.TutorialViewModel
 import com.timeline.ui.AuthScreen
 import com.timeline.ui.InsightsHostScreen
@@ -39,6 +37,7 @@ import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -150,7 +149,7 @@ actual fun AppNavigation(
 
         SharedTransitionLayout {
             CompositionLocalProvider(LocalSharedTransitionScope provides this) {
-                androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
+                androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
                     AnimatedContent(
                         targetState = currentRoute,
                         label = "NavTransition",
@@ -205,20 +204,97 @@ actual fun AppNavigation(
                                         }
                                     }
 
-                                    AppRootContainer(
-                                        timelineViewModel = timelineViewModel,
-                                        tutorialViewModel = tutorialViewModel,
-                                        onNavigateToSettings = {
-                                            if (tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_SETTINGS_ICON) {
-                                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                            } else {
-                                                backStack.add(Route.Settings)
+                                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = 1) { 3 }
+                                    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+                                    LaunchedEffect(tutorialViewModel, pagerState) {
+                                        tutorialViewModel.effects.collect { effect ->
+                                            when (effect) {
+                                                is com.timeline.tutorial.TutorialEffect.NavigateToScreen -> {
+                                                    when (effect.screen) {
+                                                        com.timeline.tutorial.TutorialScreen.TIMELINE -> {
+                                                            pagerState.animateScrollToPage(1)
+                                                        }
+                                                        com.timeline.tutorial.TutorialScreen.HIGHLIGHT -> {
+                                                            pagerState.animateScrollToPage(0)
+                                                        }
+                                                        com.timeline.tutorial.TutorialScreen.SETTINGS -> {
+                                                            pagerState.animateScrollToPage(2)
+                                                        }
+                                                    }
+                                                }
+                                                is com.timeline.tutorial.TutorialEffect.SetSheetExpanded -> {
+                                                    timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ToggleSheet(effect.expanded))
+                                                }
+                                                is com.timeline.tutorial.TutorialEffect.TriggerFullScreenImage -> {
+                                                    if (effect.path != null) {
+                                                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ShowFullScreenImage(effect.path))
+                                                    } else {
+                                                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.DismissFullScreenImage)
+                                                    }
+                                                }
                                             }
-                                        },
-                                        onNavigateToHighlight = {
-                                            backStack.add(Route.Highlight)
                                         }
-                                    )
+                                    }
+
+                                    androidx.compose.foundation.pager.HorizontalPager(
+                                        state = pagerState,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) { page ->
+                                        when (page) {
+                                            0 -> {
+                                                com.timeline.ui.NewHighlightScreen(
+                                                    viewModel = newHighlightViewModel,
+                                                    tutorialViewModel = tutorialViewModel,
+                                                    onNavigateBack = {
+                                                        coroutineScope.launch {
+                                                            pagerState.animateScrollToPage(1)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                            1 -> {
+                                                AppRootContainer(
+                                                    timelineViewModel = timelineViewModel,
+                                                    tutorialViewModel = tutorialViewModel,
+                                                    onNavigateToSettings = {
+                                                        if (tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_SETTINGS_ICON) {
+                                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                                        } else {
+                                                            coroutineScope.launch {
+                                                                pagerState.animateScrollToPage(2)
+                                                            }
+                                                        }
+                                                    },
+                                                    onNavigateToHighlight = {
+                                                        coroutineScope.launch {
+                                                            pagerState.animateScrollToPage(0)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                            2 -> {
+                                                SettingsScreen(
+                                                    viewModel = settingsViewModel,
+                                                    tutorialViewModel = tutorialViewModel,
+                                                    onNavigateToPaywall = { isDeals ->
+                                                        backStack.add(Route.Paywall(isDealsVariant = isDeals))
+                                                    },
+                                                    onNavigateToCustomerCenter = {
+                                                        backStack.add(Route.CustomerCenter)
+                                                    },
+                                                    onNavigateToAuth = {
+                                                        backStack.add(Route.Auth)
+                                                    },
+                                                    onBack = {
+                                                        coroutineScope.launch {
+                                                            pagerState.animateScrollToPage(1)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
 
                                 is Route.HighlightLoading -> {
