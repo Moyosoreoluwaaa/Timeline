@@ -113,7 +113,7 @@ fun UpgradeCard(
                     containerColor = if (isDark) Color.White else Color.Black,
                     contentColor = if (isDark) Color.Black else Color.White
                 ),
-                shape = MaterialTheme.shapes.medium
+                shape = com.timeline.ui.theme.AppShapes.Pill,
             ) {
                 Text(
                     text = AppStrings.PaywallStartTrial,

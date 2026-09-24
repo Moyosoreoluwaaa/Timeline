@@ -218,13 +218,13 @@ fun ExpandedSessionContent(
                                             color = MaterialTheme.colorScheme.secondary
                                         )
                                         Spacer(modifier = Modifier.width(Dimensions.Half))
-                                        Text(
-                                            text = segment.activityDescription ?: "Activity",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.weight(AppWeights.Full)
-                                        )
+//                                        Text(
+//                                            text = segment.activityDescription ?: "Activity",
+//                                            style = MaterialTheme.typography.labelSmall,
+//                                            maxLines = 1,
+//                                            overflow = TextOverflow.Ellipsis,
+//                                            modifier = Modifier.weight(AppWeights.Full)
+//                                        )
                                     }
                                     Spacer(modifier = Modifier.height(Dimensions.Half))
                                     ScreenshotImage(

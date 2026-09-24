@@ -135,6 +135,13 @@ fun TimelineEntry(
     }
 }
 
+private fun formatDuration(minutes: Int, seconds: Int): String {
+    val totalMinutes = minutes + (seconds / 60)
+    val h = totalMinutes / 60
+    val m = totalMinutes % 60
+    return if (h > 0) "${h}h ${m}m" else "${m}m"
+}
+
 @Composable
 fun FullScreenImageOverlay(
     path: String?,
@@ -177,7 +184,7 @@ fun BottomSummary(
             .padding(Dimensions.PaddingMedium)
             .navigationBarsPadding()
             .fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
+        shape = com.timeline.ui.theme.AppShapes.Pill,
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = Dimensions.ModalElevation
     ) {

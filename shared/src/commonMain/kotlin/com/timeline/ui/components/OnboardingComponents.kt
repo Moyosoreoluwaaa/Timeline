@@ -119,7 +119,7 @@ fun OnboardingActionButton(
         modifier = modifier
             .fillMaxWidth()
             .height(Dimensions.ButtonHeight),
-        shape = RoundedCornerShape(20.dp),
+        shape = com.timeline.ui.theme.AppShapes.Pill,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor
@@ -157,7 +157,7 @@ fun OnboardingTextButton(
         modifier = modifier
             .fillMaxWidth()
             .height(Dimensions.ButtonHeight),
-        shape = RoundedCornerShape(20.dp),
+        shape = com.timeline.ui.theme.AppShapes.Pill,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = MaterialTheme.colorScheme.onSurface

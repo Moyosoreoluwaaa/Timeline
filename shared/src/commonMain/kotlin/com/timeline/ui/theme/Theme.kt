@@ -66,8 +66,18 @@ fun TimelineTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
+        typography = androidx.compose.material3.Typography(
+            headlineLarge = AppTypography.H1,
+            headlineMedium = AppTypography.H2,
+            headlineSmall = AppTypography.H3,
+            bodyMedium = AppTypography.Body,
+            titleMedium = AppTypography.Title,
+            labelSmall = AppTypography.Cap
+        ),
+        shapes = androidx.compose.material3.Shapes(
+            medium = AppShapes.Card,
+            large = AppShapes.Sheet
+        ),
         content = content
     )
 }
