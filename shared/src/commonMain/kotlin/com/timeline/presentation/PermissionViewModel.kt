@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
 import com.timeline.domain.NotificationManager
+import com.timeline.presentation.OnboardingStep.*
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,6 +60,16 @@ class PermissionViewModel(
             is PermissionEvent.NextStep -> nextStep()
             is PermissionEvent.PreviousStep -> previousStep()
             is PermissionEvent.RetryPermission -> retryCurrentPermission()
+            is PermissionEvent.SetReasoningMode -> {
+                viewModelScope.launch {
+                    userPreferences.setHighlightReasoningMode(event.mode)
+                }
+            }
+            is PermissionEvent.SetDigestFrequency -> {
+                viewModelScope.launch {
+                    userPreferences.setDigestSchedule(event.frequency, listOf(12, 17, 21))
+                }
+            }
             is PermissionEvent.StartTracking -> {
                 viewModelScope.launch {
                     userPreferences.setPermissionsCompleted(true)
@@ -125,16 +136,17 @@ class PermissionViewModel(
     private fun nextStep() {
         _state.update { currentState ->
             val next = when (currentState.currentStep) {
-                OnboardingStep.Welcome -> OnboardingStep.PermissionCardStack
-                OnboardingStep.PermissionCardStack -> {
+                Welcome -> PermissionCardStack
+                PermissionCardStack -> {
                     // If we are at the end of the stack, move to mode selection
                     if (currentState.activeCardIndex >= currentState.permissions.size - 1) {
-                        OnboardingStep.ModeSelection
+                        ModeSelection
                     } else {
                         return@update currentState.copy(activeCardIndex = currentState.activeCardIndex + 1)
                     }
                 }
-                OnboardingStep.ModeSelection -> OnboardingStep.ModeSelection
+                ModeSelection -> ModeSelection
+                PlanSelection -> PlanSelection
             }
             
             viewModelScope.launch {

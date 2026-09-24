@@ -1,15 +1,63 @@
 package com.timeline.ui
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.AccessibilityNew
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Timeline
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,12 +70,19 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.timeline.presentation.*
-import com.timeline.ui.BackHandler
-import com.timeline.ui.components.*
+import com.timeline.presentation.OnboardingStep
+import com.timeline.presentation.PermissionEffect
+import com.timeline.presentation.PermissionEvent
+import com.timeline.presentation.PermissionItem
+import com.timeline.presentation.PermissionState
+import com.timeline.presentation.PermissionViewModel
+import com.timeline.ui.components.OnboardingActionButton
+import com.timeline.ui.components.OnboardingIllustration
+import com.timeline.ui.components.OnboardingLayout
+import com.timeline.ui.components.OnboardingStepIndicator
+import com.timeline.ui.components.OnboardingTextButton
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +107,11 @@ fun PermissionScreen(
                 is PermissionEffect.NavigateToAccessibilitySettings -> onNavigateToAccessibility()
                 is PermissionEffect.NavigateToBatteryOptimizationSettings -> onNavigateToBatteryOptimization()
                 is PermissionEffect.AllGranted -> onAllGranted()
-                is PermissionEffect.NavigateToPaywall -> onNavigateToPaywall()
+                is PermissionEffect.NavigateToPaywall -> {
+                    // Update state to PlanSelection step if navigation requested
+                    viewModel.onEvent(PermissionEvent.NextStep)
+                    onNavigateToPaywall()
+                }
             }
         }
     }
@@ -84,6 +143,7 @@ fun PermissionScreen(
                 viewModel.onEvent(PermissionEvent.StartTracking)
             },
             onNavigateToPaywall = {
+                // Navigate first
                 viewModel.selectProPlan()
             }
         )
@@ -102,6 +162,16 @@ private fun OnboardingStepContent(
         OnboardingStep.Welcome -> UnifiedWelcomeStep(onEvent)
         OnboardingStep.PermissionCardStack -> PermissionCardStackStep(state, onEvent)
         OnboardingStep.ModeSelection -> ModeSelectionStep(onEvent, onOpenTimeline, onNavigateToPaywall)
+        OnboardingStep.PlanSelection -> PlanSelectionStep(onOpenTimeline)
+    }
+}
+
+@Composable
+private fun PlanSelectionStep(onOpenTimeline: () -> Unit) {
+    // Placeholder for new Plan Selection UI
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("Choose your plan")
+        Button(onClick = onOpenTimeline) { Text("Continue") }
     }
 }
 
@@ -112,118 +182,309 @@ private fun ModeSelectionStep(
     onOpenTimeline: () -> Unit,
     onNavigateToPaywall: () -> Unit
 ) {
-    var selectedPreference by remember { mutableStateOf<String?>(null) }
-    var showTimingModal by remember { mutableStateOf(false) }
+    var selectedMode by remember { mutableStateOf("Balanced") }
     var sliderValue by remember { mutableStateOf(3f) }
-    var sliderActive by remember { mutableStateOf(false) }
 
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (sliderActive) 1f else 0.4f,
-        animationSpec = tween(300)
-    )
+    val activeColor = Color(0xFFFF6D00)
 
-    OnboardingLayout(
-        topBar = {
-            Column {
-                Text(text = AppStrings.PermissionModeTitle, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-                Text(text = AppStrings.PermissionModeSubtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-            }
-        },
-        bottomBar = {
-            OnboardingStepIndicator(total = 3, current = 2, modifier = Modifier.padding(bottom = Dimensions.PaddingMedium))
-        }
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            // Floating Modal Card with Animated Highlight Preview
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(150.dp),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = 4.dp,
-                shadowElevation = 4.dp
+            // Top Skip Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                contentAlignment = Alignment.TopEnd
             ) {
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Rounded.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
+                TextButton(onClick = onOpenTimeline) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = when(selectedPreference) {
-                                "Concise" -> AppStrings.PermissionModeConciseBrief
-                                "Detailed" -> AppStrings.PermissionModeDetailedBrief
-                                else -> AppStrings.PermissionModeBalancedBrief
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
+                            text = "Skip",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Main Content Area
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 56.dp, bottom = 90.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Settings Card Box
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // 1. Reasoning mode section
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Rounded.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = activeColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Reasoning mode",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                            Text(
+                                text = "How detailed should the context be?",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
 
-            // 2x1 Top Row (2 options)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = { selectedPreference = "Balanced"; showTimingModal = true },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(AppStrings.PermissionModeBalanced)
+                        // Segmented Button Row for Reasoning Mode
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val modes = listOf("Concise", "Balanced", "Explanatory")
+                                modes.forEach { mode ->
+                                    val isSelected = selectedMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isSelected) activeColor
+                                                else Color.Transparent
+                                            )
+                                            .clickable {
+                                                selectedMode = mode
+                                                if (mode == "Concise") {
+                                                    onEvent(PermissionEvent.SetReasoningMode(com.timeline.domain.reasoning.HighlightReasoningMode.CONCISE))
+                                                } else if (mode == "Balanced") {
+                                                    onEvent(PermissionEvent.SetReasoningMode(com.timeline.domain.reasoning.HighlightReasoningMode.BALANCED))
+                                                } else if (mode == "Explanatory") {
+                                                    onEvent(PermissionEvent.SetReasoningMode(com.timeline.domain.reasoning.HighlightReasoningMode.EXPLANATORY))
+                                                    onNavigateToPaywall()
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = mode,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                            thickness = 1.dp
+                        )
+
+                        // 2. Highlights frequency section
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Schedule,
+                                        contentDescription = null,
+                                        tint = activeColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Highlights frequency",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = activeColor.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "${sliderValue.toInt()}× – ${sliderValue.toInt() * 2}× daily",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            color = activeColor,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "How often to generate Highlights",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Interactive Slider for Frequency
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Slider(
+                                    value = sliderValue,
+                                    onValueChange = {
+                                        sliderValue = it
+                                        onEvent(PermissionEvent.SetDigestFrequency(it.toInt()))
+                                    },
+                                    valueRange = 1f..6f,
+                                    steps = 4,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = activeColor,
+                                        activeTrackColor = activeColor,
+                                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "1× daily",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    )
+                                    Text(
+                                        text = "6× daily",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-                OutlinedButton(
-                    onClick = { selectedPreference = "Concise"; showTimingModal = true },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Title and step indicators
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(AppStrings.PermissionModeConcise)
+                    Text(
+                        text = "Make Timeline\nwork your way",
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 36.sp
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(4) { index ->
+                            Box(
+                                modifier = Modifier
+                                    .size(if (index == 3) 8.dp else 6.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (index == 3) MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                                    )
+                            )
+                        }
+                    }
                 }
             }
 
-            // Bottom Spanning Row (1 option)
-            OnboardingActionButton(
-                text = AppStrings.PermissionModeDetailedPro,
-                onClick = { selectedPreference = "Detailed"; onNavigateToPaywall() },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-
-    if (showTimingModal) {
-        ModalBottomSheet(
-            onDismissRequest = { showTimingModal = false },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(24.dp).padding(bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            // Bottom Continue Button Area
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(24.dp)
             ) {
-                Text(AppStrings.PermissionTimingTitle, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                Text(
-                    text = AppStrings.SettingsFrequencyLabel.replace("%d", sliderValue.toInt().toString()),
-                    style = MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = animatedAlpha))
-                )
-                Slider(
-                    value = sliderValue,
-                    onValueChange = { sliderValue = it; sliderActive = true },
-                    onValueChangeFinished = { sliderActive = false },
-                    valueRange = 1f..6f,
-                    steps = 5,
-                    modifier = Modifier.fillMaxWidth()
-                )
                 Button(
-                    onClick = {
-                        showTimingModal = false
-                        onOpenTimeline()
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    onClick = onOpenTimeline,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
-                    Text(AppStrings.PermissionConfirmStart)
+                    Text(
+                        text = "Continue",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
                 }
             }
         }
