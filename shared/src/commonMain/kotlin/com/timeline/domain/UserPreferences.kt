@@ -107,7 +107,7 @@ class UserPreferences(
                 isLoggedIn = prefs[UserPreferenceKeys.IS_LOGGED_IN] ?: false,
                 trialStartedAt = prefs[UserPreferenceKeys.trialStartedAt(userId)],
                 lastOnboardingStep = prefs[UserPreferenceKeys.lastOnboardingStep(userId)]
-                    ?: "Welcome",
+                    ?: "Opening",
                 isTutorial = prefs[UserPreferenceKeys.IS_TUTORIAL_COMPLETED] ?: false
             )
         }

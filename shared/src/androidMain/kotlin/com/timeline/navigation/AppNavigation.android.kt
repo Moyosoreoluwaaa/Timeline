@@ -14,7 +14,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +30,7 @@ import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.tutorial.AppRootContainer
 import com.timeline.tutorial.TutorialEvent
+import com.timeline.tutorial.TutorialScreen.*
 import com.timeline.tutorial.TutorialViewModel
 import com.timeline.ui.AuthScreen
 import com.timeline.ui.InsightsHostScreen
@@ -67,25 +70,44 @@ actual fun AppNavigation(
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
 
     val backStack = remember { mutableStateListOf<NavKey>() }
+    var showSplash by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(2000)
+        showSplash = false
+    }
+
+    if (showSplash) {
+        com.timeline.ui.SplashScreen(
+            onSplashFinished = { showSplash = false }
+        )
+        return
+    }
 
     LaunchedEffect(tutorialViewModel) {
         tutorialViewModel.effects.collect { effect ->
             when (effect) {
                 is com.timeline.tutorial.TutorialEffect.NavigateToScreen -> {
                     when (effect.screen) {
-                        com.timeline.tutorial.TutorialScreen.TIMELINE -> {
+                        TIMELINE -> {
                             while (backStack.size > 1 && backStack.last() != Route.Timeline) {
                                 backStack.removeAt(backStack.size - 1)
                             }
                         }
-                        com.timeline.tutorial.TutorialScreen.HIGHLIGHT -> {
+                        HIGHLIGHT -> {
                             if (backStack.lastOrNull() != Route.Highlight) {
                                 backStack.add(Route.Highlight)
                             }
                         }
-                        com.timeline.tutorial.TutorialScreen.SETTINGS -> {
+                        SETTINGS -> {
                             if (backStack.lastOrNull() != Route.Settings) {
                                 backStack.add(Route.Settings)
+                            }
+                        }
+
+                        PAYWALL -> {
+                            if (backStack.lastOrNull() !is Route.Paywall) {
+                                backStack.add(Route.Paywall())
                             }
                         }
                     }
@@ -183,24 +205,32 @@ actual fun AppNavigation(
                                         onNavigateToAccessibility = onNavigateToAccessibility,
                                         onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
                                         onAllGranted = {
+                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = false))
                                             backStack.clear()
                                             backStack.add(Route.Timeline)
                                         },
                                         onNavigateToPaywall = {
-                                            backStack.add(Route.Paywall())
+                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = true))
+                                            backStack.clear()
+                                            backStack.add(Route.Timeline)
                                         }
                                     )
                                 }
 
                                 is Route.Timeline -> {
+                                    val hasExplicitlyStartedTutorial = remember { androidx.compose.runtime.mutableStateOf(false) }
+
                                     LaunchedEffect(
                                         permState.allGranted,
-                                        prefsState?.isPermissionsCompleted
+                                        prefsState?.isPermissionsCompleted,
+                                        prefsState?.isTutorial
                                     ) {
                                         val isFullyGranted =
                                             permState.allGranted && prefsState?.isPermissionsCompleted == true
-                                        if (isFullyGranted) {
-                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
+                                        val isTutorialCompleted = prefsState?.isTutorial == true
+                                        if (isFullyGranted && !isTutorialCompleted && !tutorialState.isActive && !hasExplicitlyStartedTutorial.value) {
+                                            hasExplicitlyStartedTutorial.value = true
+                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = false))
                                         }
                                     }
 
@@ -220,6 +250,11 @@ actual fun AppNavigation(
                                                         }
                                                         com.timeline.tutorial.TutorialScreen.SETTINGS -> {
                                                             pagerState.animateScrollToPage(2)
+                                                        }
+                                                        com.timeline.tutorial.TutorialScreen.PAYWALL -> {
+                                                            if (backStack.lastOrNull() !is Route.Paywall) {
+                                                                backStack.add(Route.Paywall())
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -366,12 +401,14 @@ actual fun AppNavigation(
                                         viewModel = paywallViewModel,
                                         style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
                                         onDismiss = {
-                                            if (backStack.size > 1) {
+                                            tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.SkipTutorial)
+                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         },
                                         onPurchaseSuccess = {
-                                            if (backStack.size > 1) {
+                                            tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.SkipTutorial)
+                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         }

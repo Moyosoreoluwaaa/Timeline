@@ -7,6 +7,8 @@ data class TutorialState(
     val currentStep: TutorialStep = TutorialStep.PREREQUISITE_CHECK,
     val isActive: Boolean = false,
     val isPreparingData: Boolean = false,
+    val isProTutorial: Boolean = false,
+    val isHighlightLoading: Boolean = false,
     val tutorialSessions: List<Session> = emptyList(),
     val selectedSessionId: String? = null,
     val targetBoundsMap: Map<TutorialStep, Rect> = emptyMap()
@@ -14,11 +16,13 @@ data class TutorialState(
     val activeTargetBounds: Rect?
         get() = targetBoundsMap[currentStep]
 }
+
 sealed interface TutorialEvent {
-    data object StartTutorial : TutorialEvent
+    data class StartTutorial(val isPro: Boolean = false) : TutorialEvent
     data object NextStep : TutorialEvent
     data object PreviousStep : TutorialEvent
     data object SkipTutorial : TutorialEvent
+    data class SetHighlightLoading(val isLoading: Boolean) : TutorialEvent
     data class UpdateTargetBounds(val step: TutorialStep, val bounds: Rect) : TutorialEvent
 }
 

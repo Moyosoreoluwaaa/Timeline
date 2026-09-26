@@ -3,7 +3,8 @@ package com.timeline.tutorial
 enum class TutorialScreen {
     TIMELINE,
     HIGHLIGHT,
-    SETTINGS
+    SETTINGS,
+    PAYWALL
 }
 
 enum class TutorialStep(
@@ -61,6 +62,16 @@ enum class TutorialStep(
         title = "Date Picker",
         description = "Select and view usage logs from previous dates."
     ),
+    SPOTLIGHT_SUMMARY_BAR(
+        screen = TutorialScreen.TIMELINE,
+        title = "Usage Summary Bar",
+        description = "Tap the summary bar to open highlights and skip loading."
+    ),
+    SPOTLIGHT_HIGHLIGHT_CARD(
+        screen = TutorialScreen.HIGHLIGHT,
+        title = "Interactive Highlights",
+        description = "Tap any highlight card to inspect details."
+    ),
     SPOTLIGHT_SETTINGS_ICON(
         screen = TutorialScreen.TIMELINE,
         title = "Configure Preferences",
@@ -74,7 +85,7 @@ enum class TutorialStep(
     SPOTLIGHT_REASONING_SHEET(
         screen = TutorialScreen.SETTINGS,
         title = "Reasoning Mode",
-        description = "Select your preferred narrative style and adjust digest frequency in this sheet."
+        description = "Select your preferred narrative style in this sheet."
     ),
     SPOTLIGHT_TRACKING_OPTIONS(
         screen = TutorialScreen.SETTINGS,
@@ -101,15 +112,15 @@ enum class TutorialStep(
         title = "Retention Period",
         description = "Drag the slider to set your preferred data cleanup frequency."
     ),
-    SPOTLIGHT_SUMMARY_BAR(
+    GESTURE_DRAG_SETTINGS(
         screen = TutorialScreen.TIMELINE,
-        title = "Usage Summary Bar",
-        description = "Collapse the sheet and tap the summary bar to open highlights."
+        title = "Edge Gestures to Settings",
+        description = "Drag left to navigate to Settings, then drag right to return to Timeline."
     ),
-    SPOTLIGHT_HIGHLIGHT_CARD(
-        screen = TutorialScreen.HIGHLIGHT,
-        title = "Interactive Highlights",
-        description = "Tap any highlight card to inspect details and complete the tutorial."
+    PRO_PAYWALL_STEP(
+        screen = TutorialScreen.PAYWALL,
+        title = "Timeline Pro Experience",
+        description = "Unlock all features with Timeline Pro or dismiss to continue as Free."
     ),
     COMPLETED(
         screen = TutorialScreen.TIMELINE,

@@ -175,7 +175,8 @@ fun FullScreenImageOverlay(
 fun BottomSummary(
     summary: TimelineSummary?,
     onSummaryClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    tutorialViewModel: com.timeline.tutorial.TutorialViewModel? = null
 ) {
     if (summary == null) return
 
@@ -192,7 +193,10 @@ fun BottomSummary(
             modifier = Modifier
                 .height(IntrinsicSize.Max)
                 .clip(MaterialTheme.shapes.medium)
-                .clickable { onSummaryClick() }
+                .clickable {
+                    tutorialViewModel?.onEvent(com.timeline.tutorial.TutorialEvent.NextStep)
+                    onSummaryClick()
+                }
                 .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingSmall),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

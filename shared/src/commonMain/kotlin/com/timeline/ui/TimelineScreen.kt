@@ -36,7 +36,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -77,6 +79,8 @@ fun TimelineScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val tutorialState by koinViewModel<com.timeline.tutorial.TutorialViewModel>().state.collectAsStateWithLifecycle()
+    val isShowingShimmer = state.isLoading || (tutorialState.isActive && state.sessions.isEmpty())
 
     Box(modifier = modifier.fillMaxSize()) {
 
@@ -148,8 +152,43 @@ fun TimelineScreen(
                                     .fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (state.isLoading) {
-                                    CircularProgressIndicator()
+                                if (isShowingShimmer) {
+                                    val alpha by androidx.compose.animation.core.rememberInfiniteTransition(label = "ShimmerTransition").animateFloat(
+                                        initialValue = 0.3f,
+                                        targetValue = 0.9f,
+                                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                                            animation = androidx.compose.animation.core.tween(durationMillis = 1000),
+                                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                                        ),
+                                        label = "ShimmerAlpha"
+                                    )
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize(),
+                                        userScrollEnabled = false,
+                                        contentPadding = PaddingValues(
+                                            top = Dimensions.PaddingSmall,
+                                            bottom = navBarPadding + (Dimensions.PaddingLarge * 2)
+                                        )
+                                    ) {
+                                        items(5) { index ->
+                                            Box(modifier = Modifier.alpha(alpha)) {
+                                                TimelineEntry(
+                                                    session = com.timeline.domain.Session(
+                                                        id = "shimmer_$index",
+                                                        packageName = "com.placeholder.app",
+                                                        displayName = "Loading Activity...",
+                                                        startTime = kotlin.time.Clock.System.now(),
+                                                        endTime = kotlin.time.Clock.System.now(),
+                                                        durationMinutes = 10
+                                                    ),
+                                                    isFirst = index == 0,
+                                                    isLast = index == 4,
+                                                    onClick = {}
+                                                )
+                                            }
+                                        }
+                                    }
                                 } else {
                                     Text(
                                         AppStrings.TimelineNoActivity,
@@ -211,7 +250,8 @@ fun TimelineScreen(
                             modifier = Modifier.spotlightTarget(
                                 TutorialStep.SPOTLIGHT_SUMMARY_BAR,
                                 onBoundsCalculated
-                            )
+                            ),
+                            tutorialViewModel = koinViewModel()
                         )
                     }
                 }

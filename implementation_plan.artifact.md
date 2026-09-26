@@ -1,68 +1,52 @@
-# Redesign App Navigation and Implement New Insights Flow
+# Implementation Plan: Onboarding, Splash, Tutorial, and Timeline Enhancements
 
-This plan outlines the redesign of the Timeline app's navigation and the implementation of four new primary screens: Insights, Apps, Trends, and Patterns, as shown in the provided mockups.
+This plan addresses all 8 specified bug fixes and feature enhancements for the Timeline app.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> This plan introduces a major navigation overhaul, moving from a stack-based/hidden-detail navigation to a 4-tab Bottom Navigation bar. This contradicts the current "Exactly 2 screens" rule in the Product Definition, but aligns with the provided mockups.
-
-> [!IMPORTANT]
-> I will consolidate the "Primary Color" (Vibrant Purple `0xFF6C5CE7`) and other brand colors into a central utility-like location as requested, specifically `shared/src/commonMain/kotlin/com/timeline/ui/theme/Color.kt` (acting as the requested `/utils`).
+> - **Fresh Launch Navigation**: On fresh launch, the app will navigate directly to the `Opening` screen (`Permission` route) instead of `welcome`.
+> - **Custom Splash Screen**: We will add a branded native/Compose splash experience utilizing `ic_launcher_foreground` with a light-sweep animation, transitioning from Splash -> Opening -> Full Onboarding -> Tutorial -> Timeline.
+> - **Free vs Pro Tutorial & Paywall**: Free users receive a streamlined tutorial ending in the Timeline screen. Pro users experience the full tutorial ending in the Paywall (which can be dismissed back to Free, or proceed to payment).
+> - **Highlight Tutorial Skip**: Clicking summary cards skips loading states during the tutorial.
+> - **Gesture Tutorial**: Highlighted screen edges with animated arrows for dragging left (to Timeline) and right (to Settings).
+> - **Preference Saving**: Persist tutorial completion state immediately upon completion/skip to prevent looping.
+> - **Shimmer Effect**: Add shimmer effect using `TimelineEntry` for 2 seconds after tutorial completion before showing the empty state.
 
 ## Proposed Changes
 
-### [Theme & Utilities]
-
-#### [MODIFY] [Color.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/theme/Color.kt)
-- Add the vibrant primary color `val VibrantPurple = Color(0xFF6C5CE7)`.
-- Add secondary colors for charts and app icons matching the mockup (e.g., specific shades for YouTube, Instagram, etc.).
-- Update `AppColors` to include these as brand-standard values.
-
-#### [MODIFY] [Theme.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/theme/Theme.kt)
-- Update `LightColorScheme` and `DarkColorScheme` to use `VibrantPurple` as the `primary` color.
-- Ensure `surfaceVariant` and `background` colors align with the clean, white/light-gray look of the mockups.
-
-### [Navigation & Main Flow]
-
-#### [NEW] [MainScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/MainScreen.kt)
-- Create a new host screen with a `Scaffold` and `NavigationBar`.
-- Define the 4 navigation items: Insights, Apps, Trends, Patterns.
-- Handle state for the selected tab.
-
-#### [MODIFY] [Route.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/navigation/Route.kt)
-- Update routes to include the new 4 tabs (replacing or augmenting `Metrics` and `Timeline`).
+### [Navigation & Splash]
 
 #### [MODIFY] [AppNavigation.android.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/androidMain/kotlin/com/timeline/navigation/AppNavigation.android.kt)
-- Update the navigation graph to point to `MainScreen` after login/permissions.
+- Fix initial navigation check to start at `Opening` (`Permission` route) when permissions are not completed, ensuring correct startup sequence.
+- Integrate custom splash screen with light-sweep animation before onboarding.
 
-### [Feature Screens]
+#### [MODIFY] [PermissionViewModel.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/presentation/PermissionViewModel.kt)
+- Ensure initial onboarding step is `Opening`.
 
-#### [MODIFY] [MetricsScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/MetricsScreen.kt)
-- Rename or refactor into `InsightsScreen` to match the first mockup.
-- Implement the "Total usage" header, weekly bar chart, and the donut chart for usage distribution.
+### [Tutorial & Plan Selection]
 
-#### [NEW] [AppsScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/AppsScreen.kt)
-- Implement the "Apps" list with colorful icons and progress bars.
-- Include the "All Apps" section with secondary app list.
+#### [MODIFY] [PermissionComponents.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/components/PermissionComponents.kt)
+- Implement Free vs Pro tier distinction in `PlanSelectionStep`: Free user skips Pro paywall and enters Timeline tutorial directly; Pro user goes through full tutorial ending in Paywall.
 
-#### [NEW] [TrendsScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/TrendsScreen.kt)
-- Implement the "Trends" line chart and the "Highest/Lowest" summary cards.
+#### [MODIFY] [TutorialViewModel.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/tutorial/TutorialViewModel.kt)
+- Fix tutorial completion persistence immediately upon skip or complete so it never loops.
+- Update tutorial steps to include highlight summary card click (skipping loading state) and edge drag gestures (left to Timeline, right/left to Settings).
 
-#### [NEW] [PatternsScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/PatternsScreen.kt)
-- Implement the "Patterns" cards (Peak at night, Longest session, etc.) and the "More Patterns" list.
+#### [MODIFY] [TutorialScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/tutorial/TutorialScreen.kt)
+- Add animated edge arrows and spotlight overlay handlers for horizontal pager / edge gestures.
+
+### [Timeline & Shimmer]
+
+#### [MODIFY] [TimelineScreen.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/shared/src/commonMain/kotlin/com/timeline/ui/TimelineScreen.kt)
+- Implement 2-second shimmer effect using `TimelineEntry` placeholders after tutorial completion/dismissal before showing empty state.
 
 ---
 
 ## Verification Plan
 
 ### Automated Tests
-- No new automated tests are planned for this UI-heavy redesign, but existing navigation tests will be updated to reflect the new `MainScreen` entry point.
+- Build and run gradle checks (`gradle_build("app:assembleDebug")`).
 
 ### Manual Verification
-- Deploy to an Android device/emulator.
-- Verify the Bottom Navigation bar correctly switches between the 4 new tabs.
-- Visually inspect each screen (Insights, Apps, Trends, Patterns) against the provided mockups for:
-  - Color accuracy (Vibrant Purple `0xFF6C5CE7`).
-  - Layout and spacing (Rounded corners, card styles).
-  - Chart rendering (Bar chart, Line chart, Donut chart).
+- Deploy to emulator/device, verify splash screen with light sweep, onboarding flow, Free/Pro tutorial branching, edge gesture spotlights, and 2-second shimmer empty state.

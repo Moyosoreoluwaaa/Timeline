@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class TutorialViewModel(
     private val userPreferences: UserPreferences,
-    private val appInfoProvider: com.timeline.domain.AppInfoProvider
+    private val appInfoProvider: com.timeline.domain.AppInfoProvider,
+    private val subscriptionManager: com.timeline.domain.SubscriptionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TutorialState())
@@ -26,20 +27,22 @@ class TutorialViewModel(
 
     fun onEvent(event: TutorialEvent) {
         when (event) {
-            TutorialEvent.StartTutorial -> startTutorial()
+            is TutorialEvent.StartTutorial -> startTutorial(event.isPro)
             TutorialEvent.NextStep -> advanceStep()
             TutorialEvent.PreviousStep -> rewindStep()
             TutorialEvent.SkipTutorial -> dismissTutorial()
+            is TutorialEvent.SetHighlightLoading -> _state.update { it.copy(isHighlightLoading = event.isLoading) }
             is TutorialEvent.UpdateTargetBounds -> updateTargetBounds(event.step, event.bounds)
         }
     }
 
-    private fun startTutorial() {
+    private fun startTutorial(isPro: Boolean) {
         viewModelScope.launch {
             _state.update {
                 it.copy(
                     isActive = true,
                     isPreparingData = true,
+                    isProTutorial = isPro,
                     currentStep = TutorialStep.PREREQUISITE_CHECK
                 )
             }
@@ -127,6 +130,8 @@ class TutorialViewModel(
 
     private fun advanceStep() {
         val current = _state.value.currentStep
+        val isPro = _state.value.isProTutorial
+
         val nextStep = when (current) {
             TutorialStep.PREREQUISITE_CHECK -> TutorialStep.SPOTLIGHT_APP_ENTRY
             TutorialStep.SPOTLIGHT_APP_ENTRY -> {
@@ -150,21 +155,31 @@ class TutorialViewModel(
             }
 
             TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> {
-                // Dismiss sheet and transition to Clock Icon spotlight
                 _effects.trySend(TutorialEffect.SetSheetExpanded(false))
                 TutorialStep.SPOTLIGHT_TIME_FILTER_ICON
             }
 
-            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> {
-                // Expanding the time filter menu for the filter section step
-                TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION
-            }
-
+            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION
             TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_CONTAINER
-
             TutorialStep.SPOTLIGHT_DATE_CONTAINER -> TutorialStep.SPOTLIGHT_DATE_PICKER
 
-            TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SETTINGS_ICON
+            TutorialStep.SPOTLIGHT_DATE_PICKER -> {
+                if (isPro) {
+                    TutorialStep.SPOTLIGHT_SUMMARY_BAR
+                } else {
+                    TutorialStep.COMPLETED
+                }
+            }
+
+            TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))
+                TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD
+            }
+
+            TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
+                TutorialStep.SPOTLIGHT_SETTINGS_ICON
+            }
 
             TutorialStep.SPOTLIGHT_SETTINGS_ICON -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.SETTINGS))
@@ -180,17 +195,17 @@ class TutorialViewModel(
 
             TutorialStep.SPOTLIGHT_RETENTION_SHEET -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
-                TutorialStep.SPOTLIGHT_SUMMARY_BAR
+                TutorialStep.GESTURE_DRAG_SETTINGS
             }
 
-            TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
-                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))
-                TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD
+            TutorialStep.GESTURE_DRAG_SETTINGS -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.PAYWALL))
+                TutorialStep.PRO_PAYWALL_STEP
             }
 
-            TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD -> {
-                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
-                TutorialStep.COMPLETED
+            TutorialStep.PRO_PAYWALL_STEP -> {
+                dismissTutorial()
+                return
             }
 
             TutorialStep.COMPLETED -> {
@@ -223,8 +238,15 @@ class TutorialViewModel(
 
     private fun dismissTutorial() {
         viewModelScope.launch {
-            _state.update { it.copy(isActive = false, tutorialSessions = emptyList<Session>()) }
             userPreferences.setTutorialCompleted(true)
+            _state.update {
+                it.copy(
+                    isActive = false,
+                    isPreparingData = false,
+                    tutorialSessions = emptyList<Session>(),
+                    currentStep = TutorialStep.COMPLETED
+                )
+            }
         }
     }
 }

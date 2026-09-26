@@ -1,0 +1,4 @@
+- [x] Task 1: Splash screen & Navigation fixes (fresh launch to opening, custom splash with light sweep)
+- [x] Task 2: Tutorial & Free/Pro Paywall branching
+- [x] Task 3: Edge gesture tutorial & Summary card skip loading
+- [x] Task 4: Shimmer effect loading state for TimelineScreen

@@ -725,21 +725,25 @@ fun PlanSelectionStep(
                         }
 
                         Text(
-                            text = "Standard screen time tracking and basic activity logging. Free forever.",
+                            text = "Standard screen time tracking and basic activity logging.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
 
-                        OutlinedButton(
+                        Button(
                             onClick = onOpenTimeline,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(Dimensions.ButtonHeight),
-                            shape = com.timeline.ui.theme.AppShapes.Pill
+                            shape = com.timeline.ui.theme.AppShapes.Pill,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
                             Text(
-                                text = "Continue with Free Tier",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                                text = "Free Tutorial (Timeline Only)",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
