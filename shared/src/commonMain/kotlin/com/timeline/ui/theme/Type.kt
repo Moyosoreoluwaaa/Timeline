@@ -5,6 +5,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+// Uniform font size across all text styles (e.g. 16.sp with 24.sp line height)
+private val UniformStyle = TextStyle(
+    fontWeight = FontWeight.Normal,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.25.sp
+)
+
+private val UniformBoldStyle = TextStyle(
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 16.sp,
+    lineHeight = 24.sp,
+    letterSpacing = 0.15.sp
+)
+
 // Adopting the design system's generous line heights and scale ratios
 private val DisplayLargeStyle = TextStyle(
     fontWeight = FontWeight.SemiBold,
@@ -40,19 +55,19 @@ val Typography = Typography(
     displayLarge = DisplayLargeStyle,
     displayMedium = HeadlineStyle,
     displaySmall = TitleStyle,
-    
+
     headlineLarge = AppTypography.H1,
     headlineMedium = AppTypography.H2,
     headlineSmall = AppTypography.H3,
-    
+
     titleLarge = TitleStyle,
     titleMedium = AppTypography.Title,
     titleSmall = AppTypography.Title.copy(fontSize = 14.sp, lineHeight = 20.sp),
-    
+
     bodyLarge = AppTypography.Para,
     bodyMedium = AppTypography.Body,
     bodySmall = CaptionStyle,
-    
+
     labelLarge = AppTypography.Title,
     labelMedium = AppTypography.Cap,
     labelSmall = AppTypography.Micro

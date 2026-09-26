@@ -1,6 +1,7 @@
 package com.timeline.presentation
 
 enum class OnboardingStep {
+    Opening,
     Welcome,
     PermissionCardStack,
     ModeSelection,
@@ -19,7 +20,7 @@ data class PermissionItem(
 data class PermissionState(
     val permissions: List<PermissionItem> = emptyList(),
     val allGranted: Boolean = false,
-    val currentStep: OnboardingStep = OnboardingStep.Welcome,
+    val currentStep: OnboardingStep = OnboardingStep.Opening,
     val stepHistory: List<OnboardingStep> = emptyList(),
     val activeCardIndex: Int = 0,
     val error: String? = null

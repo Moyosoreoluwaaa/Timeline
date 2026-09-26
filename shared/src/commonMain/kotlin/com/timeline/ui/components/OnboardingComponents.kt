@@ -1,5 +1,9 @@
 package com.timeline.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +14,11 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,6 +32,7 @@ import com.timeline.presentation.OnboardingStep
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppColors
 import com.timeline.ui.theme.Dimensions
+import kotlinx.coroutines.delay
 
 @Composable
 fun OnboardingLayout(
@@ -53,7 +63,7 @@ fun OnboardingLayout(
                 bottomBar()
             }
         },
-        containerColor = MaterialTheme.colorScheme.surface
+        containerColor = Color.Transparent
     ) { padding ->
         Column(
             modifier = Modifier
@@ -70,22 +80,34 @@ fun OnboardingLayout(
 fun OnboardingStepIndicator(
     total: Int,
     current: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(Dimensions.Default)
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
     ) {
-        repeat(total) { index ->
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Default)
-                    .clip(CircleShape)
-                    .background(
-                        if (index == current) MaterialTheme.colorScheme.onSurface
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
-                    )
-            )
+        Row(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.spacedBy(Dimensions.Default)
+        ) {
+            repeat(total) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(Dimensions.Default)
+                        .clip(CircleShape)
+                        .background(
+                            if (index == current) MaterialTheme.colorScheme.onSurface
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
+                        )
+                )
+            }
         }
     }
 }
@@ -112,35 +134,47 @@ fun OnboardingActionButton(
     enabled: Boolean = true,
     showArrow: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.onSurface,
-    contentColor: Color = MaterialTheme.colorScheme.surface
+    contentColor: Color = MaterialTheme.colorScheme.surface,
+    delayMillis: Int = 0
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(Dimensions.ButtonHeight),
-        shape = com.timeline.ui.theme.AppShapes.Pill,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = contentColor
-        ),
-        enabled = enabled
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+        Button(
+            onClick = onClick,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(Dimensions.ButtonHeight),
+            shape = com.timeline.ui.theme.AppShapes.Pill,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = containerColor,
+                contentColor = contentColor
+            ),
+            enabled = enabled
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-            )
-            if (showArrow) {
-                Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
+                if (showArrow) {
+                    Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }
@@ -150,25 +184,37 @@ fun OnboardingActionButton(
 fun OnboardingTextButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(Dimensions.ButtonHeight),
-        shape = com.timeline.ui.theme.AppShapes.Pill,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.onSurface
-        )
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold
+        OutlinedButton(
+            onClick = onClick,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(Dimensions.ButtonHeight),
+            shape = com.timeline.ui.theme.AppShapes.Pill,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurface
             )
-        )
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        }
     }
 }
 
@@ -176,56 +222,80 @@ fun OnboardingTextButton(
 fun OnboardingIllustration(
     icon: ImageVector,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0
 ) {
-    Box(
-        modifier = modifier
-            .size(120.dp)
-            .clip(RoundedCornerShape(32.dp))
-            .background(color.copy(alpha = 0.1f)),
-        contentAlignment = Alignment.Center
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(64.dp)
-        )
+        Box(
+            modifier = modifier
+                .size(120.dp)
+                .clip(RoundedCornerShape(32.dp))
+                .background(color.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(64.dp)
+            )
+        }
     }
 }
 
 @Composable
 fun OnboardingIntroFeature(
     icon: ImageVector,
-    text: String
+    text: String,
+    delayMillis: Int = 0
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = Dimensions.PaddingSmall),
-        verticalAlignment = Alignment.CenterVertically
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = Dimensions.PaddingSmall),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                    lineHeight = 20.sp
+                ),
+                modifier = Modifier.weight(1f)
             )
         }
-        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                lineHeight = 20.sp
-            ),
-            modifier = Modifier.weight(1f)
-        )
     }
 }
 
@@ -233,25 +303,37 @@ fun OnboardingIntroFeature(
 fun OnboardingPermissionFeature(
     icon: ImageVector,
     title: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    delayMillis: Int = 0
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = Dimensions.PaddingMedium, horizontal = Dimensions.PaddingMedium),
-        verticalAlignment = Alignment.CenterVertically
+    var isVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = Dimensions.PaddingMedium, horizontal = Dimensions.PaddingMedium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }

@@ -2,10 +2,14 @@ package com.timeline.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.timeline.domain.NotificationManager
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
-import com.timeline.domain.NotificationManager
-import com.timeline.presentation.OnboardingStep.*
+import com.timeline.presentation.OnboardingStep.ModeSelection
+import com.timeline.presentation.OnboardingStep.Opening
+import com.timeline.presentation.OnboardingStep.PermissionCardStack
+import com.timeline.presentation.OnboardingStep.PlanSelection
+import com.timeline.presentation.OnboardingStep.Welcome
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,6 +140,7 @@ class PermissionViewModel(
     private fun nextStep() {
         _state.update { currentState ->
             val next = when (currentState.currentStep) {
+                Opening -> Welcome
                 Welcome -> PermissionCardStack
                 PermissionCardStack -> {
                     // If we are at the end of the stack, move to mode selection

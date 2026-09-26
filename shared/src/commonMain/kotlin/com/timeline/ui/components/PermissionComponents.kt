@@ -1,9 +1,15 @@
 package com.timeline.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,30 +31,28 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.PrivacyTip
-import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Timeline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,8 +61,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.timeline.presentation.OnboardingStep
@@ -67,7 +78,10 @@ import com.timeline.presentation.PermissionItem
 import com.timeline.presentation.PermissionState
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
-
+import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.painterResource
+import timeline.shared.generated.resources.Res
+import timeline.shared.generated.resources.get_started_bg
 
 @Composable
 fun OnboardingStepContent(
@@ -78,33 +92,336 @@ fun OnboardingStepContent(
     onNavigateToPaywall: () -> Unit
 ) {
     when (step) {
-        OnboardingStep.Welcome -> UnifiedWelcomeStep(onEvent)
+        OnboardingStep.Opening -> OpeningStep(onEvent)
+        OnboardingStep.Welcome -> WelcomeStep(onEvent)
         OnboardingStep.PermissionCardStack -> PermissionCardStackStep(state, onEvent)
-        OnboardingStep.ModeSelection -> ModeSelectionStep(onEvent, onOpenTimeline, onNavigateToPaywall)
-        OnboardingStep.PlanSelection -> PlanSelectionStep(onOpenTimeline)
+        OnboardingStep.PlanSelection -> PlanSelectionStep(
+            onOpenTimeline = onOpenTimeline,
+            onNavigateToPaywall = onNavigateToPaywall
+        )
+        OnboardingStep.ModeSelection -> PlanSelectionStep(
+            onOpenTimeline = onOpenTimeline,
+            onNavigateToPaywall = onNavigateToPaywall
+        )
     }
 }
 
 @Composable
-private fun PlanSelectionStep(onOpenTimeline: () -> Unit) {
-    // Placeholder for new Plan Selection UI
-    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("Choose your plan")
-        Button(onClick = onOpenTimeline) { Text("Continue") }
+fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
+    val privacyUrl = "https://timeline-marketing-site--moyokamaal.replit.app/privacy"
+
+    val linkStyle = TextLinkStyles(
+        style = SpanStyle(
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold,
+            textDecoration = TextDecoration.Underline
+        )
+    )
+
+    val annotatedString = buildAnnotatedString {
+        append("By continuing, you agree to our ")
+        withLink(LinkAnnotation.Url(url = privacyUrl, styles = linkStyle)) {
+            append("Terms of Service")
+        }
+        append(" & ")
+        withLink(LinkAnnotation.Url(url = privacyUrl, styles = linkStyle)) {
+            append("Privacy Policy")
+        }
+        append(".")
+    }
+
+    val fullTitleText = AppStrings.OnboardingWelcomeTitle
+    var displayedTitleText by remember { mutableStateOf("") }
+    var titleTextIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(fullTitleText) {
+        while (titleTextIndex < fullTitleText.length) {
+            displayedTitleText = fullTitleText.substring(0, titleTextIndex + 1)
+            titleTextIndex++
+            delay(50L)
+        }
+    }
+
+    var isTitleVisible by remember { mutableStateOf(false) }
+    var isButtonVisible by remember { mutableStateOf(false) }
+    var isFooterVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isTitleVisible = true
+        delay(150L)
+        isButtonVisible = true
+        delay(150L)
+        isFooterVisible = true
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(Res.drawable.get_started_bg),
+            contentDescription = "Get Started bg",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        OnboardingLayout(
+            bottomBar = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+                ) {
+                    AnimatedVisibility(
+                        visible = isButtonVisible,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
+                                slideInVertically(
+                                    initialOffsetY = { it / 2 },
+                                    animationSpec = tween(durationMillis = 500)
+                                )
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = { onEvent(PermissionEvent.NextStep) },
+                                modifier = Modifier
+                                    .fillMaxWidth(1f)
+                                    .height(Dimensions.ButtonHeight),
+                                shape = com.timeline.ui.theme.AppShapes.Pill,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.onSurface,
+                                    contentColor = MaterialTheme.colorScheme.surface
+                                )
+                            ) {
+                                Text(
+                                    text = "Get Started",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = isFooterVisible,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
+                                slideInVertically(
+                                    initialOffsetY = { it / 2 },
+                                    animationSpec = tween(durationMillis = 500)
+                                )
+                    ) {
+                        Text(
+                            text = annotatedString,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 16.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = Dimensions.PaddingSmall)
+                        )
+                    }
+                }
+            }
+        ) {
+            Column {
+                Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
+                Spacer(modifier = Modifier.height(Dimensions.SpacingMedium))
+
+                AnimatedVisibility(
+                    visible = isTitleVisible,
+                    enter = fadeIn(animationSpec = tween(durationMillis = 600)) +
+                            slideInVertically(
+                                initialOffsetY = { -it / 2 },
+                                animationSpec = tween(durationMillis = 600)
+                            )
+                ) {
+                    Text(
+                        text = displayedTitleText,
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            }
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModeSelectionStep(
-    onEvent: (PermissionEvent) -> Unit,
+fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
+    var isHeaderVisible by remember { mutableStateOf(false) }
+    var isTextVisible by remember { mutableStateOf(false) }
+    var isFeaturesVisible by remember { mutableStateOf(false) }
+    var isBottomBarVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isHeaderVisible = true
+        delay(100L)
+        isTextVisible = true
+        delay(150L)
+        isFeaturesVisible = true
+        delay(150L)
+        isBottomBarVisible = true
+    }
+
+    OnboardingLayout(
+        bottomBar = {
+            AnimatedVisibility(
+                visible = isBottomBarVisible,
+                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OnboardingStepIndicator(total = 3, current = 0)
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        Button(
+                            onClick = { onEvent(PermissionEvent.NextStep) },
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .height(Dimensions.ButtonHeight),
+                            shape = com.timeline.ui.theme.AppShapes.Pill,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.onSurface,
+                                contentColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            Text(
+                                text = "Continue",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    ) {
+        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
+
+        AnimatedVisibility(
+            visible = isHeaderVisible,
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Timeline,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(Dimensions.SpacingMedium))
+
+        AnimatedVisibility(
+            visible = isTextVisible,
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+        ) {
+            Column {
+                Text(
+                    text = AppStrings.OnboardingWelcomeTitle,
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+                Text(
+                    text = AppStrings.OnboardingWelcomeSubtitle,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
+
+        AnimatedVisibility(
+            visible = isFeaturesVisible,
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+        ) {
+            Column {
+                ValuePropFeature(
+                    icon = Icons.Rounded.AutoAwesome,
+                    title = AppStrings.OnboardingValueProp1Title,
+                    desc = AppStrings.OnboardingValueProp1Desc
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+                ValuePropFeature(
+                    icon = Icons.Rounded.Favorite,
+                    title = AppStrings.OnboardingValueProp2Title,
+                    desc = AppStrings.OnboardingValueProp2Desc
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ValuePropFeature(icon: ImageVector, title: String, desc: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimensions.PaddingSmall),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = desc,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlanSelectionStep(
     onOpenTimeline: () -> Unit,
     onNavigateToPaywall: () -> Unit
 ) {
-    var selectedMode by remember { mutableStateOf("Balanced") }
-    var sliderValue by remember { mutableStateOf(3f) }
-
+    var selectedPlan by remember { mutableStateOf("pro") } // "free" or "pro"
     val activeColor = Color(0xFFFF6D00)
+
+    var isHeaderVisible by remember { mutableStateOf(false) }
+    var isPlansVisible by remember { mutableStateOf(false) }
+    var isButtonVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isHeaderVisible = true
+        delay(150L)
+        isPlansVisible = true
+        delay(150L)
+        isButtonVisible = true
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -115,7 +432,6 @@ private fun ModeSelectionStep(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Top Skip Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,324 +459,165 @@ private fun ModeSelectionStep(
                 }
             }
 
-            // Main Content Area
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
                     .padding(horizontal = 24.dp)
-                    .padding(top = 56.dp, bottom = 90.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(top = 48.dp, bottom = 90.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Settings Card Box
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                AnimatedVisibility(
+                    visible = isHeaderVisible,
+                    enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        // 1. Reasoning mode section
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Rounded.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = activeColor,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Reasoning mode",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                            }
-                            Text(
-                                text = "How detailed should the context be?",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Choose your plan",
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                        }
+                        )
+                        Text(
+                            text = "Unlock the full potential of Timeline features.",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        )
+                    }
+                }
 
-                        // Segmented Button Row for Reasoning Mode
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surface
+                AnimatedVisibility(
+                    visible = isPlansVisible,
+                    enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Free Plan Card
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedPlan = "free" },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (selectedPlan == "free") activeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainer
+                            ),
+                            border = if (selectedPlan == "free") androidx.compose.foundation.BorderStroke(2.dp, activeColor) else null
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    .padding(20.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                val modes = listOf("Concise", "Balanced", "Explanatory")
-                                modes.forEach { mode ->
-                                    val isSelected = selectedMode == mode
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(
-                                                if (isSelected) activeColor
-                                                else Color.Transparent
-                                            )
-                                            .clickable {
-                                                selectedMode = mode
-                                                if (mode == "Concise") {
-                                                    onEvent(PermissionEvent.SetReasoningMode(com.timeline.domain.reasoning.HighlightReasoningMode.CONCISE))
-                                                } else if (mode == "Balanced") {
-                                                    onEvent(PermissionEvent.SetReasoningMode(com.timeline.domain.reasoning.HighlightReasoningMode.BALANCED))
-                                                } else if (mode == "Explanatory") {
-                                                    onEvent(PermissionEvent.SetReasoningMode(com.timeline.domain.reasoning.HighlightReasoningMode.EXPLANATORY))
-                                                    onNavigateToPaywall()
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = mode,
-                                            style = MaterialTheme.typography.bodyMedium.copy(
-                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                            )
-                                        )
-                                    }
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = "Free Plan",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = "Basic tracking & stats",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    )
                                 }
+                                Icon(
+                                    imageVector = if (selectedPlan == "free") Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                                    contentDescription = null,
+                                    tint = if (selectedPlan == "free") activeColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
 
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                            thickness = 1.dp
-                        )
-
-                        // 2. Highlights frequency section
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Schedule,
-                                        contentDescription = null,
-                                        tint = activeColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Highlights frequency",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    )
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = activeColor.copy(alpha = 0.15f)
-                                ) {
-                                    Text(
-                                        text = "${sliderValue.toInt()}× – ${sliderValue.toInt() * 2}× daily",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            color = activeColor,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-
-                            Text(
-                                text = "How often to generate Highlights",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // Interactive Slider for Frequency
+                        // Pro Plan Card
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedPlan = "pro" },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (selectedPlan == "pro") activeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainer
+                            ),
+                            border = if (selectedPlan == "pro") androidx.compose.foundation.BorderStroke(2.dp, activeColor) else null
+                        ) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Slider(
-                                    value = sliderValue,
-                                    onValueChange = {
-                                        sliderValue = it
-                                        onEvent(PermissionEvent.SetDigestFrequency(it.toInt()))
-                                    },
-                                    valueRange = 1f..6f,
-                                    steps = 4,
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = activeColor,
-                                        activeTrackColor = activeColor,
-                                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(
-                                        text = "1× daily",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Star,
+                                            contentDescription = null,
+                                            tint = activeColor,
+                                            modifier = Modifier.size(20.dp)
                                         )
-                                    )
-                                    Text(
-                                        text = "6× daily",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Timeline Pro",
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )
+                                    }
+                                    Icon(
+                                        imageVector = if (selectedPlan == "pro") Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        tint = if (selectedPlan == "pro") activeColor else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+
+                                Text(
+                                    text = "Unlimited highlights, AI reasoning modes, custom limits, and advanced screen time insights.",
+                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                )
                             }
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Title and step indicators
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+            AnimatedVisibility(
+                visible = isButtonVisible,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(24.dp)
                 ) {
-                    Text(
-                        text = "Make Timeline\nwork your way",
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 36.sp
+                    Button(
+                        onClick = {
+                            if (selectedPlan == "pro") {
+                                onNavigateToPaywall()
+                            } else {
+                                onOpenTimeline()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onSurface,
+                            contentColor = MaterialTheme.colorScheme.surface
                         )
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        repeat(4) { index ->
-                            Box(
-                                modifier = Modifier
-                                    .size(if (index == 3) 8.dp else 6.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (index == 3) MaterialTheme.colorScheme.onSurface
-                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
-                                    )
+                        Text(
+                            text = if (selectedPlan == "pro") "Upgrade to Pro" else "Continue with Free",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
                             )
-                        }
+                        )
                     }
                 }
             }
-
-            // Bottom Continue Button Area
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(24.dp)
-            ) {
-                Button(
-                    onClick = onOpenTimeline,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.onSurface,
-                        contentColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    Text(
-                        text = "Continue",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UnifiedWelcomeStep(onEvent: (PermissionEvent) -> Unit) {
-    OnboardingLayout(
-        bottomBar = {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                OnboardingStepIndicator(total = 3, current = 0)
-                Spacer(modifier = Modifier.weight(1f))
-                OnboardingActionButton(text = AppStrings.ButtonNext, onClick = { onEvent(PermissionEvent.NextStep) }, modifier = Modifier.width(140.dp))
-            }
-        }
-    ) {
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-        Icon(imageVector = Icons.Rounded.Timeline, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(Dimensions.SpacingMedium))
-        Text(text = AppStrings.OnboardingWelcomeTitle, style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold))
-        Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-        Text(text = AppStrings.OnboardingWelcomeSubtitle, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-
-        Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-
-        ValuePropFeature(
-            icon = Icons.Rounded.AutoAwesome,
-            title = AppStrings.OnboardingValueProp1Title,
-            desc = AppStrings.OnboardingValueProp1Desc
-        )
-        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-        ValuePropFeature(
-            icon = Icons.Rounded.Favorite,
-            title = AppStrings.OnboardingValueProp2Title,
-            desc = AppStrings.OnboardingValueProp2Desc
-        )
-    }
-}
-
-@Composable
-private fun ValuePropFeature(icon: ImageVector, title: String, desc: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = Dimensions.PaddingSmall),
-        verticalAlignment = Alignment.Top
-    ) {
-        Box(
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-        }
-        Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(text = desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         }
     }
 }
@@ -474,32 +631,42 @@ private fun PermissionCardStackStep(
     var showPrivacySheet by remember { mutableStateOf(false) }
     val currentPermission = state.permissions.getOrNull(state.activeCardIndex)
 
+    var isTitleVisible by remember { mutableStateOf(false) }
+    var isControlsVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isTitleVisible = true
+        delay(150L)
+        isControlsVisible = true
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
     ) {
-        // ... (Header and Stack logic)
-
-        // Header Area
-        Column(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingMedium)
-                .align(Alignment.TopStart)
+        AnimatedVisibility(
+            visible = isTitleVisible,
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500)),
+            modifier = Modifier.align(Alignment.TopStart)
         ) {
-            Text(
-                text = AppStrings.OnboardingStackTitle,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = AppStrings.OnboardingStackSubtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+            Column(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingMedium)
+            ) {
+                Text(
+                    text = AppStrings.OnboardingStackTitle,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = AppStrings.OnboardingStackSubtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
         }
 
-        // 2. Interactive Card Stack (Align Bottom)
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
@@ -526,100 +693,54 @@ private fun PermissionCardStackStep(
             }
         }
 
-        // 3. Overlay Control Area (Indicator + Buttons)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(Dimensions.PaddingLarge)
-                .align(Alignment.BottomCenter)
+        AnimatedVisibility(
+            visible = isControlsVisible,
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500)),
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(Dimensions.PaddingLarge)
             ) {
-                OnboardingStepIndicator(total = 3, current = 1)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+                ) {
+                    OnboardingStepIndicator(total = 3, current = 1)
 
-                if (currentPermission != null) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
-                    ) {
-                        OnboardingActionButton(
-                            text = if (currentPermission.isGranted) AppStrings.ButtonAlreadyGranted else AppStrings.ButtonGrantAccess,
-                            onClick = {
-                                if (currentPermission.isGranted) {
-                                    onEvent(PermissionEvent.NextStep)
-                                } else if (currentPermission.id == "accessibility") {
-                                    showPrivacySheet = true
-                                } else {
-                                    onEvent(PermissionEvent.GrantPermission(currentPermission.id))
+                    if (currentPermission != null) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
+                        ) {
+                            OnboardingActionButton(
+                                text = if (currentPermission.isGranted) AppStrings.ButtonAlreadyGranted else AppStrings.ButtonGrantAccess,
+                                onClick = {
+                                    if (currentPermission.isGranted) {
+                                        onEvent(PermissionEvent.NextStep)
+                                    } else if (currentPermission.id == "accessibility") {
+                                        showPrivacySheet = true
+                                    } else {
+                                        onEvent(PermissionEvent.GrantPermission(currentPermission.id))
+                                    }
                                 }
-                            }
-                        )
-                        OnboardingTextButton(
-                            text = AppStrings.ButtonSkipForNow,
-                            onClick = { onEvent(PermissionEvent.NextStep) }
-                        )
+                            )
+                            OnboardingTextButton(
+                                text = AppStrings.ButtonSkipForNow,
+                                onClick = { onEvent(PermissionEvent.NextStep) }
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Handle completion of all cards
         if (state.activeCardIndex >= state.permissions.size) {
             LaunchedEffect(Unit) {
                 onEvent(PermissionEvent.NextStep)
-            }
-        }
-    }
-
-    // Privacy Bottom Sheet for Accessibility
-    if (showPrivacySheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showPrivacySheet = false },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Dimensions.PaddingLarge)
-                    .padding(bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.PrivacyTip,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(48.dp)
-                )
-                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                Text(
-                    text = AppStrings.PermissionAccessibilityPrivacy,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-                Text(
-                    text = AppStrings.PermissionAccessibilityPrivacyDesc,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-                OnboardingActionButton(
-                    text = AppStrings.ButtonUnderstandContinue,
-                    onClick = {
-                        showPrivacySheet = false
-                        onEvent(PermissionEvent.GrantPermission("accessibility"))
-                    }
-                )
-                OnboardingTextButton(
-                    text = AppStrings.ButtonCancel,
-                    onClick = { showPrivacySheet = false }
-                )
             }
         }
     }
@@ -631,12 +752,10 @@ private fun PermissionCard(
     index: Int,
     offsetY: androidx.compose.ui.unit.Dp
 ) {
-    // Back cards (higher indices like 2) are tallest, front cards (index 0) are shortest
-    // This allows back cards to peek from the top when all are aligned at the bottom
     val cardHeight = when (index) {
-        0 -> 460.dp // Frontmost
-        1 -> 520.dp // Middle
-        else -> 580.dp // Backmost
+        0 -> 460.dp
+        1 -> 520.dp
+        else -> 580.dp
     }
 
     Surface(
@@ -644,10 +763,18 @@ private fun PermissionCard(
             .fillMaxWidth()
             .height(cardHeight)
             .offset(y = offsetY),
-        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp, bottomStart = 0.dp, bottomEnd = 0.dp),
+        shape = RoundedCornerShape(
+            topStart = 40.dp,
+            topEnd = 40.dp,
+            bottomStart = 0.dp,
+            bottomEnd = 0.dp
+        ),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = ((3 - index) * 4).dp, // Higher elevation for front (index 0) cards
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        shadowElevation = ((3 - index) * 4).dp,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -678,7 +805,6 @@ private fun PermissionCard(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
-            // Leave space for the overlay buttons at the bottom
             Spacer(modifier = Modifier.height(160.dp))
         }
     }

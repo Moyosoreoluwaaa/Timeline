@@ -34,7 +34,7 @@ object AppStrings {
 
     const val OnboardingValueProp1Title = "On-Device & Private"
     const val OnboardingValueProp1Desc = "Everything stays on your phone. We never sell or share your activity data."
-    const val OnboardingValueProp2Title = "Smart AI Narratives"
+    const val OnboardingValueProp2Title = "Smart Reasoning Narratives"
     const val OnboardingValueProp2Desc = "Understand where your time went with concise, meaningful activity summaries."
 
     const val OnboardingStackTitle = "Permissions Setup"
