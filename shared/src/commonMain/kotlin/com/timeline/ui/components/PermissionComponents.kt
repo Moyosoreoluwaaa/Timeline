@@ -7,10 +7,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,30 +24,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessibilityNew
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Timeline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -96,10 +88,6 @@ fun OnboardingStepContent(
         OnboardingStep.Welcome -> WelcomeStep(onEvent)
         OnboardingStep.PermissionCardStack -> PermissionCardStackStep(state, onEvent)
         OnboardingStep.PlanSelection -> PlanSelectionStep(
-            onOpenTimeline = onOpenTimeline,
-            onNavigateToPaywall = onNavigateToPaywall
-        )
-        OnboardingStep.ModeSelection -> PlanSelectionStep(
             onOpenTimeline = onOpenTimeline,
             onNavigateToPaywall = onNavigateToPaywall
         )
@@ -404,231 +392,10 @@ private fun ValuePropFeature(icon: ImageVector, title: String, desc: String) {
 }
 
 @Composable
-private fun PlanSelectionStep(
-    onOpenTimeline: () -> Unit,
-    onNavigateToPaywall: () -> Unit
-) {
-    var selectedPlan by remember { mutableStateOf("pro") } // "free" or "pro"
-    val activeColor = Color(0xFFFF6D00)
-
-    var isHeaderVisible by remember { mutableStateOf(false) }
-    var isPlansVisible by remember { mutableStateOf(false) }
-    var isButtonVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        isHeaderVisible = true
-        delay(150L)
-        isPlansVisible = true
-        delay(150L)
-        isButtonVisible = true
-    }
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                TextButton(onClick = onOpenTimeline) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Skip",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 48.dp, bottom = 90.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                AnimatedVisibility(
-                    visible = isHeaderVisible,
-                    enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "Choose your plan",
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        )
-                        Text(
-                            text = "Unlock the full potential of Timeline features.",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                }
-
-                AnimatedVisibility(
-                    visible = isPlansVisible,
-                    enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Free Plan Card
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedPlan = "free" },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selectedPlan == "free") activeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainer
-                            ),
-                            border = if (selectedPlan == "free") androidx.compose.foundation.BorderStroke(2.dp, activeColor) else null
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = "Free Plan",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                    Text(
-                                        text = "Basic tracking & stats",
-                                        style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    )
-                                }
-                                Icon(
-                                    imageVector = if (selectedPlan == "free") Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                                    contentDescription = null,
-                                    tint = if (selectedPlan == "free") activeColor else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // Pro Plan Card
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedPlan = "pro" },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selectedPlan == "pro") activeColor.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceContainer
-                            ),
-                            border = if (selectedPlan == "pro") androidx.compose.foundation.BorderStroke(2.dp, activeColor) else null
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Star,
-                                            contentDescription = null,
-                                            tint = activeColor,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "Timeline Pro",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = if (selectedPlan == "pro") Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                                        contentDescription = null,
-                                        tint = if (selectedPlan == "pro") activeColor else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Text(
-                                    text = "Unlimited highlights, AI reasoning modes, custom limits, and advanced screen time insights.",
-                                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isButtonVisible,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(24.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            if (selectedPlan == "pro") {
-                                onNavigateToPaywall()
-                            } else {
-                                onOpenTimeline()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.onSurface,
-                            contentColor = MaterialTheme.colorScheme.surface
-                        )
-                    ) {
-                        Text(
-                            text = if (selectedPlan == "pro") "Upgrade to Pro" else "Continue with Free",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun PermissionCardStackStep(
     state: PermissionState,
     onEvent: (PermissionEvent) -> Unit
 ) {
-    var showPrivacySheet by remember { mutableStateOf(false) }
     val currentPermission = state.permissions.getOrNull(state.activeCardIndex)
 
     var isTitleVisible by remember { mutableStateOf(false) }
@@ -659,9 +426,10 @@ private fun PermissionCardStackStep(
                     text = AppStrings.OnboardingStackTitle,
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
                 Text(
                     text = AppStrings.OnboardingStackSubtitle,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
@@ -721,8 +489,6 @@ private fun PermissionCardStackStep(
                                 onClick = {
                                     if (currentPermission.isGranted) {
                                         onEvent(PermissionEvent.NextStep)
-                                    } else if (currentPermission.id == "accessibility") {
-                                        showPrivacySheet = true
                                     } else {
                                         onEvent(PermissionEvent.GrantPermission(currentPermission.id))
                                     }
@@ -771,7 +537,7 @@ private fun PermissionCard(
         ),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = ((3 - index) * 4).dp,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
         )
@@ -806,6 +572,179 @@ private fun PermissionCard(
             )
 
             Spacer(modifier = Modifier.height(160.dp))
+        }
+    }
+}
+
+@Composable
+fun PlanSelectionStep(
+    onOpenTimeline: () -> Unit,
+    onNavigateToPaywall: () -> Unit
+) {
+    var isHeaderVisible by remember { mutableStateOf(false) }
+    var isCardsVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isHeaderVisible = true
+        delay(100L)
+        isCardsVisible = true
+    }
+
+    OnboardingLayout(
+        topBar = {
+            AnimatedVisibility(
+                visible = isHeaderVisible,
+                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
+            ) {
+                Column {
+                    Text(
+                        text = "Choose Your Experience",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+                    Text(
+                        text = "Select how you'd like to manage your timeline.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        },
+        bottomBar = {
+            OnboardingStepIndicator(
+                total = 3,
+                current = 2,
+                modifier = Modifier.padding(bottom = Dimensions.PaddingMedium)
+            )
+        }
+    ) {
+        AnimatedVisibility(
+            visible = isCardsVisible,
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+            ) {
+                // Timeline Pro Direct Action Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Star,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "Timeline Pro",
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            ) {
+                                Text(
+                                    text = "RECOMMENDED",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "AI-powered highlights, automated category reasoning, and unlimited timeline history.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+
+                        Button(
+                            onClick = onNavigateToPaywall,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(Dimensions.ButtonHeight),
+                            shape = com.timeline.ui.theme.AppShapes.Pill,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        ) {
+                            Text(
+                                text = "Get Timeline Pro",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+
+                // Basic / Free Tier Direct Action Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CheckCircle,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "Basic Tier",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+
+                        Text(
+                            text = "Standard screen time tracking and basic activity logging. Free forever.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+
+                        OutlinedButton(
+                            onClick = onOpenTimeline,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(Dimensions.ButtonHeight),
+                            shape = com.timeline.ui.theme.AppShapes.Pill
+                        ) {
+                            Text(
+                                text = "Continue with Free Tier",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

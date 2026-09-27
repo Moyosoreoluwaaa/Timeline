@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.timeline.domain.NotificationManager
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
-import com.timeline.presentation.OnboardingStep.ModeSelection
 import com.timeline.presentation.OnboardingStep.Opening
 import com.timeline.presentation.OnboardingStep.PermissionCardStack
 import com.timeline.presentation.OnboardingStep.PlanSelection
@@ -39,7 +38,7 @@ class PermissionViewModel(
                 } catch (_: Exception) {
                     null
                 }
-                if (savedStep != null && _state.value.currentStep == OnboardingStep.Welcome && savedStep != OnboardingStep.Welcome) {
+                if (savedStep != null && _state.value.currentStep == Opening && savedStep != Opening) {
                     val resolvedStep = resolveInitialStep(savedStep)
                     _state.update { it.copy(currentStep = resolvedStep) }
                 }
@@ -48,11 +47,11 @@ class PermissionViewModel(
     }
 
     private fun resolveInitialStep(savedStep: OnboardingStep): OnboardingStep {
-        return if (savedStep == OnboardingStep.PermissionCardStack) {
-            if (permissionManager.hasAccessibilityPermission() && 
-                permissionManager.hasUsageStatsPermission() && 
+        return if (savedStep == PermissionCardStack) {
+            if (permissionManager.hasAccessibilityPermission() &&
+                permissionManager.hasUsageStatsPermission() &&
                 permissionManager.hasNotificationPermission()) {
-                OnboardingStep.ModeSelection
+                PlanSelection
             } else savedStep
         } else savedStep
     }
@@ -64,31 +63,20 @@ class PermissionViewModel(
             is PermissionEvent.NextStep -> nextStep()
             is PermissionEvent.PreviousStep -> previousStep()
             is PermissionEvent.RetryPermission -> retryCurrentPermission()
-            is PermissionEvent.SetReasoningMode -> {
+            is PermissionEvent.SelectProPlan -> {
                 viewModelScope.launch {
-                    userPreferences.setHighlightReasoningMode(event.mode)
-                }
-            }
-            is PermissionEvent.SetDigestFrequency -> {
-                viewModelScope.launch {
-                    userPreferences.setDigestSchedule(event.frequency, listOf(12, 17, 21))
+                    userPreferences.setPermissionsCompleted(true)
+                    userPreferences.setLastOnboardingStep(PlanSelection.name)
+                    _effects.send(PermissionEffect.NavigateToPaywall)
                 }
             }
             is PermissionEvent.StartTracking -> {
                 viewModelScope.launch {
                     userPreferences.setPermissionsCompleted(true)
-                    userPreferences.setLastOnboardingStep(OnboardingStep.ModeSelection.name)
+                    userPreferences.setLastOnboardingStep(PlanSelection.name)
                     _effects.send(PermissionEffect.AllGranted)
                 }
             }
-        }
-    }
-
-    fun selectProPlan() {
-        viewModelScope.launch {
-            userPreferences.setPermissionsCompleted(true)
-            userPreferences.setLastOnboardingStep(OnboardingStep.ModeSelection.name)
-            _effects.send(PermissionEffect.NavigateToPaywall)
         }
     }
 
@@ -120,10 +108,8 @@ class PermissionViewModel(
         val allGranted = permissions.all { p -> p.isGranted }
 
         _state.update { currentState ->
-            // Update active card index based on grants if we are in the stack
             var nextCardIndex = currentState.activeCardIndex
-            if (currentState.currentStep == OnboardingStep.PermissionCardStack) {
-                // If current card is granted, move to next
+            if (currentState.currentStep == PermissionCardStack) {
                 if (nextCardIndex < permissions.size && permissions[nextCardIndex].isGranted) {
                     nextCardIndex++
                 }
@@ -143,17 +129,15 @@ class PermissionViewModel(
                 Opening -> Welcome
                 Welcome -> PermissionCardStack
                 PermissionCardStack -> {
-                    // If we are at the end of the stack, move to mode selection
                     if (currentState.activeCardIndex >= currentState.permissions.size - 1) {
-                        ModeSelection
+                        PlanSelection
                     } else {
                         return@update currentState.copy(activeCardIndex = currentState.activeCardIndex + 1)
                     }
                 }
-                ModeSelection -> ModeSelection
                 PlanSelection -> PlanSelection
             }
-            
+
             viewModelScope.launch {
                 userPreferences.setLastOnboardingStep(next.name)
             }
@@ -165,8 +149,7 @@ class PermissionViewModel(
 
     private fun previousStep() {
         _state.update { currentState ->
-            // If in card stack and not on first card, go back one card
-            if (currentState.currentStep == OnboardingStep.PermissionCardStack && currentState.activeCardIndex > 0) {
+            if (currentState.currentStep == PermissionCardStack && currentState.activeCardIndex > 0) {
                 return@update currentState.copy(activeCardIndex = currentState.activeCardIndex - 1)
             }
 
@@ -174,13 +157,14 @@ class PermissionViewModel(
                 currentState.stepHistory.last()
             } else {
                 when (currentState.currentStep) {
-                    OnboardingStep.PermissionCardStack -> OnboardingStep.Welcome
-                    OnboardingStep.ModeSelection -> OnboardingStep.PermissionCardStack
-                    else -> OnboardingStep.Welcome
+                    PlanSelection -> PermissionCardStack
+                    PermissionCardStack -> Welcome
+                    Welcome -> Opening
+                    Opening -> Opening
                 }
             }
             val newHistory = if (currentState.stepHistory.isNotEmpty()) currentState.stepHistory.dropLast(1) else emptyList()
-            
+
             viewModelScope.launch {
                 userPreferences.setLastOnboardingStep(prev.name)
             }
@@ -190,7 +174,7 @@ class PermissionViewModel(
     }
 
     private fun retryCurrentPermission() {
-        // No-op in the new streamlined flow as the card stack handles retries
+        // No-op in card stack flow
     }
 
     private fun grantPermission(id: String) {

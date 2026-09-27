@@ -1,7 +1,6 @@
 package com.timeline.service
 
 import android.Manifest
-import android.R
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -12,6 +11,7 @@ import android.provider.Settings
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.timeline.R
 import com.timeline.util.AppStrings
 import com.timeline.util.Constants
 
@@ -25,7 +25,7 @@ class TrackingNotificationHelper(private val context: Context) {
         NotificationCompat.Builder(context, Constants.TRACKING_CHANNEL_ID)
             .setContentTitle(AppStrings.NotificationTrackingActiveTitle)
             .setContentText(AppStrings.NotificationTrackingActiveContent)
-            .setSmallIcon(R.drawable.ic_menu_mylocation)
+            .setSmallIcon(R.mipmap.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
 
@@ -38,7 +38,7 @@ class TrackingNotificationHelper(private val context: Context) {
         val notification = NotificationCompat.Builder(context, Constants.TRACKING_CHANNEL_ID)
             .setContentTitle(AppStrings.NotificationAccessibilityLostTitle)
             .setContentText(AppStrings.NotificationAccessibilityLostContent)
-            .setSmallIcon(R.drawable.ic_dialog_alert)
+            .setSmallIcon(R.mipmap.ic_launcher_notification_foreground)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
@@ -58,7 +58,7 @@ class TrackingNotificationHelper(private val context: Context) {
         val notification = NotificationCompat.Builder(context, Constants.DIGEST_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_dialog_info)
+            .setSmallIcon(R.mipmap.ic_launcher_notification_foreground)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

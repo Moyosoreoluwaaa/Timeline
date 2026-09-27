@@ -4,7 +4,6 @@ enum class OnboardingStep {
     Opening,
     Welcome,
     PermissionCardStack,
-    ModeSelection,
     PlanSelection
 }
 
@@ -33,8 +32,7 @@ sealed interface PermissionEvent {
     data object NextStep : PermissionEvent
     data object PreviousStep : PermissionEvent
     data object RetryPermission : PermissionEvent
-    data class SetReasoningMode(val mode: com.timeline.domain.reasoning.HighlightReasoningMode) : PermissionEvent
-    data class SetDigestFrequency(val frequency: Int) : PermissionEvent
+    data object SelectProPlan : PermissionEvent
 }
 
 sealed interface PermissionEffect {

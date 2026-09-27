@@ -6,7 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,7 +18,6 @@ import com.timeline.presentation.PermissionEvent
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.ui.components.OnboardingStepContent
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionScreen(
     viewModel: PermissionViewModel,
@@ -42,11 +40,7 @@ fun PermissionScreen(
                 is PermissionEffect.NavigateToAccessibilitySettings -> onNavigateToAccessibility()
                 is PermissionEffect.NavigateToBatteryOptimizationSettings -> onNavigateToBatteryOptimization()
                 is PermissionEffect.AllGranted -> onAllGranted()
-                is PermissionEffect.NavigateToPaywall -> {
-                    // Update state to PlanSelection step if navigation requested
-                    viewModel.onEvent(PermissionEvent.NextStep)
-                    onNavigateToPaywall()
-                }
+                is PermissionEffect.NavigateToPaywall -> onNavigateToPaywall()
             }
         }
     }
@@ -55,7 +49,7 @@ fun PermissionScreen(
         viewModel.onEvent(PermissionEvent.CheckPermissions)
     }
 
-    BackHandler(enabled = state.currentStep != OnboardingStep.Welcome) {
+    BackHandler(enabled = state.currentStep != OnboardingStep.Opening) {
         viewModel.onEvent(PermissionEvent.PreviousStep)
     }
 
@@ -78,8 +72,7 @@ fun PermissionScreen(
                 viewModel.onEvent(PermissionEvent.StartTracking)
             },
             onNavigateToPaywall = {
-                // Navigate first
-                viewModel.selectProPlan()
+                viewModel.onEvent(PermissionEvent.SelectProPlan)
             }
         )
     }
