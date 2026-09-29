@@ -73,7 +73,8 @@ import com.timeline.util.AppStrings
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
 import timeline.shared.generated.resources.Res
-import timeline.shared.generated.resources.get_started_bg
+import timeline.shared.generated.resources.get_started_two
+import timeline.shared.generated.resources.timeline_splash_icon
 
 @Composable
 fun OnboardingStepContent(
@@ -144,7 +145,7 @@ fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
-            painter = painterResource(Res.drawable.get_started_bg),
+            painter = painterResource(Res.drawable.get_started_two),
             contentDescription = "Get Started bg",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -213,25 +214,31 @@ fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
         ) {
             Column {
                 Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
-                Spacer(modifier = Modifier.height(Dimensions.SpacingMedium))
+                Spacer(modifier = Modifier.height(Dimensions.SpacingLarge))
 
-                AnimatedVisibility(
-                    visible = isTitleVisible,
-                    enter = fadeIn(animationSpec = tween(durationMillis = 600)) +
-                            slideInVertically(
-                                initialOffsetY = { -it / 2 },
-                                animationSpec = tween(durationMillis = 600)
-                            )
-                ) {
-                    Text(
-                        text = displayedTitleText,
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                Row(modifier = Modifier.fillMaxWidth(1f)) {
+                    Image(
+                        painter = painterResource(Res.drawable.timeline_splash_icon),
+                        contentDescription = "Splash Logo",
+                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).size(60.dp)
                     )
+                    AnimatedVisibility(
+                        visible = isTitleVisible,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 600)) +
+                                slideInVertically(
+                                    initialOffsetY = { -it / 2 },
+                                    animationSpec = tween(durationMillis = 600)
+                                )
+                    ) {
+                        Text(
+                            text = displayedTitleText,
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                    }
                 }
-
                 Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             }
         }
@@ -259,7 +266,10 @@ fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
         bottomBar = {
             AnimatedVisibility(
                 visible = isBottomBarVisible,
-                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                    initialOffsetY = { it / 2 },
+                    animationSpec = tween(500)
+                )
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -300,7 +310,10 @@ fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
 
         AnimatedVisibility(
             visible = isHeaderVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                initialOffsetY = { -it / 2 },
+                animationSpec = tween(500)
+            )
         ) {
             Icon(
                 imageVector = Icons.Rounded.Timeline,
@@ -314,7 +327,10 @@ fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
 
         AnimatedVisibility(
             visible = isTextVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(500)
+            )
         ) {
             Column {
                 Text(
@@ -334,7 +350,10 @@ fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
 
         AnimatedVisibility(
             visible = isFeaturesVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(500)
+            )
         ) {
             Column {
                 ValuePropFeature(
@@ -414,13 +433,19 @@ private fun PermissionCardStackStep(
     ) {
         AnimatedVisibility(
             visible = isTitleVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500)),
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                initialOffsetY = { -it / 2 },
+                animationSpec = tween(500)
+            ),
             modifier = Modifier.align(Alignment.TopStart)
         ) {
             Column(
                 modifier = Modifier
                     .statusBarsPadding()
-                    .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingMedium)
+                    .padding(
+                        horizontal = Dimensions.PaddingLarge,
+                        vertical = Dimensions.PaddingMedium
+                    )
             ) {
                 Text(
                     text = AppStrings.OnboardingStackTitle,
@@ -463,7 +488,10 @@ private fun PermissionCardStackStep(
 
         AnimatedVisibility(
             visible = isControlsVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500)),
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(500)
+            ),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             Box(
@@ -594,7 +622,10 @@ fun PlanSelectionStep(
         topBar = {
             AnimatedVisibility(
                 visible = isHeaderVisible,
-                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
+                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                    initialOffsetY = { -it / 2 },
+                    animationSpec = tween(500)
+                )
             ) {
                 Column {
                     Text(
@@ -620,7 +651,10 @@ fun PlanSelectionStep(
     ) {
         AnimatedVisibility(
             visible = isCardsVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                initialOffsetY = { it / 2 },
+                animationSpec = tween(500)
+            )
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -701,7 +735,10 @@ fun PlanSelectionStep(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
                 ) {
                     Column(
                         modifier = Modifier

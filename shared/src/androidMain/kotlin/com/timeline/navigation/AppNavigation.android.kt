@@ -84,6 +84,12 @@ actual fun AppNavigation(
         return
     }
 
+    // NOTE: TutorialEffect.SetSheetExpanded / TriggerFullScreenImage no
+    // longer exist. TimelineScreen now reads tutorialState.sheetLock
+    // / requiredFullScreenImagePath directly (single source of truth owned
+    // by TutorialViewModel), so this collector only needs to handle screen
+    // navigation now -- pushing sheet/image state through here would just
+    // reintroduce the two-writer race this change was meant to remove.
     LaunchedEffect(tutorialViewModel) {
         tutorialViewModel.effects.collect { effect ->
             when (effect) {
@@ -110,16 +116,6 @@ actual fun AppNavigation(
                                 backStack.add(Route.Paywall())
                             }
                         }
-                    }
-                }
-                is com.timeline.tutorial.TutorialEffect.SetSheetExpanded -> {
-                    timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ToggleSheet(effect.expanded))
-                }
-                is com.timeline.tutorial.TutorialEffect.TriggerFullScreenImage -> {
-                    if (effect.path != null) {
-                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ShowFullScreenImage(effect.path))
-                    } else {
-                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.DismissFullScreenImage)
                     }
                 }
             }
@@ -218,8 +214,6 @@ actual fun AppNavigation(
                                 }
 
                                 is Route.Timeline -> {
-                                    val hasExplicitlyStartedTutorial = remember { androidx.compose.runtime.mutableStateOf(false) }
-
                                     LaunchedEffect(
                                         permState.allGranted,
                                         prefsState?.isPermissionsCompleted,
@@ -227,9 +221,7 @@ actual fun AppNavigation(
                                     ) {
                                         val isFullyGranted =
                                             permState.allGranted && prefsState?.isPermissionsCompleted == true
-                                        val isTutorialCompleted = prefsState?.isTutorial == true
-                                        if (isFullyGranted && !isTutorialCompleted && !tutorialState.isActive && !hasExplicitlyStartedTutorial.value) {
-                                            hasExplicitlyStartedTutorial.value = true
+                                        if (isFullyGranted && prefsState?.isTutorial == false && !tutorialState.isActive) {
                                             tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = false))
                                         }
                                     }
@@ -237,6 +229,8 @@ actual fun AppNavigation(
                                     val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = 1) { 3 }
                                     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
+                                    // Same as the top-level collector above: only
+                                    // screen navigation is handled here now.
                                     LaunchedEffect(tutorialViewModel, pagerState) {
                                         tutorialViewModel.effects.collect { effect ->
                                             when (effect) {
@@ -256,16 +250,6 @@ actual fun AppNavigation(
                                                                 backStack.add(Route.Paywall())
                                                             }
                                                         }
-                                                    }
-                                                }
-                                                is com.timeline.tutorial.TutorialEffect.SetSheetExpanded -> {
-                                                    timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ToggleSheet(effect.expanded))
-                                                }
-                                                is com.timeline.tutorial.TutorialEffect.TriggerFullScreenImage -> {
-                                                    if (effect.path != null) {
-                                                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.ShowFullScreenImage(effect.path))
-                                                    } else {
-                                                        timelineViewModel.onEvent(com.timeline.presentation.TimelineEvent.DismissFullScreenImage)
                                                     }
                                                 }
                                             }
@@ -402,13 +386,13 @@ actual fun AppNavigation(
                                         style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
                                         onDismiss = {
                                             tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.SkipTutorial)
-                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
+                                            if (backStack.size > 1) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         },
                                         onPurchaseSuccess = {
                                             tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.SkipTutorial)
-                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
+                                            if (backStack.size > 1) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         }

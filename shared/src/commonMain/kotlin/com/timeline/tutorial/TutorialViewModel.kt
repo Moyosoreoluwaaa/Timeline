@@ -33,6 +33,63 @@ class TutorialViewModel(
             TutorialEvent.SkipTutorial -> dismissTutorial()
             is TutorialEvent.SetHighlightLoading -> _state.update { it.copy(isHighlightLoading = event.isLoading) }
             is TutorialEvent.UpdateTargetBounds -> updateTargetBounds(event.step, event.bounds)
+            is TutorialEvent.RealGestureObserved -> handleRealGesture(event.gesture)
+        }
+    }
+
+    // Applies the "what should the real UI look like for this step" values
+    // whenever currentStep changes. This is the ONLY place that decides
+    // sheet lock / full-screen state -- TimelineScreen just reads it and
+    // enforces sheetLock via confirmValueChange, it never decides
+    // independently while the tutorial is active.
+    private fun applyRequiredStateFor(step: TutorialStep) {
+        val sheetLock: SheetLock? = when (step) {
+            // Sheet must stay collapsed -- this is where the thumbnail row
+            // is opaque and spotlight-able. Pinned: no drag allowed.
+            TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL -> SheetLock.Fixed(expanded = false)
+
+            // Image is shown in a Dialog above the (collapsed) sheet.
+            // Dismissing it returns to the collapsed sheet, never expanded.
+            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> SheetLock.Fixed(expanded = false)
+
+            // The one step where the sheet is meant to be interacted with:
+            // starts collapsed, user may drag it open OR tap Next -- both
+            // count as completing this step.
+            TutorialStep.EXPAND_BOTTOM_SHEET -> SheetLock.Free(startExpanded = false)
+
+            // Sheet must stay expanded so prev/next controls are visible
+            // and spotlight-able. Pinned: no drag allowed back down; a real
+            // tap on prev/next is what advances this step (see
+            // handleRealGesture), not a drag.
+            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> SheetLock.Fixed(expanded = true)
+
+            else -> null // hands-off: sheet not part of this step
+        }
+
+        val imagePath: String? = when (step) {
+            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> "mock_preview.png"
+            else -> null
+        }
+
+        val lockGestures = when (step) {
+            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON,
+            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION,
+            TutorialStep.SPOTLIGHT_DATE_CONTAINER,
+            TutorialStep.SPOTLIGHT_DATE_PICKER,
+            TutorialStep.SPOTLIGHT_SUMMARY_BAR,
+            TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL,
+            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW,
+            TutorialStep.EXPAND_BOTTOM_SHEET,
+            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> true
+            else -> false
+        }
+
+        _state.update {
+            it.copy(
+                sheetLock = sheetLock,
+                requiredFullScreenImagePath = imagePath,
+                gestureLockActive = lockGestures
+            )
         }
     }
 
@@ -57,6 +114,7 @@ class TutorialViewModel(
                     currentStep = TutorialStep.SPOTLIGHT_APP_ENTRY
                 )
             }
+            applyRequiredStateFor(TutorialStep.SPOTLIGHT_APP_ENTRY)
         }
     }
 
@@ -128,36 +186,36 @@ class TutorialViewModel(
         return listOf(session1, session2, session3)
     }
 
+    // Maps a REAL gesture to "does this count as advancing the current step".
+    // This is what lets a genuine tap on the thumbnail / sheet / nav buttons
+    // move the tutorial forward instead of the tutorial being blind to them.
+    private fun handleRealGesture(gesture: TutorialGesture) {
+        val current = _state.value.currentStep
+        val matches = when (current) {
+            TutorialStep.SPOTLIGHT_APP_ENTRY -> gesture == TutorialGesture.TAPPED_SESSION_ENTRY
+            TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL -> gesture == TutorialGesture.TAPPED_THUMBNAIL
+            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> gesture == TutorialGesture.DISMISSED_FULL_SCREEN_IMAGE
+            TutorialStep.EXPAND_BOTTOM_SHEET -> gesture == TutorialGesture.EXPANDED_SHEET
+            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR ->
+                gesture == TutorialGesture.TAPPED_PREV_SESSION || gesture == TutorialGesture.TAPPED_NEXT_SESSION
+            else -> false
+        }
+        if (matches) {
+            advanceStep()
+        }
+    }
+
     private fun advanceStep() {
         val current = _state.value.currentStep
         val isPro = _state.value.isProTutorial
 
         val nextStep = when (current) {
             TutorialStep.PREREQUISITE_CHECK -> TutorialStep.SPOTLIGHT_APP_ENTRY
-            TutorialStep.SPOTLIGHT_APP_ENTRY -> {
-                _effects.trySend(TutorialEffect.SetSheetExpanded(false))
-                TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL
-            }
-
-            TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL -> {
-                _effects.trySend(TutorialEffect.TriggerFullScreenImage("mock_preview.png"))
-                TutorialStep.FULL_SCREEN_IMAGE_PREVIEW
-            }
-
-            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> {
-                _effects.trySend(TutorialEffect.TriggerFullScreenImage(null))
-                TutorialStep.EXPAND_BOTTOM_SHEET
-            }
-
-            TutorialStep.EXPAND_BOTTOM_SHEET -> {
-                _effects.trySend(TutorialEffect.SetSheetExpanded(true))
-                TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR
-            }
-
-            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> {
-                _effects.trySend(TutorialEffect.SetSheetExpanded(false))
-                TutorialStep.SPOTLIGHT_TIME_FILTER_ICON
-            }
+            TutorialStep.SPOTLIGHT_APP_ENTRY -> TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL
+            TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL -> TutorialStep.FULL_SCREEN_IMAGE_PREVIEW
+            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> TutorialStep.EXPAND_BOTTOM_SHEET
+            TutorialStep.EXPAND_BOTTOM_SHEET -> TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR
+            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> TutorialStep.SPOTLIGHT_TIME_FILTER_ICON
 
             TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION
             TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_CONTAINER
@@ -215,6 +273,7 @@ class TutorialViewModel(
         }
 
         _state.update { it.copy(currentStep = nextStep) }
+        applyRequiredStateFor(nextStep)
         _effects.trySend(TutorialEffect.NavigateToScreen(nextStep.screen))
     }
 
@@ -224,6 +283,7 @@ class TutorialViewModel(
         if (currentIndex > 1) {
             val prevStep = steps[currentIndex - 1]
             _state.update { it.copy(currentStep = prevStep) }
+            applyRequiredStateFor(prevStep)
             _effects.trySend(TutorialEffect.NavigateToScreen(prevStep.screen))
         }
     }
@@ -244,7 +304,11 @@ class TutorialViewModel(
                     isActive = false,
                     isPreparingData = false,
                     tutorialSessions = emptyList<Session>(),
-                    currentStep = TutorialStep.COMPLETED
+                    currentStep = TutorialStep.COMPLETED,
+                    sheetLock = null,
+                    requiredFullScreenImagePath = null,
+                    requiredSelectedSessionId = null,
+                    gestureLockActive = false
                 )
             }
         }

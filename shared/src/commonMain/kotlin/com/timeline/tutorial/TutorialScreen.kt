@@ -26,6 +26,8 @@ enum class TutorialStep(
         screen = TutorialScreen.TIMELINE,
         title = "Screenshot Thumbnail",
         description = "Tap the screenshot thumbnail to view full-screen captures."
+        // Requires: sheet COLLAPSED (partial). This is where the thumbnail
+        // row is opaque and measurable. Do not confuse with EXPAND_BOTTOM_SHEET.
     ),
     FULL_SCREEN_IMAGE_PREVIEW(
         screen = TutorialScreen.TIMELINE,

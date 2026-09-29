@@ -16,13 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.timeline.domain.Session
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineState
 import com.timeline.tutorial.TutorialStep
+import com.timeline.tutorial.spotlightTarget
 import com.timeline.ui.components.*
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.Dimensions
@@ -36,19 +35,30 @@ fun SessionDetailSheet(
     nextSession: Session?,
     onEvent: (TimelineEvent) -> Unit,
     onShowFullScreenImage: (String) -> Unit,
-    onBoundsCalculated: ((TutorialStep, Rect) -> Unit)? = null
+    onBoundsCalculated: ((TutorialStep, Rect) -> Unit)? = null,
+    // True only when the collapsed thumbnail row is actually the visible,
+    // opaque target -- i.e. sheet is collapsed, not mid-expansion. Prevents
+    // the tutorial from spotlighting stale bounds captured right as this
+    // row fades out (alpha = Full - expansionProgress, below).
+    isThumbnailRowVisible: () -> Boolean = { true },
+    // Overrides state.isSheetExpanded for layout purposes (fillMaxHeight,
+    // header's "isExpanded" label). Defaults to the raw view-model value;
+    // TimelineScreen passes the tutorial's effective value while a tutorial
+    // step is controlling the sheet, since that can differ from
+    // state.isSheetExpanded once the tutorial stops writing through to it.
+    isSheetExpandedOverride: Boolean? = null
 ) {
     val session = state.selectedSession ?: return
+    val isSheetExpanded = isSheetExpandedOverride ?: state.isSheetExpanded
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .then(if (state.isSheetExpanded) Modifier.fillMaxHeight() else Modifier)
+            .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         SessionDetailHeader(
             session = session,
-            isExpanded = state.isSheetExpanded,
+            isExpanded = isSheetExpanded,
             totalSessions = state.relatedSessions.size
         )
 
@@ -92,9 +102,11 @@ fun SessionDetailSheet(
                                         .clip(MaterialTheme.shapes.small)
                                         .then(
                                             if (index == 0 && onBoundsCalculated != null) {
-                                                Modifier.onGloballyPositioned { coords ->
-                                                    onBoundsCalculated(TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL, coords.boundsInRoot())
-                                                }
+                                                Modifier.spotlightTarget(
+                                                    step = TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL,
+                                                    onBoundsCalculated = onBoundsCalculated,
+                                                    isEligible = isThumbnailRowVisible
+                                                )
                                             } else Modifier
                                         )
                                 )

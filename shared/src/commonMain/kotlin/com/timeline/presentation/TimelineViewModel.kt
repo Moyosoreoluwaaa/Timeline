@@ -9,6 +9,8 @@ import com.timeline.domain.ExclusionPolicy
 import com.timeline.domain.Session
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +31,7 @@ class TimelineViewModel(
     private val appInfoProvider: AppInfoProvider,
     private val exclusionPolicy: ExclusionPolicy
 ) : ViewModel() {
-    
+
     // In-memory tutorial sessions when in active mode
     private val _tutorialSessions = MutableStateFlow<List<Session>>(emptyList())
     val tutorialSessions: StateFlow<List<Session>> = _tutorialSessions.asStateFlow()
@@ -148,6 +150,15 @@ class TimelineViewModel(
     private val _effects = Channel<TimelineEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
+    // Real, user-driven interactions worth telling a listening tutorial
+    // about. Emitted alongside normal state updates in onEvent -- this
+    // never gates or changes ordinary TimelineViewModel behavior, it's a
+    // pure observation channel. replay = 0 deliberately: only live taps
+    // count as "the user just did this", not the last one that happened
+    // before a screen was (re)subscribed.
+    private val _realInteractions = MutableSharedFlow<TimelineEvent>(replay = 0, extraBufferCapacity = 4)
+    val realInteractions: SharedFlow<TimelineEvent> = _realInteractions
+
     fun updateTutorialSessions(sessions: List<Session>) {
         _tutorialSessions.value = sessions
     }
@@ -166,6 +177,7 @@ class TimelineViewModel(
             is TimelineEvent.SelectPreviousSession -> navigateSession(-1)
             is TimelineEvent.SelectNextSession -> navigateSession(1)
         }
+        _realInteractions.tryEmit(event)
     }
 
     private fun filterSessions(

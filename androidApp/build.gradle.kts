@@ -108,11 +108,7 @@ android {
                 debugSymbolLevel = "FULL"
             }
             
-            // Fallback to debug signing if release properties are not provided
-            val isSigningConfigured = project.hasProperty("RELEASE_STORE_FILE") && 
-                                    project.hasProperty("RELEASE_STORE_PASSWORD") &&
-                                    project.hasProperty("RELEASE_KEY_ALIAS") &&
-                                    project.hasProperty("RELEASE_KEY_PASSWORD")
+            // Fallback to debug signing
             signingConfig = signingConfigs.getByName("debug")
         }
     }

@@ -136,7 +136,7 @@ object AppStrings {
     const val TimelineToday = "Today"
     const val TimelineTimeOfDay = "Time of Day"
     const val TimelineSettings = "Settings"
-    const val TimelineNoActivity = "No activity recorded"
+    const val TimelineNoActivity = "No activity recorded yet, check back later."
     const val TimelineTotalUsage = "Total usage"
     const val TimelineSessionsCount = "Sessions"
     const val TimelineMostUsed = "Most used"

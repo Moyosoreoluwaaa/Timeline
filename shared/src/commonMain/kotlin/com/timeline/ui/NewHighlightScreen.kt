@@ -96,10 +96,6 @@ fun NewHighlightScreen(
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    LaunchedEffect(showLoading) {
-        tutorialViewModel.onEvent(TutorialEvent.SetHighlightLoading(showLoading))
-    }
-
     AnimatedContent(
         targetState = showLoading,
         transitionSpec = {

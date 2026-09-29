@@ -34,7 +34,11 @@ fun AppRootContainer(
         timelineViewModel.updateTutorialSessions(tutorialState.tutorialSessions)
     }
 
-    // Auto-sync timeline & header overlay states with active tutorial step
+    // Steps with no per-step UI wiring below still need their filter/date
+    // panel visibility set. This stays separate from sheet/full-screen-image
+    // ownership, which TutorialViewModel now owns directly via
+    // sheetLock / requiredFullScreenImagePath (read inside
+    // TimelineScreen), so this effect no longer touches those two.
     LaunchedEffect(tutorialState.currentStep, timelineState.sessions) {
         when (tutorialState.currentStep) {
             TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL,
@@ -47,6 +51,8 @@ fun AppRootContainer(
                         TimelineEvent.SelectSession(timelineState.sessions[middleIndex])
                     )
                 }
+                showTimeFilters = false
+                showDatePicker = false
             }
 
             TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> {
@@ -84,9 +90,37 @@ fun AppRootContainer(
         }
     }
 
+    // Real gestures -> tutorial progress. This is what lets a genuine tap on
+    // the thumbnail, sheet, or session nav buttons advance the tutorial,
+    // instead of the tutorial only knowing about taps on its own card.
+    // Only forwards while the tutorial is active, so normal use of the app
+    // never talks to TutorialViewModel.
+    LaunchedEffect(tutorialState.isActive) {
+        if (!tutorialState.isActive) return@LaunchedEffect
+        timelineViewModel.realInteractions.collect { event ->
+            val gesture = when (event) {
+                is TimelineEvent.SelectSession ->
+                    if (event.session != null) TutorialGesture.TAPPED_SESSION_ENTRY else null
+                is TimelineEvent.ShowFullScreenImage ->
+                    if (event.path != null) TutorialGesture.TAPPED_THUMBNAIL else null
+                is TimelineEvent.DismissFullScreenImage ->
+                    TutorialGesture.DISMISSED_FULL_SCREEN_IMAGE
+                is TimelineEvent.ToggleSheet ->
+                    if (event.expanded) TutorialGesture.EXPANDED_SHEET else TutorialGesture.COLLAPSED_SHEET
+                is TimelineEvent.SelectPreviousSession -> TutorialGesture.TAPPED_PREV_SESSION
+                is TimelineEvent.SelectNextSession -> TutorialGesture.TAPPED_NEXT_SESSION
+                else -> null
+            }
+            if (gesture != null) {
+                tutorialViewModel.onEvent(TutorialEvent.RealGestureObserved(gesture))
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         TimelineScreen(
             viewModel = timelineViewModel,
+            tutorialViewModel = tutorialViewModel,
             showTimeFilters = showTimeFilters,
             onToggleTimeFilters = { showTimeFilters = !showTimeFilters },
             showDatePicker = showDatePicker,
