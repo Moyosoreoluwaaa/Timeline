@@ -188,7 +188,8 @@ class AndroidDeviceUsageSyncer(
             null
         }
 
-        val durationMinutes = (durationMs / 60000L).coerceAtLeast(1L)
+        val durationMinutes = durationMs / 60000L
+        val durationSeconds = durationMs / 1000L
 
         val session = Session(
             id = sessionId,
@@ -198,12 +199,13 @@ class AndroidDeviceUsageSyncer(
             startTime = Instant.fromEpochMilliseconds(startTimeMs),
             endTime = Instant.fromEpochMilliseconds(endTimeMs),
             durationMinutes = durationMinutes,
+            durationSeconds = durationSeconds,
             screenshots = emptyList(),
             segments = emptyList()
         )
 
         repository.saveSession(session)
-        tagLogger.d { "Saved real session for $appName ($packageName), duration: ${durationMinutes}m" }
+        tagLogger.d { "Saved real session for $appName ($packageName), duration: ${durationSeconds}s (${durationMinutes}m)" }
         return true
     }
 }

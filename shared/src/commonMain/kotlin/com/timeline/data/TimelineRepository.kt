@@ -184,6 +184,7 @@ class TimelineRepositoryImpl(
         startTime = kotlin.time.Instant.fromEpochMilliseconds(startTime),
         endTime = endTime?.let { kotlin.time.Instant.fromEpochMilliseconds(it) },
         durationMinutes = durationMinutes,
+        durationSeconds = durationSeconds,
         screenshots = screenshotsJson.split("|||").filter { it.isNotBlank() },
         segments = deserializeSegments(segmentsJson)
     )
@@ -195,6 +196,7 @@ class TimelineRepositoryImpl(
         startTime = startTime.toEpochMilliseconds(),
         endTime = endTime?.toEpochMilliseconds(),
         durationMinutes = durationMinutes,
+        durationSeconds = durationSeconds,
         screenshotsJson = screenshots.joinToString("|||"),
         segmentsJson = serializeSegments(segments),
         updatedAt = Clock.System.now().toEpochMilliseconds()

@@ -60,7 +60,7 @@ class SessionManager(
                         durationSeconds = duration.inWholeSeconds
                     )
                     repository.saveSession(updatedSession)
-                    Logger.i(tag = "SessionManager") { "Closed session $sessionId. Duration: ${duration.inWholeMinutes}m" }
+                    Logger.i(tag = "SessionManager") { "Closed session $sessionId. Duration: ${duration.inWholeSeconds}s (${duration.inWholeMinutes}m)" }
                 }
             } catch (e: Exception) {
                 Logger.e(e, "SessionManager") { "Failed to close session $sessionId" }

@@ -20,6 +20,7 @@ data class SessionEntity(
     val startTime: Long,
     val endTime: Long?,
     val durationMinutes: Long,
+    val durationSeconds: Long = 0L,
     val screenshotsJson: String,
     val segmentsJson: String,
     val updatedAt: Long = 0L,
@@ -130,7 +131,7 @@ private fun updateJsonPaths(json: String, pathMap: Map<String, String>): String 
     return result
 }
 
-@Database(entities = [SessionEntity::class, ReasoningEntity::class, AnalysisResultEntity::class], version = 4)
+@Database(entities = [SessionEntity::class, ReasoningEntity::class, AnalysisResultEntity::class], version = 5)
 @ConstructedBy(TimelineDatabaseConstructor::class)
 abstract class TimelineDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
