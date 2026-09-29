@@ -27,7 +27,7 @@ class TutorialViewModel(
 
     fun onEvent(event: TutorialEvent) {
         when (event) {
-            is TutorialEvent.StartTutorial -> startTutorial(event.isPro)
+            TutorialEvent.StartTutorial -> startTutorial()
             TutorialEvent.NextStep -> advanceStep()
             TutorialEvent.PreviousStep -> rewindStep()
             TutorialEvent.SkipTutorial -> dismissTutorial()
@@ -93,13 +93,13 @@ class TutorialViewModel(
         }
     }
 
-    private fun startTutorial(isPro: Boolean) {
+    private fun startTutorial() {
         viewModelScope.launch {
             _state.update {
                 it.copy(
                     isActive = true,
                     isPreparingData = true,
-                    isProTutorial = isPro,
+                    isProTutorial = true,
                     currentStep = TutorialStep.PREREQUISITE_CHECK
                 )
             }
@@ -207,7 +207,6 @@ class TutorialViewModel(
 
     private fun advanceStep() {
         val current = _state.value.currentStep
-        val isPro = _state.value.isProTutorial
 
         val nextStep = when (current) {
             TutorialStep.PREREQUISITE_CHECK -> TutorialStep.SPOTLIGHT_APP_ENTRY
@@ -221,13 +220,7 @@ class TutorialViewModel(
             TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_CONTAINER
             TutorialStep.SPOTLIGHT_DATE_CONTAINER -> TutorialStep.SPOTLIGHT_DATE_PICKER
 
-            TutorialStep.SPOTLIGHT_DATE_PICKER -> {
-                if (isPro) {
-                    TutorialStep.SPOTLIGHT_SUMMARY_BAR
-                } else {
-                    TutorialStep.COMPLETED
-                }
-            }
+            TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
 
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))

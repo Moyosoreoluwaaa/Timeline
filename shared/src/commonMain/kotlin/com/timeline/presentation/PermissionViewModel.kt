@@ -7,7 +7,6 @@ import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
 import com.timeline.presentation.OnboardingStep.Opening
 import com.timeline.presentation.OnboardingStep.PermissionCardStack
-import com.timeline.presentation.OnboardingStep.PlanSelection
 import com.timeline.presentation.OnboardingStep.Welcome
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.channels.Channel
@@ -47,13 +46,7 @@ class PermissionViewModel(
     }
 
     private fun resolveInitialStep(savedStep: OnboardingStep): OnboardingStep {
-        return if (savedStep == PermissionCardStack) {
-            if (permissionManager.hasAccessibilityPermission() &&
-                permissionManager.hasUsageStatsPermission() &&
-                permissionManager.hasNotificationPermission()) {
-                PlanSelection
-            } else savedStep
-        } else savedStep
+        return savedStep
     }
 
     fun onEvent(event: PermissionEvent) {
@@ -63,17 +56,10 @@ class PermissionViewModel(
             is PermissionEvent.NextStep -> nextStep()
             is PermissionEvent.PreviousStep -> previousStep()
             is PermissionEvent.RetryPermission -> retryCurrentPermission()
-            is PermissionEvent.SelectProPlan -> {
-                viewModelScope.launch {
-                    userPreferences.setPermissionsCompleted(true)
-                    userPreferences.setLastOnboardingStep(PlanSelection.name)
-                    _effects.send(PermissionEffect.NavigateToPaywall)
-                }
-            }
             is PermissionEvent.StartTracking -> {
                 viewModelScope.launch {
                     userPreferences.setPermissionsCompleted(true)
-                    userPreferences.setLastOnboardingStep(PlanSelection.name)
+                    userPreferences.setLastOnboardingStep(PermissionCardStack.name)
                     _effects.send(PermissionEffect.AllGranted)
                 }
             }
@@ -124,26 +110,34 @@ class PermissionViewModel(
     }
 
     private fun nextStep() {
-        _state.update { currentState ->
-            val next = when (currentState.currentStep) {
+        val currentState = _state.value
+        if (currentState.currentStep == PermissionCardStack) {
+            if (currentState.activeCardIndex >= currentState.permissions.size - 1) {
+                viewModelScope.launch {
+                    userPreferences.setPermissionsCompleted(true)
+                    userPreferences.setLastOnboardingStep(PermissionCardStack.name)
+                    _effects.send(PermissionEffect.AllGranted)
+                }
+                return
+            } else {
+                _state.update { it.copy(activeCardIndex = it.activeCardIndex + 1) }
+                return
+            }
+        }
+
+        _state.update { state ->
+            val next = when (state.currentStep) {
                 Opening -> Welcome
                 Welcome -> PermissionCardStack
-                PermissionCardStack -> {
-                    if (currentState.activeCardIndex >= currentState.permissions.size - 1) {
-                        PlanSelection
-                    } else {
-                        return@update currentState.copy(activeCardIndex = currentState.activeCardIndex + 1)
-                    }
-                }
-                PlanSelection -> PlanSelection
+                PermissionCardStack -> PermissionCardStack
             }
 
             viewModelScope.launch {
                 userPreferences.setLastOnboardingStep(next.name)
             }
 
-            val newHistory = currentState.stepHistory + currentState.currentStep
-            currentState.copy(currentStep = next, stepHistory = newHistory)
+            val newHistory = state.stepHistory + state.currentStep
+            state.copy(currentStep = next, stepHistory = newHistory)
         }
     }
 
@@ -157,7 +151,6 @@ class PermissionViewModel(
                 currentState.stepHistory.last()
             } else {
                 when (currentState.currentStep) {
-                    PlanSelection -> PermissionCardStack
                     PermissionCardStack -> Welcome
                     Welcome -> Opening
                     Opening -> Opening

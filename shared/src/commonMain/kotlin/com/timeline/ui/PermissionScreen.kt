@@ -26,8 +26,7 @@ fun PermissionScreen(
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
     onNavigateToBatteryOptimization: () -> Unit,
-    onAllGranted: () -> Unit,
-    onNavigateToPaywall: () -> Unit
+    onAllGranted: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -40,7 +39,6 @@ fun PermissionScreen(
                 is PermissionEffect.NavigateToAccessibilitySettings -> onNavigateToAccessibility()
                 is PermissionEffect.NavigateToBatteryOptimizationSettings -> onNavigateToBatteryOptimization()
                 is PermissionEffect.AllGranted -> onAllGranted()
-                is PermissionEffect.NavigateToPaywall -> onNavigateToPaywall()
             }
         }
     }
@@ -67,13 +65,7 @@ fun PermissionScreen(
         OnboardingStepContent(
             step = step,
             state = state,
-            onEvent = viewModel::onEvent,
-            onOpenTimeline = {
-                viewModel.onEvent(PermissionEvent.StartTracking)
-            },
-            onNavigateToPaywall = {
-                viewModel.onEvent(PermissionEvent.SelectProPlan)
-            }
+            onEvent = viewModel::onEvent
         )
     }
 }

@@ -7,7 +7,7 @@ data class TutorialState(
     val currentStep: TutorialStep = TutorialStep.PREREQUISITE_CHECK,
     val isActive: Boolean = false,
     val isPreparingData: Boolean = false,
-    val isProTutorial: Boolean = false,
+    val isProTutorial: Boolean = true,
     val isHighlightLoading: Boolean = false,
     val tutorialSessions: List<Session> = emptyList(),
     val selectedSessionId: String? = null,
@@ -46,7 +46,7 @@ sealed interface SheetLock {
 }
 
 sealed interface TutorialEvent {
-    data class StartTutorial(val isPro: Boolean = false) : TutorialEvent
+    data object StartTutorial : TutorialEvent
     data object NextStep : TutorialEvent
     data object PreviousStep : TutorialEvent
     data object SkipTutorial : TutorialEvent

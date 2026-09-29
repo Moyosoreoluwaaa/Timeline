@@ -80,18 +80,12 @@ import timeline.shared.generated.resources.timeline_splash_icon
 fun OnboardingStepContent(
     step: OnboardingStep,
     state: PermissionState,
-    onEvent: (PermissionEvent) -> Unit,
-    onOpenTimeline: () -> Unit,
-    onNavigateToPaywall: () -> Unit
+    onEvent: (PermissionEvent) -> Unit
 ) {
     when (step) {
         OnboardingStep.Opening -> OpeningStep(onEvent)
         OnboardingStep.Welcome -> WelcomeStep(onEvent)
         OnboardingStep.PermissionCardStack -> PermissionCardStackStep(state, onEvent)
-        OnboardingStep.PlanSelection -> PlanSelectionStep(
-            onOpenTimeline = onOpenTimeline,
-            onNavigateToPaywall = onNavigateToPaywall
-        )
     }
 }
 
@@ -280,7 +274,7 @@ fun WelcomeStep(onEvent: (PermissionEvent) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OnboardingStepIndicator(total = 3, current = 0)
+                        OnboardingStepIndicator(total = 2, current = 0)
                         Spacer(modifier = Modifier.weight(1f))
 
                         Button(
@@ -505,7 +499,7 @@ private fun PermissionCardStackStep(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
                 ) {
-                    OnboardingStepIndicator(total = 3, current = 1)
+                    OnboardingStepIndicator(total = 2, current = 1)
 
                     if (currentPermission != null) {
                         Column(
@@ -600,192 +594,6 @@ private fun PermissionCard(
             )
 
             Spacer(modifier = Modifier.height(160.dp))
-        }
-    }
-}
-
-@Composable
-fun PlanSelectionStep(
-    onOpenTimeline: () -> Unit,
-    onNavigateToPaywall: () -> Unit
-) {
-    var isHeaderVisible by remember { mutableStateOf(false) }
-    var isCardsVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        isHeaderVisible = true
-        delay(100L)
-        isCardsVisible = true
-    }
-
-    OnboardingLayout(
-        topBar = {
-            AnimatedVisibility(
-                visible = isHeaderVisible,
-                enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
-                    initialOffsetY = { -it / 2 },
-                    animationSpec = tween(500)
-                )
-            ) {
-                Column {
-                    Text(
-                        text = "Choose Your Experience",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-                    Text(
-                        text = "Select how you'd like to manage your timeline.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-        },
-        bottomBar = {
-            OnboardingStepIndicator(
-                total = 3,
-                current = 2,
-                modifier = Modifier.padding(bottom = Dimensions.PaddingMedium)
-            )
-        }
-    ) {
-        AnimatedVisibility(
-            visible = isCardsVisible,
-            enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
-                initialOffsetY = { it / 2 },
-                animationSpec = tween(500)
-            )
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
-            ) {
-                // Timeline Pro Direct Action Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Star,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "Timeline Pro",
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.primary
-                            ) {
-                                Text(
-                                    text = "RECOMMENDED",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = "AI-powered highlights, automated category reasoning, and unlimited timeline history.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                        )
-
-                        Button(
-                            onClick = onNavigateToPaywall,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(Dimensions.ButtonHeight),
-                            shape = com.timeline.ui.theme.AppShapes.Pill,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text(
-                                text = "Get Timeline Pro",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-
-                // Basic / Free Tier Direct Action Card
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                            Text(
-                                text = "Basic Tier",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-
-                        Text(
-                            text = "Standard screen time tracking and basic activity logging.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-
-                        Button(
-                            onClick = onOpenTimeline,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(Dimensions.ButtonHeight),
-                            shape = com.timeline.ui.theme.AppShapes.Pill,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text(
-                                text = "Free Tutorial (Timeline Only)",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

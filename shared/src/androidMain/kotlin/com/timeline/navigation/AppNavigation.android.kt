@@ -201,12 +201,7 @@ actual fun AppNavigation(
                                         onNavigateToAccessibility = onNavigateToAccessibility,
                                         onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
                                         onAllGranted = {
-                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = false))
-                                            backStack.clear()
-                                            backStack.add(Route.Timeline)
-                                        },
-                                        onNavigateToPaywall = {
-                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = true))
+                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
                                             backStack.clear()
                                             backStack.add(Route.Timeline)
                                         }
@@ -222,7 +217,7 @@ actual fun AppNavigation(
                                         val isFullyGranted =
                                             permState.allGranted && prefsState?.isPermissionsCompleted == true
                                         if (isFullyGranted && prefsState?.isTutorial == false && !tutorialState.isActive) {
-                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial(isPro = false))
+                                            tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
                                         }
                                     }
 

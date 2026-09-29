@@ -3,8 +3,7 @@ package com.timeline.presentation
 enum class OnboardingStep {
     Opening,
     Welcome,
-    PermissionCardStack,
-    PlanSelection
+    PermissionCardStack
 }
 
 data class PermissionItem(
@@ -32,7 +31,6 @@ sealed interface PermissionEvent {
     data object NextStep : PermissionEvent
     data object PreviousStep : PermissionEvent
     data object RetryPermission : PermissionEvent
-    data object SelectProPlan : PermissionEvent
 }
 
 sealed interface PermissionEffect {
@@ -42,5 +40,4 @@ sealed interface PermissionEffect {
     data object NavigateToAccessibilitySettings : PermissionEffect
     data object NavigateToBatteryOptimizationSettings : PermissionEffect
     data object AllGranted : PermissionEffect
-    data object NavigateToPaywall : PermissionEffect
 }

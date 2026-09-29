@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 import com.timeline.ui.TimelineScreen
 import com.timeline.presentation.TimelineViewModel
@@ -51,8 +52,7 @@ actual fun AppNavigation(
                 onNavigateToNotification = onNavigateToNotification,
                 onNavigateToAccessibility = onNavigateToAccessibility,
                 onNavigateToBatteryOptimization = onNavigateToBatteryOptimization,
-                onAllGranted = { currentRoute = Route.Timeline },
-                onNavigateToPaywall = { currentRoute = Route.Paywall() }
+                onAllGranted = { currentRoute = Route.Timeline }
             )
         }
         Route.Timeline -> {
@@ -61,7 +61,7 @@ actual fun AppNavigation(
 
             HorizontalPager(
                 state = pagerState,
-                modifier = fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) { page ->
                 when (page) {
                     0 -> {
