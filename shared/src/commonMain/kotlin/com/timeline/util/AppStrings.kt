@@ -131,12 +131,30 @@ object AppStrings {
     const val PermissionBatteryDesc = "Prevents background service interruptions."
     const val PermissionBatteryIllustration = "illustrations/battery.png"
 
+    // Intro carousel
+    const val IntroPage1Title    = "Where did your day go?"
+    const val IntroPage1Subtitle = "See how your time really adds up."
+
+    const val IntroPage2Title    = "Your day, as a story"
+    const val IntroPage2Subtitle = "Friendly recaps, not endless lists."
+
+    const val IntroPage3Title    = "You're in control"
+    const val IntroPage3Subtitle = "Choose which apps stay private."
+
+    const val IntroPage4Title    = "We'll come to you"
+    const val IntroPage4Subtitle = "Highlights arrive right on time."
+
+    const val IntroPage5Title    = "How much detail?"
+    const val IntroPage5Subtitle = "Pick the style that feels right."
+
+    const val ButtonSkip = "Skip"
+
     // Timeline Screen
     const val TimelineTitle = "Timeline"
     const val TimelineToday = "Today"
     const val TimelineTimeOfDay = "Time of Day"
     const val TimelineSettings = "Settings"
-    const val TimelineNoActivity = "No activity recorded yet, check back later."
+    const val TimelineNoActivity = "Oops no snapshots yet, check back later."
     const val TimelineTotalUsage = "Total usage"
     const val TimelineSessionsCount = "Sessions"
     const val TimelineMostUsed = "Most used"

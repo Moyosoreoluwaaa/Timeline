@@ -9,6 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,6 +18,7 @@ import com.timeline.presentation.PermissionEffect
 import com.timeline.presentation.PermissionEvent
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.ui.components.OnboardingStepContent
+import com.timeline.ui.components.onboardingTween
 
 @Composable
 fun PermissionScreen(
@@ -54,10 +56,17 @@ fun PermissionScreen(
     AnimatedContent(
         targetState = state.currentStep,
         transitionSpec = {
+            val animationSpec = onboardingTween<IntOffset>()
+            val alphaSpec = onboardingTween<Float>()
+
             if (targetState.ordinal > initialState.ordinal) {
-                (slideInHorizontally { it } + fadeIn()).togetherWith(slideOutHorizontally { -it } + fadeOut())
+                (slideInHorizontally(animationSpec) { it } + fadeIn(alphaSpec)).togetherWith(
+                    slideOutHorizontally(animationSpec) { -it } + fadeOut(alphaSpec)
+                )
             } else {
-                (slideInHorizontally { -it } + fadeIn()).togetherWith(slideOutHorizontally { it } + fadeOut())
+                (slideInHorizontally(animationSpec) { -it } + fadeIn(alphaSpec)).togetherWith(
+                    slideOutHorizontally(animationSpec) { it } + fadeOut(alphaSpec)
+                )
             }
         },
         label = "OnboardingStep"

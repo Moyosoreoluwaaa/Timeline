@@ -18,7 +18,7 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
          * Feature flag to temporarily grant free access to all Pro / paywalled features.
          * Set this to `false` when preparing the app build for the Google Play Store to re-enable paywalls.
          */
-        var isFreeAccessEnabled: Boolean = true
+        var isFreeAccessEnabled: Boolean = false
     }
 
     private val _customerInfo = MutableStateFlow<CustomerInfo?>(null)
@@ -41,7 +41,6 @@ class RevenueCatSubscriptionManager : SubscriptionManager, PurchasesDelegate {
 
     override suspend fun initialize() {
         logger.d { "Initializing RevenueCat Subscription Manager" }
-        logger.d { "Current API Key being used: $revenueCatApiKey" }
         logger.d { "Target Entitlement ID: $revenueCatEntitlementId" }
         
         Purchases.sharedInstance.delegate = this

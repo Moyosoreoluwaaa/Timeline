@@ -1,18 +1,28 @@
 package com.timeline.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,14 +35,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.timeline.presentation.OnboardingStep
-import com.timeline.ui.theme.AppAlpha
-import com.timeline.ui.theme.AppColors
 import com.timeline.ui.theme.Dimensions
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun OnboardingLayout(
@@ -77,75 +83,27 @@ fun OnboardingLayout(
 }
 
 @Composable
-fun OnboardingStepIndicator(
-    total: Int,
-    current: Int,
-    modifier: Modifier = Modifier,
-    delayMillis: Int = 0
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
-        isVisible = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
-    ) {
-        Row(
-            modifier = modifier,
-            horizontalArrangement = Arrangement.spacedBy(Dimensions.Default)
-        ) {
-            repeat(total) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(Dimensions.Default)
-                        .clip(CircleShape)
-                        .background(
-                            if (index == current) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f)
-                        )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun OnboardingPermissionIndicator(
-    current: Int,
-    total: Int = 3
-) {
-    Text(
-        text = "$current of $total",
-        style = MaterialTheme.typography.labelLarge.copy(
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
-        )
-    )
-}
-
-@Composable
 fun OnboardingActionButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    showArrow: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.onSurface,
     contentColor: Color = MaterialTheme.colorScheme.surface,
     delayMillis: Int = 0
 ) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
+        delay(delayMillis.toLong().milliseconds)
         isVisible = true
     }
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
+        enter = fadeIn(animationSpec = onboardingTween()) + slideInVertically(
+            initialOffsetY = { it / 2 },
+            animationSpec = onboardingTween()
+        )
     ) {
         Button(
             onClick = onClick,
@@ -167,53 +125,7 @@ fun OnboardingActionButton(
                     text = text,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
-                if (showArrow) {
-                    Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
-        }
-    }
-}
-
-@Composable
-fun OnboardingTextButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    delayMillis: Int = 0
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
-        isVisible = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
-    ) {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier
-                .fillMaxWidth()
-                .height(Dimensions.ButtonHeight),
-            shape = com.timeline.ui.theme.AppShapes.Pill,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.onSurface
-            )
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
         }
     }
 }
@@ -227,13 +139,16 @@ fun OnboardingIllustration(
 ) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
+        delay(delayMillis.toLong().milliseconds)
         isVisible = true
     }
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(500))
+        enter = fadeIn(animationSpec = onboardingTween()) + slideInVertically(
+            initialOffsetY = { -it / 2 },
+            animationSpec = onboardingTween()
+        )
     ) {
         Box(
             modifier = modifier
@@ -247,92 +162,6 @@ fun OnboardingIllustration(
                 contentDescription = null,
                 tint = color,
                 modifier = Modifier.size(64.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun OnboardingIntroFeature(
-    icon: ImageVector,
-    text: String,
-    delayMillis: Int = 0
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
-        isVisible = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = Dimensions.PaddingSmall),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    lineHeight = 20.sp
-                ),
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-fun OnboardingPermissionFeature(
-    icon: ImageVector,
-    title: String,
-    modifier: Modifier = Modifier,
-    delayMillis: Int = 0
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
-        isVisible = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(500))
-    ) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(vertical = Dimensions.PaddingMedium, horizontal = Dimensions.PaddingMedium),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                modifier = Modifier.weight(1f)
             )
         }
     }

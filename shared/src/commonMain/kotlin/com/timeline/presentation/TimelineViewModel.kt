@@ -10,20 +10,35 @@ import com.timeline.domain.Session
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+private data class SelectionState(
+    val selectedDate: Instant,
+    val selectedPackageName: String?,
+    val selectedSession: Session?,
+    val fullScreenImagePath: String?
+)
+
+private data class ViewOptionsState(
+    val isSheetExpanded: Boolean,
+    val timeFilter: TimeFilter,
+    val isLoading: Boolean
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimelineViewModel(
@@ -32,45 +47,55 @@ class TimelineViewModel(
     private val exclusionPolicy: ExclusionPolicy
 ) : ViewModel() {
 
-    // In-memory tutorial sessions when in active mode
     private val _tutorialSessions = MutableStateFlow<List<Session>>(emptyList())
     val tutorialSessions: StateFlow<List<Session>> = _tutorialSessions.asStateFlow()
 
     private val _refreshTrigger = MutableStateFlow(0)
-    private val _selectedDate = MutableStateFlow<Instant>(Clock.System.now())
+    private val _selectedDate = MutableStateFlow(Clock.System.now())
     private val _selectedPackageName = MutableStateFlow<String?>(null)
     private val _selectedSession = MutableStateFlow<Session?>(null)
     private val _fullScreenImagePath = MutableStateFlow<String?>(null)
     private val _isSheetExpanded = MutableStateFlow(false)
     private val _timeFilter = MutableStateFlow(TimeFilter.ALL)
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)
 
-    val state: StateFlow<TimelineState> = combine(
-        repository.getTimeline(),
-        exclusionPolicy.getExcludedPackages(),
-        _tutorialSessions,
+    // Flow for raw DB sessions driven by refresh triggers & managing loading state
+    private val _dbSessions = _refreshTrigger
+        .flatMapLatest { repository.getTimeline() }
+        .onStart { _isLoading.value = true }
+        .onEach { _isLoading.value = false }
+
+    // Combine selection flows (4 flows)
+    private val _selectionState = combine(
         _selectedDate,
         _selectedPackageName,
         _selectedSession,
-        _fullScreenImagePath,
+        _fullScreenImagePath
+    ) { date, pkg, session, image ->
+        SelectionState(date, pkg, session, image)
+    }
+
+    // Combine view option flows (3 flows)
+    private val _viewOptionsState = combine(
         _isSheetExpanded,
         _timeFilter,
         _isLoading
-    ) { args: Array<Any?> ->
-        val sessionsFromDb = args[0] as List<Session>
-        val excluded = args[1] as Set<String>
-        val tutorialSessions = args[2] as List<Session>
-        var date = args[3] as Instant
-        val packageName = args[4] as String?
-        val session = args[5] as Session?
-        val fullScreenImage = args[6] as String?
-        val expanded = args[7] as Boolean
-        val filter = args[8] as TimeFilter
-        val loading = args[9] as Boolean
+    ) { expanded, filter, loading ->
+        ViewOptionsState(expanded, filter, loading)
+    }
 
-        val sessions = if (tutorialSessions.isNotEmpty()) tutorialSessions else sessionsFromDb
+    // Primary StateFlow combining exactly 5 flows
+    val state: StateFlow<TimelineState> = combine(
+        _dbSessions,
+        exclusionPolicy.getExcludedPackages(),
+        _tutorialSessions,
+        _selectionState,
+        _viewOptionsState
+    ) { sessionsFromDb, excluded, tutorialSessions, selection, viewOptions ->
+        val sessions = tutorialSessions.ifEmpty { sessionsFromDb }
+        var date = selection.selectedDate
 
-        // If there are sessions in the database, but none for today, auto-select the latest session's date
+        // Auto-select latest session date if selected date has no records
         val tz = TimeZone.currentSystemDefault()
         val filteredForDate = sessions.filter { applyDateFilter(it, date) && it.packageName !in excluded }
         if (filteredForDate.isEmpty() && sessions.isNotEmpty()) {
@@ -85,77 +110,79 @@ class TimelineViewModel(
             }
         }
 
-        val filteredSessions = filterSessions(sessions, excluded, date, filter, packageName)
+        val filteredSessions = filterSessions(
+            sessions = sessions,
+            excluded = excluded,
+            date = date,
+            filter = viewOptions.timeFilter,
+            packageName = selection.selectedPackageName
+        )
         val summary = calculateSummary(filteredSessions)
-        val related = if (session != null) {
-            sessions.filter { it.packageName == session.packageName && applyDateFilter(it, date) }
+        val related = if (selection.selectedSession != null) {
+            sessions.filter { it.packageName == selection.selectedSession.packageName && applyDateFilter(it, date) }
         } else emptyList()
 
         TimelineState(
             sessions = filteredSessions,
             summary = summary,
-            isLoading = loading,
+            isLoading = viewOptions.isLoading,
             selectedDate = date,
-            selectedPackageName = packageName,
-            selectedSession = session,
+            selectedPackageName = selection.selectedPackageName,
+            selectedSession = selection.selectedSession,
             relatedSessions = related,
-            fullScreenImagePath = fullScreenImage,
-            isSheetExpanded = expanded,
-            timeFilter = filter
+            fullScreenImagePath = selection.fullScreenImagePath,
+            isSheetExpanded = viewOptions.isSheetExpanded,
+            timeFilter = viewOptions.timeFilter
         )
-    }.flatMapLatest { s ->
-        flow {
-            val enrichedSessions = s.sessions.map { session ->
-                if (session.displayName == null) {
-                    session.copy(
-                        displayName = appInfoProvider.getAppName(session.packageName),
-                        icon = appInfoProvider.getAppIcon(session.packageName)
-                    )
-                } else session
-            }
-            val enrichedRelated = s.relatedSessions.map { session ->
-                if (session.displayName == null) {
-                    session.copy(
-                        displayName = appInfoProvider.getAppName(session.packageName),
-                        icon = appInfoProvider.getAppIcon(session.packageName)
-                    )
-                } else session
-            }
-            val enrichedSelected = s.selectedSession?.let { session ->
-                if (session.displayName == null) {
-                    session.copy(
-                        displayName = appInfoProvider.getAppName(session.packageName),
-                        icon = appInfoProvider.getAppIcon(session.packageName)
-                    )
-                } else session
-            }
-
-            val enrichedSummary = s.summary.copy(
-                mostUsedApps = s.summary.mostUsedApps.map { app ->
-                    app.copy(
-                        displayName = app.displayName ?: appInfoProvider.getAppName(app.packageName),
-                        icon = app.icon ?: appInfoProvider.getAppIcon(app.packageName)
-                    )
-                }
-            )
-            emit(s.copy(
-                sessions = enrichedSessions,
-                relatedSessions = enrichedRelated,
-                selectedSession = enrichedSelected,
-                summary = enrichedSummary
-            ))
+    }.mapLatest { s ->
+        val enrichedSessions = s.sessions.map { session ->
+            if (session.displayName == null) {
+                session.copy(
+                    displayName = appInfoProvider.getAppName(session.packageName),
+                    icon = appInfoProvider.getAppIcon(session.packageName)
+                )
+            } else session
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimelineState())
+        val enrichedRelated = s.relatedSessions.map { session ->
+            if (session.displayName == null) {
+                session.copy(
+                    displayName = appInfoProvider.getAppName(session.packageName),
+                    icon = appInfoProvider.getAppIcon(session.packageName)
+                )
+            } else session
+        }
+        val enrichedSelected = s.selectedSession?.let { session ->
+            if (session.displayName == null) {
+                session.copy(
+                    displayName = appInfoProvider.getAppName(session.packageName),
+                    icon = appInfoProvider.getAppIcon(session.packageName)
+                )
+            } else session
+        }
+
+        val enrichedSummary = s.summary.copy(
+            mostUsedApps = s.summary.mostUsedApps.map { app ->
+                app.copy(
+                    displayName = app.displayName ?: appInfoProvider.getAppName(app.packageName),
+                    icon = app.icon ?: appInfoProvider.getAppIcon(app.packageName)
+                )
+            }
+        )
+        s.copy(
+            sessions = enrichedSessions,
+            relatedSessions = enrichedRelated,
+            selectedSession = enrichedSelected,
+            summary = enrichedSummary
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = TimelineState(isLoading = true)
+    )
 
     private val _effects = Channel<TimelineEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
-    // Real, user-driven interactions worth telling a listening tutorial
-    // about. Emitted alongside normal state updates in onEvent -- this
-    // never gates or changes ordinary TimelineViewModel behavior, it's a
-    // pure observation channel. replay = 0 deliberately: only live taps
-    // count as "the user just did this", not the last one that happened
-    // before a screen was (re)subscribed.
     private val _realInteractions = MutableSharedFlow<TimelineEvent>(replay = 0, extraBufferCapacity = 4)
     val realInteractions: SharedFlow<TimelineEvent> = _realInteractions
 

@@ -1,8 +1,11 @@
 package com.timeline.presentation
 
+/** Number of pages inside the Intro step. */
+const val INTRO_PAGE_COUNT = 5
+
 enum class OnboardingStep {
     Opening,
-    Welcome,
+    Intro,                 // 5-page carousel (replaces Welcome, ValueProposition, Storytelling, Customization)
     PermissionCardStack
 }
 
@@ -21,16 +24,19 @@ data class PermissionState(
     val currentStep: OnboardingStep = OnboardingStep.Opening,
     val stepHistory: List<OnboardingStep> = emptyList(),
     val activeCardIndex: Int = 0,
+    val introPage: Int = 0,
+    val focusAreas: Set<String> = emptySet(),
     val error: String? = null
 )
 
 sealed interface PermissionEvent {
     data object CheckPermissions : PermissionEvent
     data class GrantPermission(val id: String) : PermissionEvent
-    data object StartTracking : PermissionEvent
     data object NextStep : PermissionEvent
     data object PreviousStep : PermissionEvent
     data object RetryPermission : PermissionEvent
+    data object SkipIntro : PermissionEvent
+    data class ToggleFocusArea(val id: String) : PermissionEvent
 }
 
 sealed interface PermissionEffect {

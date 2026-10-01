@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.timeline.ui.theme.AppAlpha
@@ -36,13 +37,21 @@ fun SettingsTopBar(
     var showMenu by remember { mutableStateOf(false) }
 
     CustomTopAppBar(
-        title = { Text(AppStrings.SettingsTitle, style = MaterialTheme.typography.headlineLarge) },
+        title = {
+            Text(
+                AppStrings.SettingsTitle, style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
         navigationIcon = {
             IconButton(
                 onClick = onBack,
                 modifier = Modifier.clip(CircleShape)
             ) {
-                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowLeft, contentDescription = AppStrings.ContentDescBack)
+                Icon(
+                    Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                    contentDescription = AppStrings.ContentDescBack
+                )
             }
         },
         actions = {
@@ -61,13 +70,23 @@ fun SettingsTopBar(
                     if (isLoggedIn) {
                         DropdownMenuItem(
                             text = { Text(AppStrings.SettingsSignOut) },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.Logout,
+                                    contentDescription = null
+                                )
+                            },
                             onClick = { showMenu = false; onLogout() }
                         )
                     } else {
                         DropdownMenuItem(
                             text = { Text(AppStrings.SettingsSignIn) },
-                            leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Login, contentDescription = null) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.Login,
+                                    contentDescription = null
+                                )
+                            },
                             onClick = { showMenu = false; onNavigateToAuth() }
                         )
                     }
@@ -123,6 +142,7 @@ fun UpgradeCard(
         }
     }
 }
+
 @Composable
 fun SettingCategory(title: String) {
     Text(
@@ -153,10 +173,20 @@ fun SettingItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
-                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
             }
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(AppWeights.Full), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(AppWeights.Full),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             if (trailing != null) trailing()
         }
     }
@@ -181,9 +211,18 @@ fun InfoCard(
                 .padding(horizontal = Dimensions.PaddingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
-            Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

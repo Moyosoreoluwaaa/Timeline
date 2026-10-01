@@ -59,6 +59,8 @@ fun TimelineHeader(
     onNavigateToSettings: () -> Unit,
     onSelectDateClick: () -> Unit,
     isSettingsActive: Boolean = false,
+    subscriptionBanner: SubscriptionBanner = SubscriptionBanner.None,
+    onProPlanClick: () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
     onBoundsCalculated: (TutorialStep, Rect) -> Unit = { _, _ -> }
 ) {
@@ -131,6 +133,8 @@ fun TimelineHeader(
         colors = topBarColors,
         scrollBehavior = scrollBehavior,
         cutoutRadius = TopAppBarCutoutRadius,
+        subscriptionBanner = subscriptionBanner,
+        onProPlanClick = onProPlanClick,
         expandableContent = {
             AnimatedVisibility(
                 visible = showTimeFilters,

@@ -124,7 +124,7 @@ fun NewHighlightScreen(
                                 Text(
                                     text = "Highlights",
                                     style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         },

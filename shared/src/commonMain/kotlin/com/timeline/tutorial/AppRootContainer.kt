@@ -13,6 +13,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineViewModel
+import com.timeline.ui.components.SubscriptionBanner
 import com.timeline.ui.TimelineScreen
 
 @Composable
@@ -21,6 +22,8 @@ fun AppRootContainer(
     tutorialViewModel: TutorialViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToHighlight: () -> Unit,
+    subscriptionBanner: SubscriptionBanner = SubscriptionBanner.None,
+    onNavigateToPaywall: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
@@ -127,6 +130,8 @@ fun AppRootContainer(
             onShowDatePickerChange = { showDatePicker = it },
             onNavigateToSettings = onNavigateToSettings,
             onNavigateToHighlight = onNavigateToHighlight,
+            subscriptionBanner = subscriptionBanner,
+            onNavigateToPaywall = onNavigateToPaywall,
             onBoundsCalculated = { step: TutorialStep, bounds: Rect ->
                 tutorialViewModel.onEvent(TutorialEvent.UpdateTargetBounds(step, bounds))
             }

@@ -6,12 +6,12 @@ import kotlin.time.Instant
 data class TimelineState(
     val sessions: List<Session> = emptyList(),
     val summary: TimelineSummary = TimelineSummary(),
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val selectedDate: Instant? = null,
     val selectedPackageName: String? = null,
     val selectedSession: Session? = null,
-    val relatedSessions: List<Session> = emptyList(), // Added for detailed view
-    val fullScreenImagePath: String? = null, // Added for image preview
+    val relatedSessions: List<Session> = emptyList(),
+    val fullScreenImagePath: String? = null,
     val isSheetExpanded: Boolean = false,
     val timeFilter: TimeFilter = TimeFilter.ALL
 )
@@ -42,7 +42,7 @@ sealed interface TimelineEvent {
     data object DismissFullScreenImage : TimelineEvent
     data class ToggleSheet(val expanded: Boolean) : TimelineEvent
     data class FilterTime(val filter: TimeFilter) : TimelineEvent
-    data class SelectPackage(val packageName: String?) : TimelineEvent // Added for deep-dive
+    data class SelectPackage(val packageName: String?) : TimelineEvent
     data object SelectPreviousSession : TimelineEvent
     data object SelectNextSession : TimelineEvent
 }

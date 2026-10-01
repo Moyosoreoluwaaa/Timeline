@@ -4,9 +4,11 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.BottomSheetDefaults
@@ -48,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,18 +63,22 @@ import com.timeline.tutorial.TutorialGesture
 import com.timeline.tutorial.TutorialStep
 import com.timeline.tutorial.spotlightTarget
 import com.timeline.ui.components.BottomSummary
+import com.timeline.ui.components.SubscriptionBanner
 import com.timeline.ui.components.TimelineEntry
 import com.timeline.ui.components.TimelineHeader
 import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.theme.AppWeights
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import timeline.shared.generated.resources.Res
+import timeline.shared.generated.resources.empty_state_illustration
 import kotlin.time.Instant
 
 // How much of the session sheet is visible when collapsed. The thumbnail row
 // must fit inside this. ModalBottomSheet used roughly half the screen; tune to taste.
-private val SheetPeekHeight = 360.dp
+private val SheetPeekHeight = 400.dp
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -87,6 +95,8 @@ fun TimelineScreen(
     onShowDatePickerChange: (Boolean) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToHighlight: () -> Unit = {},
+    subscriptionBanner: SubscriptionBanner = SubscriptionBanner.None,
+    onNavigateToPaywall: () -> Unit = {},
     onBoundsCalculated: (TutorialStep, Rect) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
@@ -94,10 +104,6 @@ fun TimelineScreen(
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
     val isShowingShimmer = state.isLoading || (tutorialState.isActive && state.sessions.isEmpty())
 
-    // Is the tutorial currently dictating this screen's sheet / full-screen-image
-    // state? sheetLock, when non-null, is enforced via the sheet state's
-    // confirmValueChange below -- a real drag physically cannot move the sheet
-    // to a value the lock forbids, so there is no "fight it back" step.
     val activeSheetLock = if (tutorialState.isActive) tutorialState.sheetLock else null
     val tutorialControlsFullScreenImage =
         tutorialState.isActive && tutorialState.currentStep == TutorialStep.FULL_SCREEN_IMAGE_PREVIEW
@@ -107,12 +113,8 @@ fun TimelineScreen(
         state.fullScreenImagePath
     }
 
-    // ---- Session sheet state (hoisted: the sheet now lives in this window) ----
-
     val hasSession = state.selectedSession != null
 
-    // Fallback session so sheetContent is always measured with real layout dimensions,
-    // ensuring BottomSheetScaffold anchors are computed before sheet is shown.
     val fallbackSession = remember(state.sessions) {
         state.sessions.firstOrNull() ?: com.timeline.domain.Session(
             id = "placeholder",
@@ -123,8 +125,8 @@ fun TimelineScreen(
         )
     }
 
-    // Cache the session so the sheet can exit smoothly
-    val lastSelectedSession = remember { androidx.compose.runtime.mutableStateOf<com.timeline.domain.Session?>(null) }
+    val lastSelectedSession =
+        remember { androidx.compose.runtime.mutableStateOf<com.timeline.domain.Session?>(null) }
     LaunchedEffect(state.selectedSession) {
         if (state.selectedSession != null) {
             lastSelectedSession.value = state.selectedSession
@@ -137,10 +139,6 @@ fun TimelineScreen(
     val nextSession =
         if (currentIndex != -1 && currentIndex < state.sessions.lastIndex) state.sessions[currentIndex + 1] else null
 
-    // confirmValueChange is Material3's veto hook: it runs BEFORE a drag/settle
-    // is committed and can reject it. We read the lock through rememberUpdatedState
-    // so the lambda instance stays stable -- otherwise a new lambda every time the
-    // lock changes would make rememberSaveable rebuild (reset) the sheet state.
     val lockState = rememberUpdatedState(activeSheetLock)
     val hasSessionState = rememberUpdatedState(hasSession)
     val sheetState = rememberStandardBottomSheetState(
@@ -160,14 +158,12 @@ fun TimelineScreen(
     )
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
 
-    // expansionProgress tracks the REAL sheet state.
     val isSheetActuallyExpanded = sheetState.currentValue == SheetValue.Expanded
     val expansionProgress by animateFloatAsState(
         targetValue = if (isSheetActuallyExpanded) 1f else 0f,
         label = "ExpansionProgress"
     )
 
-    // Single source of truth for target sheet state
     val targetSheetValue = when {
         !hasSession -> SheetValue.Hidden
         activeSheetLock is SheetLock.Fixed -> if (activeSheetLock.expanded) SheetValue.Expanded else SheetValue.PartiallyExpanded
@@ -186,13 +182,6 @@ fun TimelineScreen(
         }
     }
 
-    // Real sheet movements -> reported outward.
-    // - No active lock: write straight through to the real TimelineViewModel.
-    // - Free lock (EXPAND_BOTTOM_SHEET only): a real drag to the far value is
-    //   user progress -- report it as a gesture so the tutorial advances.
-    // - Fixed lock: the sheet cannot leave the pinned value (vetoed above), so
-    //   there is nothing to report; taps on prev/next advance that step via
-    //   realInteractions in AppRootContainer.
     LaunchedEffect(sheetState.currentValue) {
         val isExpanded = sheetState.currentValue == SheetValue.Expanded
         when (val lock = activeSheetLock) {
@@ -204,6 +193,7 @@ fun TimelineScreen(
                     viewModel.onEvent(TimelineEvent.SelectSession(null))
                 }
             }
+
             is SheetLock.Free -> {
                 if (isExpanded != lock.startExpanded) {
                     tutorialViewModel.onEvent(
@@ -213,7 +203,9 @@ fun TimelineScreen(
                     )
                 }
             }
-            is SheetLock.Fixed -> { /* pinned; nothing to report */ }
+
+            is SheetLock.Fixed -> { /* pinned; nothing to report */
+            }
         }
     }
 
@@ -233,8 +225,6 @@ fun TimelineScreen(
             }
         }
 
-        // NOTE: DatePickerDialog is still its own window, so the tutorial overlay
-        // cannot draw above it (affects SPOTLIGHT_DATE_PICKER only).
         if (showDatePicker) {
             val datePickerState = rememberDatePickerState(
                 initialSelectedDateMillis = state.selectedDate?.toEpochMilliseconds()
@@ -263,6 +253,7 @@ fun TimelineScreen(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
             topBar = {
+
                 TimelineHeader(
                     selectedDate = state.selectedDate,
                     selectedFilter = state.timeFilter,
@@ -272,6 +263,9 @@ fun TimelineScreen(
                     onNavigateToSettings = onNavigateToSettings,
                     onSelectDateClick = { onShowDatePickerChange(true) },
                     scrollBehavior = scrollBehavior,
+                    // Hidden during the tutorial so it doesn't shift spotlight bounds
+                    subscriptionBanner = if (tutorialState.isActive) SubscriptionBanner.None else subscriptionBanner,
+                    onProPlanClick = onNavigateToPaywall,
                     onBoundsCalculated = onBoundsCalculated
                 )
             }
@@ -283,9 +277,6 @@ fun TimelineScreen(
 
             val dragHandle: @Composable () -> Unit = { BottomSheetDefaults.DragHandle() }
 
-            // The session sheet now lives in THIS window (BottomSheetScaffold),
-            // not in a separate ModalBottomSheet window -- so the tutorial
-            // overlay, which is drawn later in the same window, can sit above it.
             BottomSheetScaffold(
                 scaffoldState = scaffoldState,
                 modifier = Modifier
@@ -307,9 +298,6 @@ fun TimelineScreen(
                             viewModel.onEvent(TimelineEvent.ShowFullScreenImage(path))
                         },
                         onBoundsCalculated = onBoundsCalculated,
-                        // Thumbnail row only reports bounds when it is actually
-                        // the collapsed, opaque, visible target -- not mid-fade
-                        // as the sheet expands over it.
                         isThumbnailRowVisible = { expansionProgress < 0.05f },
                         isSheetExpandedOverride = if (activeSheetLock != null) isSheetActuallyExpanded else null
                     )
@@ -326,18 +314,21 @@ fun TimelineScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isShowingShimmer) {
-                                        val alpha by androidx.compose.animation.core.rememberInfiniteTransition(label = "ShimmerTransition").animateFloat(
+                                        val alpha by androidx.compose.animation.core.rememberInfiniteTransition(
+                                            label = "ShimmerTransition"
+                                        ).animateFloat(
                                             initialValue = 0.3f,
                                             targetValue = 0.9f,
                                             animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-                                                animation = androidx.compose.animation.core.tween(durationMillis = 1000),
+                                                animation = androidx.compose.animation.core.tween(
+                                                    durationMillis = 2000
+                                                ),
                                                 repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
                                             ),
                                             label = "ShimmerAlpha"
                                         )
                                         LazyColumn(
-                                            modifier = Modifier
-                                                .fillMaxSize(),
+                                            modifier = Modifier.fillMaxSize(),
                                             userScrollEnabled = false,
                                             contentPadding = PaddingValues(
                                                 top = Dimensions.PaddingSmall,
@@ -349,8 +340,10 @@ fun TimelineScreen(
                                                     TimelineEntry(
                                                         session = com.timeline.domain.Session(
                                                             id = "shimmer_$index",
-                                                            packageName = "com.placeholder.app",
-                                                            displayName = "Loading Activity...",
+                                                            packageName = "" +
+//                                                                    "com.placeholder.app" +
+                                                                    "",
+                                                            displayName = "",
                                                             startTime = kotlin.time.Clock.System.now(),
                                                             endTime = kotlin.time.Clock.System.now(),
                                                             durationMinutes = 10
@@ -363,10 +356,42 @@ fun TimelineScreen(
                                             }
                                         }
                                     } else {
-                                        Text(
-                                            AppStrings.TimelineNoActivity,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(Dimensions.PaddingMedium),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Image(
+                                                painter = painterResource(Res.drawable.empty_state_illustration),
+                                                contentDescription = "Empty activity state",
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier
+                                                    .size(200.dp)
+                                                    .padding(bottom = Dimensions.PaddingSmall)
+                                            )
+
+                                            // Formats text so it wraps to the next line right after the comma following the 4th word
+                                            val formattedEmptyText =
+                                                AppStrings.TimelineNoActivity.let { text ->
+                                                    val words = text.split(" ")
+                                                    if (words.size >= 7 && words[6].endsWith(",")) {
+                                                        words.take(7)
+                                                            .joinToString(" ") + "\n" + words.drop(4)
+                                                            .joinToString(" ")
+                                                    } else {
+                                                        text.replace(", ", ",\n")
+                                                    }
+                                                }
+
+                                            Text(
+                                                text = formattedEmptyText,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                textAlign = TextAlign.Center,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             } else {
@@ -432,11 +457,7 @@ fun TimelineScreen(
             }
         }
 
-        // Full-screen image preview. This is a plain in-window layer (NOT a
-        // Dialog) so the tutorial overlay, drawn later in the same window,
-        // renders on top of it. zIndex keeps it above the scaffold + sheet.
-        val imagePath = effectiveFullScreenImagePath
-        if (imagePath != null) {
+        if (effectiveFullScreenImagePath != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -457,7 +478,7 @@ fun TimelineScreen(
                 contentAlignment = Alignment.Center
             ) {
                 ScreenshotImage(
-                    path = imagePath,
+                    path = effectiveFullScreenImagePath,
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier

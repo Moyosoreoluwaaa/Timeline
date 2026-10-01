@@ -12,6 +12,8 @@ import com.timeline.domain.ml.VisionAnalysisService
 import com.timeline.domain.ml.NoOpVisionAnalysisService
 import com.timeline.domain.DeviceUsageSyncer
 import com.timeline.domain.NoOpDeviceUsageSyncer
+import com.timeline.domain.NetworkMonitor
+import com.timeline.domain.AlwaysConnectedNetworkMonitor
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
@@ -34,4 +36,7 @@ actual val platformModule: Module = module {
 
     // Device Real Usage Syncer (iOS No-Op)
     single<DeviceUsageSyncer> { NoOpDeviceUsageSyncer() }
+
+    // Network Monitor
+    single<NetworkMonitor> { AlwaysConnectedNetworkMonitor() }
 }

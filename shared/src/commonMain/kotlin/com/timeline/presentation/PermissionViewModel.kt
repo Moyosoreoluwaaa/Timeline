@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.timeline.domain.NotificationManager
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
+import com.timeline.presentation.OnboardingStep.Intro
 import com.timeline.presentation.OnboardingStep.Opening
 import com.timeline.presentation.OnboardingStep.PermissionCardStack
-import com.timeline.presentation.OnboardingStep.Welcome
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +31,10 @@ class PermissionViewModel(
         checkPermissions()
         viewModelScope.launch {
             userPreferences.state.collect { prefs ->
-                val stepName = prefs.lastOnboardingStep
-                val savedStep = try {
-                    OnboardingStep.valueOf(stepName)
-                } catch (_: Exception) {
-                    null
+                val savedStep = when (val stepName = prefs.lastOnboardingStep) {
+                    // step names from before the Intro carousel existed
+                    "Welcome", "ValueProposition", "Storytelling", "Customization" -> Intro
+                    else -> runCatching { OnboardingStep.valueOf(stepName) }.getOrNull()
                 }
                 if (savedStep != null && _state.value.currentStep == Opening && savedStep != Opening) {
                     val resolvedStep = resolveInitialStep(savedStep)
@@ -56,12 +55,12 @@ class PermissionViewModel(
             is PermissionEvent.NextStep -> nextStep()
             is PermissionEvent.PreviousStep -> previousStep()
             is PermissionEvent.RetryPermission -> retryCurrentPermission()
-            is PermissionEvent.StartTracking -> {
-                viewModelScope.launch {
-                    userPreferences.setPermissionsCompleted(true)
-                    userPreferences.setLastOnboardingStep(PermissionCardStack.name)
-                    _effects.send(PermissionEffect.AllGranted)
-                }
+            is PermissionEvent.SkipIntro -> goTo(PermissionCardStack)
+            is PermissionEvent.ToggleFocusArea -> _state.update { s ->
+                s.copy(
+                    focusAreas = if (event.id in s.focusAreas) s.focusAreas - event.id
+                    else s.focusAreas + event.id
+                )
             }
         }
     }
@@ -110,60 +109,49 @@ class PermissionViewModel(
     }
 
     private fun nextStep() {
-        val currentState = _state.value
-        if (currentState.currentStep == PermissionCardStack) {
-            if (currentState.activeCardIndex >= currentState.permissions.size - 1) {
-                viewModelScope.launch {
-                    userPreferences.setPermissionsCompleted(true)
-                    userPreferences.setLastOnboardingStep(PermissionCardStack.name)
-                    _effects.send(PermissionEffect.AllGranted)
+        val s = _state.value
+        when (s.currentStep) {
+            PermissionCardStack -> {
+                if (s.activeCardIndex >= s.permissions.size - 1) {
+                    viewModelScope.launch {
+                        userPreferences.setPermissionsCompleted(true)
+                        userPreferences.setLastOnboardingStep(PermissionCardStack.name)
+                        _effects.send(PermissionEffect.AllGranted)
+                    }
+                } else {
+                    _state.update { it.copy(activeCardIndex = it.activeCardIndex + 1) }
                 }
-                return
-            } else {
-                _state.update { it.copy(activeCardIndex = it.activeCardIndex + 1) }
-                return
             }
-        }
-
-        _state.update { state ->
-            val next = when (state.currentStep) {
-                Opening -> Welcome
-                Welcome -> PermissionCardStack
-                PermissionCardStack -> PermissionCardStack
+            Intro -> {
+                if (s.introPage < INTRO_PAGE_COUNT - 1) {
+                    _state.update { it.copy(introPage = it.introPage + 1) }
+                } else {
+                    // TODO: persist s.focusAreas here (needs a new UserPreferences setter)
+                    goTo(PermissionCardStack)
+                }
             }
-
-            viewModelScope.launch {
-                userPreferences.setLastOnboardingStep(next.name)
-            }
-
-            val newHistory = state.stepHistory + state.currentStep
-            state.copy(currentStep = next, stepHistory = newHistory)
+            Opening -> goTo(Intro)
         }
     }
 
     private fun previousStep() {
-        _state.update { currentState ->
-            if (currentState.currentStep == PermissionCardStack && currentState.activeCardIndex > 0) {
-                return@update currentState.copy(activeCardIndex = currentState.activeCardIndex - 1)
-            }
-
-            val prev = if (currentState.stepHistory.isNotEmpty()) {
-                currentState.stepHistory.last()
-            } else {
-                when (currentState.currentStep) {
-                    PermissionCardStack -> Welcome
-                    Welcome -> Opening
-                    Opening -> Opening
-                }
-            }
-            val newHistory = if (currentState.stepHistory.isNotEmpty()) currentState.stepHistory.dropLast(1) else emptyList()
-
-            viewModelScope.launch {
-                userPreferences.setLastOnboardingStep(prev.name)
-            }
-
-            currentState.copy(currentStep = prev, stepHistory = newHistory)
+        val s = _state.value
+        if (s.currentStep == PermissionCardStack && s.activeCardIndex > 0) {
+            _state.update { it.copy(activeCardIndex = it.activeCardIndex - 1) }
+            return
         }
+        if (s.currentStep == Intro && s.introPage > 0) {
+            _state.update { it.copy(introPage = it.introPage - 1) }
+            return
+        }
+        val prev = s.stepHistory.lastOrNull() ?: return
+        _state.update { it.copy(currentStep = prev, stepHistory = it.stepHistory.dropLast(1)) }
+        viewModelScope.launch { userPreferences.setLastOnboardingStep(prev.name) }
+    }
+
+    private fun goTo(next: OnboardingStep) {
+        _state.update { it.copy(currentStep = next, stepHistory = it.stepHistory + it.currentStep) }
+        viewModelScope.launch { userPreferences.setLastOnboardingStep(next.name) }
     }
 
     private fun retryCurrentPermission() {

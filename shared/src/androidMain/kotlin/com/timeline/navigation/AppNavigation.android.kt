@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
+import com.timeline.domain.SubscriptionManager
 import com.timeline.domain.UserPreferences
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PaywallViewModel
@@ -38,11 +39,15 @@ import com.timeline.ui.LocalNavAnimatedVisibilityScope
 import com.timeline.ui.LocalSharedTransitionScope
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
+import com.timeline.ui.components.SubscriptionBanner
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+
+// How long the "thank you for subscribing" banner stays visible
+private const val THANK_YOU_BANNER_MS = 5000L
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -62,12 +67,15 @@ actual fun AppNavigation(
     val permissionViewModel: PermissionViewModel = koinViewModel()
     val authViewModel: AuthViewModel = koinViewModel()
     val userPreferences: UserPreferences = koinInject()
+    val subscriptionManager: SubscriptionManager = koinInject()
     val context = LocalContext.current
 
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
     val permState by permissionViewModel.state.collectAsStateWithLifecycle()
     val newHighlightState by newHighlightViewModel.state.collectAsStateWithLifecycle()
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
+    val isPro by subscriptionManager.isPro.collectAsStateWithLifecycle()
+    val customerInfo by subscriptionManager.customerInfo.collectAsStateWithLifecycle()
 
     val backStack = remember { mutableStateListOf<NavKey>() }
     var showSplash by remember { mutableStateOf(true) }
@@ -82,6 +90,23 @@ actual fun AppNavigation(
             onSplashFinished = { showSplash = false }
         )
         return
+    }
+
+    // Subscription banner state lives here, above the nav host, so it survives route
+    // changes: after a purchase the paywall pops and Timeline is composed from scratch,
+    // which would otherwise lose the "just subscribed" moment.
+    var showThankYou by remember { mutableStateOf(false) }
+    LaunchedEffect(isPro, customerInfo != null) {
+        if (isPro && customerInfo != null) {
+            showThankYou = true
+            kotlinx.coroutines.delay(THANK_YOU_BANNER_MS)
+            showThankYou = false
+        }
+    }
+    val subscriptionBanner = when {
+        customerInfo == null -> SubscriptionBanner.None // RevenueCat hasn't answered yet
+        isPro -> if (showThankYou) SubscriptionBanner.ThankYou else SubscriptionBanner.None
+        else -> SubscriptionBanner.Upgrade
     }
 
     // NOTE: TutorialEffect.SetSheetExpanded / TriggerFullScreenImage no
@@ -283,6 +308,12 @@ actual fun AppNavigation(
                                                     onNavigateToHighlight = {
                                                         coroutineScope.launch {
                                                             pagerState.animateScrollToPage(0)
+                                                        }
+                                                    },
+                                                    subscriptionBanner = subscriptionBanner,
+                                                    onNavigateToPaywall = {
+                                                        if (backStack.lastOrNull() !is Route.Paywall) {
+                                                            backStack.add(Route.Paywall())
                                                         }
                                                     }
                                                 )
