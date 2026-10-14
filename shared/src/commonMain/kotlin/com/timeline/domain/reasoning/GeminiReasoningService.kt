@@ -166,7 +166,7 @@ class GeminiReasoningService(private val logger: Logger) : ReasoningService {
                             mode
                         )
 
-                // Clean markdown code fence if present
+                // Clean Markdown code fence if present
                 val cleanedJson = rawText
                     .trim()
                     .removePrefix("```json")

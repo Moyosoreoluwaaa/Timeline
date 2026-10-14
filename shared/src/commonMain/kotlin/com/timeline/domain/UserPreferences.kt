@@ -33,17 +33,24 @@ data class PreferencesState(
     val isTutorial: Boolean,
     val isUsageTrackingEnabled: Boolean,
     val isScreenshotCaptureEnabled: Boolean,
-    val isAiReasoningEnabled: Boolean,
+    val isAgentReasoningEnabled: Boolean,
     val highlightReasoningMode: HighlightReasoningMode = HighlightReasoningMode.BALANCED,
     val digestFrequency: Int = 3,
     val digestHours: List<Int> = listOf(12, 17, 21),
     val dataRetentionDays: Int,
     val isLoggedIn: Boolean,
     val trialStartedAt: Long?, // null = not started
-    val lastOnboardingStep: String
+    val lastOnboardingStep: String,
+    val focusAreas: Set<String> = emptySet(),
+    val experiments: com.timeline.domain.model.ExperimentFlags = com.timeline.domain.model.ExperimentFlags()
 )
 
 object UserPreferenceKeys {
+    val EXPERIMENT_ONBOARDING_VARIANT = stringPreferencesKey("exp_onboarding_variant")
+    val EXPERIMENT_PAYWALL_STYLE = stringPreferencesKey("exp_paywall_style")
+    val EXPERIMENT_HIGHLIGHT_VARIANT = stringPreferencesKey("exp_highlight_variant")
+    val EXPERIMENT_HIGHLIGHT_LOADING_STYLE = stringPreferencesKey("exp_highlight_loading_style")
+    val FOCUS_AREAS = stringSetPreferencesKey("focus_areas")
     val IS_PERMISSIONS_COMPLETED = booleanPreferencesKey("is_permissions_completed")
     val IS_TUTORIAL_COMPLETED = booleanPreferencesKey("is_tutorial_completed")
     val IS_USAGE_TRACKING_ENABLED = booleanPreferencesKey("is_usage_tracking_enabled")
@@ -99,7 +106,7 @@ class UserPreferences(
                     ?: true,
                 isScreenshotCaptureEnabled = prefs[UserPreferenceKeys.IS_SCREENSHOT_CAPTURE_ENABLED]
                     ?: true,
-                isAiReasoningEnabled = prefs[UserPreferenceKeys.IS_AI_REASONING_ENABLED] ?: true,
+                isAgentReasoningEnabled = prefs[UserPreferenceKeys.IS_AI_REASONING_ENABLED] ?: true,
                 highlightReasoningMode = reasoningMode,
                 digestFrequency = frequency,
                 digestHours = hoursList,
@@ -108,9 +115,40 @@ class UserPreferences(
                 trialStartedAt = prefs[UserPreferenceKeys.trialStartedAt(userId)],
                 lastOnboardingStep = prefs[UserPreferenceKeys.lastOnboardingStep(userId)]
                     ?: "Opening",
-                isTutorial = prefs[UserPreferenceKeys.IS_TUTORIAL_COMPLETED] ?: false
+                isTutorial = prefs[UserPreferenceKeys.IS_TUTORIAL_COMPLETED] ?: false,
+                focusAreas = prefs[UserPreferenceKeys.FOCUS_AREAS] ?: emptySet(),
+                experiments = com.timeline.domain.model.ExperimentFlags(
+                    onboardingVariant = prefs[UserPreferenceKeys.EXPERIMENT_ONBOARDING_VARIANT]?.let {
+                        try { com.timeline.ui.components.FanVariant.valueOf(it) } catch (_: Exception) { com.timeline.ui.components.FanVariant.CenteredFan }
+                    } ?: com.timeline.ui.components.FanVariant.CenteredFan,
+                    paywallStyle = prefs[UserPreferenceKeys.EXPERIMENT_PAYWALL_STYLE]?.let {
+                        try { com.timeline.ui.paywall.NewPaywallStyle.valueOf(it) } catch (_: Exception) { com.timeline.ui.paywall.NewPaywallStyle.Classic }
+                    } ?: com.timeline.ui.paywall.NewPaywallStyle.Classic,
+                    highlightVariant = prefs[UserPreferenceKeys.EXPERIMENT_HIGHLIGHT_VARIANT]?.let {
+                        try { com.timeline.domain.model.HighlightVariant.valueOf(it) } catch (_: Exception) { com.timeline.domain.model.HighlightVariant.Simplified }
+                    } ?: com.timeline.domain.model.HighlightVariant.Simplified,
+                    highlightLoadingStyle = prefs[UserPreferenceKeys.EXPERIMENT_HIGHLIGHT_LOADING_STYLE]?.let {
+                        try { com.timeline.domain.model.HighlightLoadingStyle.valueOf(it) } catch (_: Exception) { com.timeline.domain.model.HighlightLoadingStyle.CardStack }
+                    } ?: com.timeline.domain.model.HighlightLoadingStyle.CardStack
+                )
             )
         }
+    }
+
+    suspend fun setExperimentOnboardingVariant(variant: com.timeline.ui.components.FanVariant) {
+        dataStore.edit { it[UserPreferenceKeys.EXPERIMENT_ONBOARDING_VARIANT] = variant.name }
+    }
+
+    suspend fun setExperimentPaywallStyle(style: com.timeline.ui.paywall.NewPaywallStyle) {
+        dataStore.edit { it[UserPreferenceKeys.EXPERIMENT_PAYWALL_STYLE] = style.name }
+    }
+
+    suspend fun setExperimentHighlightVariant(variant: com.timeline.domain.model.HighlightVariant) {
+        dataStore.edit { it[UserPreferenceKeys.EXPERIMENT_HIGHLIGHT_VARIANT] = variant.name }
+    }
+
+    suspend fun setExperimentHighlightLoadingStyle(style: com.timeline.domain.model.HighlightLoadingStyle) {
+        dataStore.edit { it[UserPreferenceKeys.EXPERIMENT_HIGHLIGHT_LOADING_STYLE] = style.name }
     }
 
     suspend fun setHighlightReasoningMode(mode: HighlightReasoningMode) {
@@ -145,8 +183,12 @@ class UserPreferences(
         dataStore.edit { it[UserPreferenceKeys.IS_SCREENSHOT_CAPTURE_ENABLED] = enabled }
     }
 
-    suspend fun setAiReasoningEnabled(enabled: Boolean) {
+    suspend fun setAgentReasoningEnabled(enabled: Boolean) {
         dataStore.edit { it[UserPreferenceKeys.IS_AI_REASONING_ENABLED] = enabled }
+    }
+
+    suspend fun setFocusAreas(areas: Set<String>) {
+        dataStore.edit { it[UserPreferenceKeys.FOCUS_AREAS] = areas }
     }
 
     suspend fun setDataRetentionDays(days: Int) {

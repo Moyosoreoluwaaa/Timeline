@@ -20,6 +20,19 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun StackedHighlightLoadingScreen(
+    screenshots: List<String>,
+    onFinished: () -> Unit = {}
+) {
+    val half = screenshots.size / 2
+    StackedHighlightLoadingScreen(
+        leftThumbnails = screenshots.take(half),
+        rightThumbnails = screenshots.drop(half),
+        onFinished = onFinished
+    )
+}
+
+@Composable
+fun StackedHighlightLoadingScreen(
     leftThumbnails: List<String>,
     rightThumbnails: List<String>,
     onFinished: () -> Unit = {}
@@ -125,7 +138,7 @@ fun StackedHighlightLoadingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = AppStrings.HighlightAiSynthesis,
+                        text = AppStrings.HighlightAgentSynthesis,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.secondary

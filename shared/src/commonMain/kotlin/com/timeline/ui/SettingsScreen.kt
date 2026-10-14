@@ -111,462 +111,71 @@ fun SettingsScreen(
         }
     ) { padding ->
         val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius).coerceAtLeast(0.dp)
-        LazyColumn(
-            state = scrollState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = topPadding)
-                .padding(horizontal = Dimensions.PaddingMedium),
-            verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
-            contentPadding = PaddingValues(
-                top = Dimensions.PaddingMedium,
-                bottom = navBarPadding + Dimensions.PaddingExtraLarge
-            )
-        ) {
-            item { UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) }) }
+        com.timeline.ui.settings.SettingsListContent(
+            state = state,
+            viewModel = viewModel,
+            tutorialState = tutorialState,
+            tutorialViewModel = tutorialViewModel,
+            scrollState = scrollState,
+            topPadding = topPadding,
+            navBarPadding = navBarPadding,
+            onNavigateToPaywall = onNavigateToPaywall,
+            onNavigateToCustomerCenter = onNavigateToCustomerCenter,
+            onOpenReasoningSheet = { showReasoningSheet = true },
+            onOpenExclusionsSheet = { showExclusionsSheet = true },
+            onOpenRetentionSheet = { showRetentionSheet = true },
+            onOpenBugReportSheet = { showBugReportSheet = true },
+            onContactUs = { launchEmail("moyokamaal@gmail.com", "Timeline App Support", "") }
+        )
 
-            item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
-
-            item { SettingCategory(AppStrings.SettingsCategoryPreference) }
-            item {
-                SettingItem(
-                    title = AppStrings.SettingsHighlightsReasoning,
-                    icon = Icons.Outlined.AutoAwesome,
-                    modifier = Modifier.spotlightTarget(
-                        TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE,
-                        onBoundsCalculated = { step, bounds ->
-                            tutorialViewModel.onEvent(
-                                TutorialEvent.UpdateTargetBounds(
-                                    step,
-                                    bounds
-                                )
-                            )
-                        }
-                    ),
-                    onClick = {
-                        showReasoningSheet = true
-                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE) {
-                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                        }
-                    }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
-
-            item { SettingCategory(AppStrings.SettingsCategoryTracking) }
-            item {
-                SettingItem(
-                    title = AppStrings.SettingsUsageTrackingTitle,
-                    icon = Icons.Outlined.Analytics,
-                    trailing = {
-                        Switch(checked = state.isUsageTrackingEnabled, onCheckedChange = {
-                            viewModel.onEvent(SettingsEvent.SetUsageTracking(it))
-                            if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_TRACKING_OPTIONS) {
-                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                            }
-                        })
-                    },
-                    modifier = Modifier.spotlightTarget(
-                        TutorialStep.SPOTLIGHT_TRACKING_OPTIONS,
-                        onBoundsCalculated = { step, bounds ->
-                            tutorialViewModel.onEvent(
-                                TutorialEvent.UpdateTargetBounds(
-                                    step,
-                                    bounds
-                                )
-                            )
-                        }
-                    ),
-                    onClick = {
-                        viewModel.onEvent(SettingsEvent.SetUsageTracking(!state.isUsageTrackingEnabled))
-                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_TRACKING_OPTIONS) {
-                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                        }
-                    }
-                )
-            }
-            item {
-                SettingItem(
-                    title = AppStrings.SettingsScreenshotCaptureTitle,
-                    icon = Icons.Outlined.Screenshot,
-                    trailing = {
-                        Switch(checked = state.isScreenshotCaptureEnabled, onCheckedChange = {
-                            viewModel.onEvent(SettingsEvent.SetScreenshotCapture(it))
-                            if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_TRACKING_OPTIONS) {
-                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                            }
-                        })
-                    },
-                    onClick = {
-                        viewModel.onEvent(SettingsEvent.SetScreenshotCapture(!state.isScreenshotCaptureEnabled))
-                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_TRACKING_OPTIONS) {
-                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                        }
-                    }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
-
-            item { SettingCategory(AppStrings.SettingsCategoryData) }
-            item {
-                SettingItem(
-                    title = AppStrings.SettingsManageSubscription,
-                    icon = Icons.Outlined.CreditCard,
-                    onClick = onNavigateToCustomerCenter
-                )
-            }
-            item {
-                SettingItem(
-                    title = AppStrings.SettingsAppExclusionsTitle,
-                    icon = Icons.Outlined.Block,
-                    modifier = Modifier.spotlightTarget(
-                        TutorialStep.SPOTLIGHT_APP_EXCLUSIONS,
-                        onBoundsCalculated = { step, bounds ->
-                            tutorialViewModel.onEvent(
-                                TutorialEvent.UpdateTargetBounds(
-                                    step,
-                                    bounds
-                                )
-                            )
-                        }
-                    ),
-                    onClick = {
-                        showExclusionsSheet = true
-                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_APP_EXCLUSIONS) {
-                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                        }
-                    }
-                )
-            }
-            item {
-                SettingItem(
-                    title = AppStrings.SettingsDataRetentionTitle,
-                    icon = Icons.Outlined.History,
-                    modifier = Modifier.spotlightTarget(
-                        TutorialStep.SPOTLIGHT_DATA_RETENTION,
-                        onBoundsCalculated = { step, bounds ->
-                            tutorialViewModel.onEvent(
-                                TutorialEvent.UpdateTargetBounds(
-                                    step,
-                                    bounds
-                                )
-                            )
-                        }
-                    ),
-                    onClick = {
-                        showRetentionSheet = true
-                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_DATA_RETENTION) {
-                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                        }
-                    }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
-
-            item { SettingCategory(AppStrings.SettingsCategorySupport) }
-            item {
-                InfoCard(
-                    title = AppStrings.SettingsContactUsTitle,
-                    icon = Icons.Outlined.SupportAgent,
-                    onClick = {
-                        launchEmail("moyokamaal@gmail.com", "Timeline App Support", "")
-                    }
-                )
-            }
-            item {
-                InfoCard(
-                    title = AppStrings.SettingsReportBugsTitle,
-                    icon = Icons.Outlined.BugReport,
-                    onClick = {
-                        showBugReportSheet = true
-                    }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
-
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = Dimensions.PaddingLarge),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = AppStrings.CommonVersion.replace(
-                            "%s",
-                            AppStrings.SettingsAppVersionValue
-                        ),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    Spacer(modifier = Modifier.height(Dimensions.Quat))
-                    Text(
-                        text = AppStrings.SettingsMadeByMo,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-        }
 
         // --- Bottom Sheets ---
 
         if (showBugReportSheet) {
-            var bugDescription by remember { mutableStateOf("") }
-
-            ModalBottomSheet(
-                onDismissRequest = { showBugReportSheet = false },
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimensions.PaddingMedium)
-                ) {
-                    Text(
-                        text = AppStrings.SettingsReportBugsTitle,
-                        style = MaterialTheme.typography.titleLarge
+            com.timeline.ui.settings.BugReportSheet(
+                onDismiss = { showBugReportSheet = false },
+                onSubmit = { desc ->
+                    launchEmail(
+                        "moyokamaal@gmail.com",
+                        "Timeline App Bug Report",
+                        "Bug Details:\n$desc"
                     )
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-
-                    OutlinedTextField(
-                        value = bugDescription,
-                        onValueChange = { bugDescription = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Describe the bug") },
-                        minLines = 3
-                    )
-
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-
-                    Button(
-                        onClick = {
-                            showBugReportSheet = false
-                            launchEmail(
-                                "moyokamaal@gmail.com",
-                                "Timeline App Bug Report",
-                                "Bug Details:\n$bugDescription"
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Send Bug Report")
-                    }
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingExtraLarge))
                 }
-            }
+            )
         }
 
         if (showReasoningSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showReasoningSheet = false
-                    if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
-                        tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(Dimensions.PaddingMedium)
-                        .spotlightTarget(
-                            TutorialStep.SPOTLIGHT_REASONING_SHEET,
-                            onBoundsCalculated = { step, bounds ->
-                                tutorialViewModel.onEvent(
-                                    TutorialEvent.UpdateTargetBounds(
-                                        step,
-                                        bounds
-                                    )
-                                )
-                            }
-                        )
-                ) {
-                    Text(
-                        AppStrings.SettingsReasoningMode,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    com.timeline.domain.reasoning.HighlightReasoningMode.entries.forEach { mode ->
-                        ListItem(
-                            headlineContent = { Text(mode.displayName) },
-                            trailingContent = {
-                                RadioButton(
-                                    selected = state.highlightReasoningMode == mode,
-                                    onClick = null
-                                )
-                            },
-                            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                            modifier = Modifier
-                                .clickable {
-                                    viewModel.onEvent(SettingsEvent.SetReasoningMode(mode))
-                                    if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
-                                        tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                    }
-                                }
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-                    Column {
-                        Text(
-                            AppStrings.SettingsFrequencyLabel.replace(
-                                "%d",
-                                state.digestFrequency.toString()
-                            ), style = MaterialTheme.typography.titleLarge
-                        )
-                        ValueSlider(
-                            value = state.digestFrequency.toFloat(),
-                            onValueChange = { viewModel.onEvent(SettingsEvent.SetDigestFrequency(it.toInt())) },
-                            valueRange = 1f..6f,
-                            steps = 5,
-                            label = { "" },
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
-                }
-            }
+            com.timeline.ui.settings.ReasoningModeSheet(
+                selectedMode = state.highlightReasoningMode,
+                digestFrequency = state.digestFrequency,
+                tutorialStep = tutorialState.currentStep,
+                tutorialViewModel = tutorialViewModel,
+                onDismiss = { showReasoningSheet = false },
+                onSelectMode = { mode -> viewModel.onEvent(SettingsEvent.SetReasoningMode(mode)) },
+                onFrequencyChange = { freq -> viewModel.onEvent(SettingsEvent.SetDigestFrequency(freq)) }
+            )
         }
 
         if (showExclusionsSheet) {
-            val isFeatureLocked = state.trialStatus != TrialStatus.ACTIVE && !state.isPro
-            val timelineIcon = rememberAppIcon("com.timeline_records")
-            val mockApps = listOf(
-                com.timeline.presentation.AppInfo(
-                    "com.timeline_records",
-                    "Timeline",
-                    timelineIcon,
-                    false
-                ),
-                com.timeline.presentation.AppInfo(
-                    "com.google.android.youtube",
-                    "YouTube",
-                    rememberAppIcon("com.google.android.youtube"),
-                    false
-                ),
-                com.timeline.presentation.AppInfo(
-                    "com.google.android.gm",
-                    "Gmail",
-                    rememberAppIcon("com.google.android.gm"),
-                    true
-                )
+            com.timeline.ui.settings.AppExclusionsSheet(
+                state = state,
+                isTutorialActive = tutorialState.isActive,
+                tutorialStep = tutorialState.currentStep,
+                tutorialViewModel = tutorialViewModel,
+                onDismiss = { showExclusionsSheet = false },
+                onToggleExclusion = { pkg -> viewModel.onEvent(SettingsEvent.ToggleExclusion(pkg)) },
+                onNavigateToPaywall = onNavigateToPaywall
             )
-            val appsToDisplay = if (tutorialState.isActive) mockApps else state.availableApps
-
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showExclusionsSheet = false
-                    if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET) {
-                        tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(Dimensions.PaddingMedium)
-                        .spotlightTarget(
-                            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET,
-                            onBoundsCalculated = { step, bounds ->
-                                tutorialViewModel.onEvent(
-                                    TutorialEvent.UpdateTargetBounds(
-                                        step,
-                                        bounds
-                                    )
-                                )
-                            }
-                        )
-                ) {
-                    item {
-                        Text(
-                            AppStrings.SettingsAppExclusionsTitle,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    }
-                    if (isFeatureLocked && !tutorialState.isActive) {
-                        item { Button(onClick = { onNavigateToPaywall(false) }) { Text(AppStrings.SettingsUnlockPro) } }
-                    } else {
-                        items(appsToDisplay) { app ->
-                            ListItem(
-                                headlineContent = { Text(app.name) },
-                                leadingContent = {
-                                    AppIcon(
-                                        icon = app.icon,
-                                        contentDescription = app.name,
-                                        modifier = Modifier.size(Dimensions.IconMedium)
-                                    )
-                                },
-                                trailingContent = {
-                                    Switch(
-                                        checked = app.isExcluded,
-                                        onCheckedChange = {
-                                            viewModel.onEvent(
-                                                SettingsEvent.ToggleExclusion(app.packageName)
-                                            )
-                                            if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET) {
-                                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                            }
-                                        })
-                                },
-                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface)
-                            )
-                        }
-                    }
-                }
-            }
         }
 
         if (showRetentionSheet) {
-            val isFeatureLocked = state.trialStatus != TrialStatus.ACTIVE && !state.isPro
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showRetentionSheet = false
-                    if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_RETENTION_SHEET) {
-                        tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                    }
-                },
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(Dimensions.PaddingMedium)
-                        .spotlightTarget(
-                            TutorialStep.SPOTLIGHT_RETENTION_SHEET,
-                            onBoundsCalculated = { step, bounds ->
-                                tutorialViewModel.onEvent(
-                                    TutorialEvent.UpdateTargetBounds(
-                                        step,
-                                        bounds
-                                    )
-                                )
-                            }
-                        )
-                ) {
-                    Text(
-                        AppStrings.SettingsDataRetentionTitle,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    ValueSlider(
-                        value = state.dataRetentionDays.toFloat(),
-                        onValueChange = {
-                            val newValue =
-                                if (isFeatureLocked) it.toInt().coerceAtMost(7) else it.toInt()
-                            viewModel.onEvent(SettingsEvent.SetDataRetention(newValue))
-                            if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_RETENTION_SHEET) {
-                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                            }
-                        },
-                        valueRange = 1f..if (isFeatureLocked) 7f else 60f,
-                        steps = if (isFeatureLocked) 6 else 60,
-                        label = {
-                            AppStrings.SettingsDaysLabel.replace(
-                                "%d",
-                                it.toInt().toString()
-                            )
-                        }
-                    )
-                }
-            }
+            com.timeline.ui.settings.DataRetentionSheet(
+                state = state,
+                tutorialStep = tutorialState.currentStep,
+                tutorialViewModel = tutorialViewModel,
+                onDismiss = { showRetentionSheet = false },
+                onRetentionChange = { days -> viewModel.onEvent(SettingsEvent.SetDataRetention(days)) }
+            )
         }
     }
-}
+}

@@ -14,6 +14,10 @@ sealed interface Route : NavKey {
     @Serializable
     data object Highlight : Route
     @Serializable
+    data object RawHighlight : Route
+    @Serializable
+    data object SimplifiedHighlight : Route
+    @Serializable
     data object HighlightLoading : Route
     @Serializable
     data object Insights : Route

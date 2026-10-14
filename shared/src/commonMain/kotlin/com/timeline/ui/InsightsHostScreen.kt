@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -155,7 +156,7 @@ fun FloatingToolbar(
             val tabs = listOf(
                 TabItem(AppStrings.InsightsOverview, Icons.Rounded.AutoFixHigh),
                 TabItem(AppStrings.InsightsApps, Icons.Rounded.GridView),
-                TabItem(AppStrings.InsightsTrends, Icons.Rounded.TrendingUp),
+                TabItem(AppStrings.InsightsTrends, Icons.AutoMirrored.Rounded.TrendingUp),
                 TabItem(AppStrings.InsightsPatterns, Icons.Rounded.AutoAwesome)
             )
 
@@ -164,54 +165,6 @@ fun FloatingToolbar(
                     item = tab,
                     isSelected = selectedTab == index,
                     onClick = { onTabSelected(index) }
-                )
-            }
-        }
-    }
-}
-
-data class TabItem(val name: String, val icon: ImageVector)
-
-@Composable
-fun ToolbarTab(
-    item: TabItem,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.outline
-
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(Dimensions.SpacingExtraLarge))
-            .background(backgroundColor)
-            .clickable { onClick() }
-            .padding(horizontal = Dimensions.ToolbarTabPadding, vertical = Dimensions.PaddingSmall),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.name,
-                tint = contentColor,
-                modifier = Modifier.size(Dimensions.IconSmall)
-            )
-            AnimatedVisibility(
-                visible = isSelected,
-                enter = fadeIn() + expandHorizontally(),
-                exit = fadeOut() + shrinkHorizontally()
-            ) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = contentColor,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip,
-                    modifier = Modifier.padding(start = Dimensions.Half)
                 )
             }
         }

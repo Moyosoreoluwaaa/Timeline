@@ -10,7 +10,7 @@ class MigrateGuestDataUseCase(
     private val timelineRepository: TimelineRepository,
     private val userStorageManager: UserStorageManager,
     private val userPreferences: UserPreferences,
-    private val logger: Logger
+    internal val logger: Logger
 ) {
     private val tagLogger = logger.withTag("MigrateGuestDataUseCase")
 

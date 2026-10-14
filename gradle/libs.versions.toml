@@ -48,7 +48,7 @@ purchases = "3.7.0"
 firebaseCrashlytics = "20.1.0"
 googleGmsGoogleServices = "4.5.0"
 googleFirebaseCrashlytics = "3.0.8"
-firebaseAi = "17.16.0"
+firebaseAgent = "17.16.0"
 firebaseAuth = "24.2.0"
 credentials = "1.6.0"
 credentialsPlayServicesAuth = "1.6.0"
@@ -120,7 +120,7 @@ purchases-kmp-core = { module = "com.revenuecat.purchases:purchases-kmp-core", v
 purchases-kmp-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases" }
 purchases-android-ui = { module = "com.revenuecat.purchases:purchases-ui", version = "10.20.0" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
-firebase-ai = { group = "com.google.firebase", name = "firebase-ai", version.ref = "firebaseAi" }
+firebase-ai = { group = "com.google.firebase", name = "firebase-ai", version.ref = "firebaseAgent" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }

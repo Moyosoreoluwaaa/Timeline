@@ -10,14 +10,14 @@ import com.timeline.util.Constants
 import kotlinx.coroutines.flow.first
 
 class UsageStatsHelper(
-    private val context: Context,
+    context: Context,
     private val exclusionPolicy: ExclusionPolicy,
     private val userPreferences: UserPreferences
 ) {
     private val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     
     private var lastApp: String? = null
-    private var wasAccessibilityGranted = true
+    private var wasAccessibilityGranted: Boolean? = null
 
     suspend fun pollUsageStats(
         currentSessionId: String?,
@@ -72,10 +72,14 @@ class UsageStatsHelper(
 
     private fun checkAccessibilityStateChange(onAccessibilityLost: () -> Unit) {
         val isGranted = TimelineAccessibilityService.getInstance() != null
-        if (wasAccessibilityGranted && !isGranted) {
+        
+        // Only trigger if we previously knew the state and it was granted,
+        // and now it is lost.
+        if (wasAccessibilityGranted == true && !isGranted) {
             Logger.withTag("UsageStatsHelper").w { "Accessibility service disconnected" }
             onAccessibilityLost()
         }
+        
         wasAccessibilityGranted = isGranted
     }
 }

@@ -65,8 +65,8 @@ actual fun AppNavigation(
             ) { page ->
                 when (page) {
                     0 -> {
-                        val highlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
-                        com.timeline.ui.NewHighlightScreen(
+                        val highlightViewModel: com.timeline.presentation.SimplifiedHighlightViewModel = koinViewModel()
+                        com.timeline.ui.SimplifiedHighlightScreen(
                             viewModel = highlightViewModel,
                             onNavigateBack = {
                                 coroutineScope.launch { pagerState.animateScrollToPage(1) }
@@ -107,7 +107,7 @@ actual fun AppNavigation(
             SettingsScreen(
                 viewModel = settingsViewModel,
                 onNavigateToPaywall = { isDeals -> currentRoute = Route.Paywall(isDeals) },
-                onNavigateToAuth = { /* TODO */ },
+                onNavigateToAuth = { currentRoute = Route.Auth },
                 onBack = { currentRoute = Route.Timeline }
             )
         }

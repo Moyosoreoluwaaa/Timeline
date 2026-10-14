@@ -19,6 +19,8 @@ import com.timeline.ui.components.PaywallBadge
 import com.timeline.ui.components.PaywallFeatures
 import com.timeline.ui.components.PlanOption
 import com.timeline.ui.components.PromoBadge
+import com.timeline.ui.paywall.PaywallFooter
+import com.timeline.ui.paywall.PaywallHeader
 import com.timeline.ui.theme.AppAlpha
 import com.timeline.ui.theme.AppColors
 import com.timeline.ui.theme.Dimensions
@@ -28,9 +30,13 @@ import com.timeline.util.AppStrings
 fun PaywallScreen(
     onDismiss: () -> Unit,
     onStartTrial: (isYearly: Boolean) -> Unit,
-    isDealsVariant: Boolean = false
+    isDealsVariant: Boolean = false,
+    onRestorePurchases: () -> Unit = {},
+    onPrivacyPolicy: () -> Unit = {},
+    onTermsOfUse: () -> Unit = {}
 ) {
     var isYearlySelected by remember { mutableStateOf(true) }
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -70,45 +76,9 @@ fun PaywallScreen(
                     .padding(Dimensions.PaddingLarge),
                 horizontalAlignment = Alignment.Start
             ) {
-                // Header
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = AppStrings.AppName,
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
-                        PaywallBadge(AppStrings.PaywallPro)
-                    }
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.align(Alignment.CenterEnd)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = AppStrings.ContentDescClose,
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-
-                Text(
-                    text = if (isDealsVariant) AppStrings.PaywallUnlockDeeper else AppStrings.PaywallUnlimitedInsights,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Start
-                )
-                Text(
-                    text = if (isDealsVariant) AppStrings.PaywallGoBeyond else AppStrings.PaywallOneSimplePlan,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Subtitle),
-                    textAlign = TextAlign.Start
+                PaywallHeader(
+                    isDealsVariant = isDealsVariant,
+                    onDismiss = onDismiss
                 )
 
                 Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
@@ -223,49 +193,12 @@ fun PaywallScreen(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-
-                // Restore Purchases Button
-                TextButton(
-                    onClick = { /* TODO: Implement restore purchases, using https://google.com as placeholder */ },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = AppStrings.PaywallRestorePurchases,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Medium)
-                    )
-                }
-
-                // Privacy Policy & Terms of Use Links
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { /* TODO: Open https://google.com for Privacy Policy */ }) {
-                        Text(
-                            text = AppStrings.PaywallPrivacyPolicy,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low)
-                        )
-                    }
-
-                    Text(
-                        text = "•",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low),
-                        modifier = Modifier.padding(horizontal = Dimensions.PaddingSmall)
-                    )
-
-                    TextButton(onClick = { /* TODO: Open https://google.com for Terms of Use */ }) {
-                        Text(
-                            text = AppStrings.PaywallTermsOfUse,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = AppAlpha.Low)
-                        )
-                    }
-                }
+                PaywallFooter(
+                    onRestorePurchases = onRestorePurchases,
+                    onPrivacyPolicy = onPrivacyPolicy,
+                    onTermsOfUse = onTermsOfUse,
+                    uriHandler = uriHandler
+                )
             }
         }
     }

@@ -16,8 +16,8 @@ import com.timeline.presentation.MetricsViewModel
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PermissionViewModel
 import com.timeline.presentation.PaywallViewModel
-import com.timeline.presentation.HighlightViewModel
-import com.timeline.presentation.NewHighlightViewModel
+import com.timeline.presentation.RawHighlightViewModel
+import com.timeline.presentation.SimplifiedHighlightViewModel
 import com.timeline.domain.usecase.SignInWithGoogleUseCase
 import com.timeline.domain.usecase.MigrateGuestDataUseCase
 import com.timeline.domain.usecase.SyncUserAccountUseCase
@@ -59,8 +59,8 @@ val appModule = module {
     viewModelOf(::AuthViewModel)
     viewModelOf(::PermissionViewModel)
     viewModelOf(::PaywallViewModel)
-    viewModelOf(::HighlightViewModel)
-    viewModelOf(::NewHighlightViewModel)
+    viewModelOf(::RawHighlightViewModel)
+    viewModelOf(::SimplifiedHighlightViewModel)
     viewModelOf(::TutorialViewModel)
 }
 

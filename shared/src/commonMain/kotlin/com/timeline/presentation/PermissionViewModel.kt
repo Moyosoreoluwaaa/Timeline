@@ -93,9 +93,12 @@ class PermissionViewModel(
         val allGranted = permissions.all { p -> p.isGranted }
 
         _state.update { currentState ->
+            // Re-evaluate the active index if the current permission is now granted.
+            // This ensures that if the user returns and a permission is granted,
+            // the card automatically advances without requiring an extra click.
             var nextCardIndex = currentState.activeCardIndex
             if (currentState.currentStep == PermissionCardStack) {
-                if (nextCardIndex < permissions.size && permissions[nextCardIndex].isGranted) {
+                while (nextCardIndex < permissions.size && permissions[nextCardIndex].isGranted) {
                     nextCardIndex++
                 }
             }
@@ -126,8 +129,10 @@ class PermissionViewModel(
                 if (s.introPage < INTRO_PAGE_COUNT - 1) {
                     _state.update { it.copy(introPage = it.introPage + 1) }
                 } else {
-                    // TODO: persist s.focusAreas here (needs a new UserPreferences setter)
-                    goTo(PermissionCardStack)
+                    viewModelScope.launch {
+                        userPreferences.setFocusAreas(s.focusAreas)
+                        goTo(PermissionCardStack)
+                    }
                 }
             }
             Opening -> goTo(Intro)

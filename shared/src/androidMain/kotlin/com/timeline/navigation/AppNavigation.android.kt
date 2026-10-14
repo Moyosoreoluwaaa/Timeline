@@ -45,6 +45,7 @@ import com.timeline.ui.paywall.NewPaywallStyle
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Duration.Companion.milliseconds
 
 // How long the "thank you for subscribing" banner stays visible
 private const val THANK_YOU_BANNER_MS = 5000L
@@ -62,7 +63,7 @@ actual fun AppNavigation(
 ) {
     val timelineViewModel: TimelineViewModel = koinViewModel()
     val tutorialViewModel: TutorialViewModel = koinViewModel()
-    val newHighlightViewModel: com.timeline.presentation.NewHighlightViewModel = koinViewModel()
+    val simplifiedHighlightViewModel: com.timeline.presentation.SimplifiedHighlightViewModel = koinViewModel()
     val settingsViewModel: SettingsViewModel = koinViewModel()
     val permissionViewModel: PermissionViewModel = koinViewModel()
     val authViewModel: AuthViewModel = koinViewModel()
@@ -72,7 +73,7 @@ actual fun AppNavigation(
 
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
     val permState by permissionViewModel.state.collectAsStateWithLifecycle()
-    val newHighlightState by newHighlightViewModel.state.collectAsStateWithLifecycle()
+    val simplifiedHighlightState by simplifiedHighlightViewModel.state.collectAsStateWithLifecycle()
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
     val isPro by subscriptionManager.isPro.collectAsStateWithLifecycle()
     val customerInfo by subscriptionManager.customerInfo.collectAsStateWithLifecycle()
@@ -81,7 +82,7 @@ actual fun AppNavigation(
     var showSplash by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2000)
+        kotlinx.coroutines.delay(2000.milliseconds)
         showSplash = false
     }
 
@@ -99,7 +100,7 @@ actual fun AppNavigation(
     LaunchedEffect(isPro, customerInfo != null) {
         if (isPro && customerInfo != null) {
             showThankYou = true
-            kotlinx.coroutines.delay(THANK_YOU_BANNER_MS)
+            kotlinx.coroutines.delay(THANK_YOU_BANNER_MS.milliseconds)
             showThankYou = false
         }
     }
@@ -159,16 +160,21 @@ actual fun AppNavigation(
     // Direct navigation logic (bypassing Auth)
     LaunchedEffect(prefsState, permState.allGranted, backStack.lastOrNull()) {
         val state = prefsState ?: return@LaunchedEffect
+        
+        // If we are already on the Permission screen, we might stay there until granted
         val currentRoute = backStack.lastOrNull()
+        val needsOnboarding = !state.isPermissionsCompleted || !permState.allGranted
 
         if (currentRoute == null) {
-            val needsOnboarding = !state.isPermissionsCompleted || !permState.allGranted
             backStack.clear()
             if (needsOnboarding) {
                 backStack.add(Route.Permission)
             } else {
                 backStack.add(Route.Timeline)
             }
+        } else if (currentRoute == Route.Timeline && needsOnboarding) {
+            // If user somehow revokes permissions while in the app, return them to permission screen
+            backStack.add(Route.Permission)
         }
     }
 
@@ -256,16 +262,16 @@ actual fun AppNavigation(
                                             when (effect) {
                                                 is com.timeline.tutorial.TutorialEffect.NavigateToScreen -> {
                                                     when (effect.screen) {
-                                                        com.timeline.tutorial.TutorialScreen.TIMELINE -> {
+                                                        TIMELINE -> {
                                                             pagerState.animateScrollToPage(1)
                                                         }
-                                                        com.timeline.tutorial.TutorialScreen.HIGHLIGHT -> {
+                                                        HIGHLIGHT -> {
                                                             pagerState.animateScrollToPage(0)
                                                         }
-                                                        com.timeline.tutorial.TutorialScreen.SETTINGS -> {
+                                                        SETTINGS -> {
                                                             pagerState.animateScrollToPage(2)
                                                         }
-                                                        com.timeline.tutorial.TutorialScreen.PAYWALL -> {
+                                                        PAYWALL -> {
                                                             if (backStack.lastOrNull() !is Route.Paywall) {
                                                                 backStack.add(Route.Paywall())
                                                             }
@@ -282,8 +288,8 @@ actual fun AppNavigation(
                                     ) { page ->
                                         when (page) {
                                             0 -> {
-                                                com.timeline.ui.NewHighlightScreen(
-                                                    viewModel = newHighlightViewModel,
+                                                com.timeline.ui.SimplifiedHighlightScreen(
+                                                    viewModel = simplifiedHighlightViewModel,
                                                     tutorialViewModel = tutorialViewModel,
                                                     onNavigateBack = {
                                                         coroutineScope.launch {
@@ -342,19 +348,48 @@ actual fun AppNavigation(
                                     }
                                 }
 
-                                is Route.HighlightLoading -> {
-                                    com.timeline.ui.NewHighlightLoadingScreen(
-                                        screenshots = newHighlightState.dynamicScreenshots,
-                                        onFinished = {
-                                            backStack.removeAt(backStack.size - 1)
-                                            backStack.add(Route.Highlight)
+                                 is Route.HighlightLoading -> {
+                                    val loadingStyle = prefsState?.experiments?.highlightLoadingStyle ?: com.timeline.domain.model.HighlightLoadingStyle.CardStack
+                                     when (loadingStyle) {
+                                        com.timeline.domain.model.HighlightLoadingStyle.Arc -> com.timeline.ui.ArcHighlightLoadingScreen(
+                                            screenshots = simplifiedHighlightState.dynamicScreenshots,
+                                            onFinished = {
+                                                backStack.removeAt(backStack.size - 1)
+                                                backStack.add(Route.Highlight)
+                                            }
+                                        )
+                                        com.timeline.domain.model.HighlightLoadingStyle.Stacked -> com.timeline.ui.StackedHighlightLoadingScreen(
+                                            screenshots = simplifiedHighlightState.dynamicScreenshots,
+                                            onFinished = {
+                                                backStack.removeAt(backStack.size - 1)
+                                                backStack.add(Route.Highlight)
+                                            }
+                                        )
+                                        com.timeline.domain.model.HighlightLoadingStyle.CardStack -> com.timeline.ui.NewHighlightLoadingScreen(
+                                            screenshots = simplifiedHighlightState.dynamicScreenshots,
+                                            onFinished = {
+                                                backStack.removeAt(backStack.size - 1)
+                                                backStack.add(Route.Highlight)
+                                            }
+                                        )
+                                    }
+                                }
+
+                                is Route.RawHighlight -> {
+                                    val rawHighlightViewModel: com.timeline.presentation.RawHighlightViewModel = koinViewModel()
+                                    com.timeline.ui.RawHighlightScreen(
+                                        viewModel = rawHighlightViewModel,
+                                        onNavigateBack = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
+                                            }
                                         }
                                     )
                                 }
 
-                                is Route.Highlight -> {
-                                    com.timeline.ui.NewHighlightScreen(
-                                        viewModel = newHighlightViewModel,
+                                is Route.SimplifiedHighlight -> {
+                                    com.timeline.ui.SimplifiedHighlightScreen(
+                                        viewModel = simplifiedHighlightViewModel,
                                         tutorialViewModel = tutorialViewModel,
                                         onNavigateBack = {
                                             if (backStack.size > 1) {
@@ -362,6 +397,31 @@ actual fun AppNavigation(
                                             }
                                         }
                                     )
+                                }
+
+                                is Route.Highlight -> {
+                                    val variant = prefsState?.experiments?.highlightVariant ?: com.timeline.domain.model.HighlightVariant.Simplified
+                                    if (variant == com.timeline.domain.model.HighlightVariant.RawDiagnostic) {
+                                        val rawHighlightViewModel: com.timeline.presentation.RawHighlightViewModel = koinViewModel()
+                                        com.timeline.ui.RawHighlightScreen(
+                                            viewModel = rawHighlightViewModel,
+                                            onNavigateBack = {
+                                                if (backStack.size > 1) {
+                                                    backStack.removeAt(backStack.size - 1)
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        com.timeline.ui.SimplifiedHighlightScreen(
+                                            viewModel = simplifiedHighlightViewModel,
+                                            tutorialViewModel = tutorialViewModel,
+                                            onNavigateBack = {
+                                                if (backStack.size > 1) {
+                                                    backStack.removeAt(backStack.size - 1)
+                                                }
+                                            }
+                                        )
+                                    }
                                 }
 
                                 is Route.Insights -> {
@@ -411,13 +471,13 @@ actual fun AppNavigation(
                                         viewModel = paywallViewModel,
                                         style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
                                         onDismiss = {
-                                            tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.SkipTutorial)
+                                            tutorialViewModel.onEvent(TutorialEvent.SkipTutorial)
                                             if (backStack.size > 1) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         },
                                         onPurchaseSuccess = {
-                                            tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.SkipTutorial)
+                                            tutorialViewModel.onEvent(TutorialEvent.SkipTutorial)
                                             if (backStack.size > 1) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }

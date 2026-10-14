@@ -49,6 +49,14 @@ fun PermissionScreen(
         viewModel.onEvent(PermissionEvent.CheckPermissions)
     }
 
+    // If all permissions were suddenly granted or revoked outside of onboarding,
+    // ensure we handle navigation appropriately.
+    LaunchedEffect(state.allGranted) {
+        if (state.allGranted && state.currentStep == OnboardingStep.PermissionCardStack) {
+            onAllGranted()
+        }
+    }
+
     BackHandler(enabled = state.currentStep != OnboardingStep.Opening) {
         viewModel.onEvent(PermissionEvent.PreviousStep)
     }

@@ -1,37 +1,19 @@
-# Implementation Plan: Adopting New Design System
+# Implementation Plan - Play Store Listing Accessibility Compliance
 
-This plan outlines the steps to integrate the new design system (based on the AllTrails teardown) into the Timeline app, while substituting the brand color with our own primary color.
-
-## User Review Required
-
-> [!IMPORTANT]
-> I need you to provide your **primary color hex code** to replace the teardown's `#264311`.
-
-> [!WARNING]
-> This will involve significant changes to the base `Theme.kt` and potentially widespread refactoring of UI components if they are not currently using a centralized design system.
-
-## Open Questions
-
-- What is the primary color hex code for your brand?
-- Are you currently using `MaterialTheme` in your project for colors and shapes?
+The goal of this plan is to update the app's store listing metadata to meet Google Play's Accessibility API policy requirements. The Play Store listing must explicitly disclose how and why the Accessibility API is used.
 
 ## Proposed Changes
 
-### [Theme Infrastructure]
+### Documentation & Metadata
 
-#### [MODIFY] [Theme.kt](file:///C:/Users/USER/AndroidStudioProjects/Timeline/androidApp/src/main/java/com/timeline/ui/theme/Theme.kt)
-- Define new `Palette`, `Space`, `Shapes`, and `Type` objects using the teardown's token logic, substituting your primary color.
-- Integrate these into the `MaterialTheme` configuration.
-
-### [Component Migration]
-
-#### [MODIFY] [Components.kt (or equivalent)]
-- Refactor existing Buttons, Cards, and Search bars to use the new pill shapes (`radius-pill`), spacing (`16.dp`, `24.dp`), and color roles (`Palette.Ink`, `Palette.FillNeutral`, etc.).
+#### [NEW] [store_listing.artifact.md](file:///C:/Users/USER/AndroidStudioProjects/Timeline/.artifacts/store_listing_fix.artifact.md)
+- Create a document containing the compliant Short and Full descriptions for the Play Store.
+- The Full Description includes a prominent disclosure about Accessibility API usage, explaining that it is used to detect app switches and trigger automated screenshots.
+- Explicitly states that the API is NOT used for deceptive UI changes, bypassing privacy controls, or recording audio.
 
 ## Verification Plan
 
-### Automated Tests
-- I will use `render_compose_preview` to verify the new design system components.
-
 ### Manual Verification
-- Deploy the app to the emulator/device to check the "feel" (spacing, radii, colors) of key screens like the main dashboard and detail views.
+- Review the drafted description in [store_listing_fix.artifact.md](file:///C:/Users/USER/AndroidStudioProjects/Timeline/.artifacts/store_listing_fix.artifact.md) against the [Google Play Accessibility API policy](https://support.google.com/googleplay/android-developer/answer/10964491).
+- Ensure all "NOT" clauses requested by the policy are present.
+- Remind the user to update the Play Console with the new text and an accompanying video link.
