@@ -16,10 +16,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.timeline.analytics.Analytics
+import com.timeline.analytics.AnalyticsEvents
+import com.timeline.analytics.AnalyticsParams
+
 class PermissionViewModel(
     private val permissionManager: PermissionManager,
     private val userPreferences: UserPreferences,
-    private val notificationManager: NotificationManager
+    private val notificationManager: NotificationManager,
+    private val analytics: Analytics
 ) : ViewModel() {
     private val _state = MutableStateFlow(PermissionState())
     val state = _state.asStateFlow()
@@ -27,8 +32,11 @@ class PermissionViewModel(
     private val _effects = Channel<PermissionEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
+    private var lastLoggedStep: Int = -1
+
     init {
         checkPermissions()
+        logOnboardingStep(1)
         viewModelScope.launch {
             userPreferences.state.collect { prefs ->
                 val savedStep = when (val stepName = prefs.lastOnboardingStep) {
@@ -39,9 +47,35 @@ class PermissionViewModel(
                 if (savedStep != null && _state.value.currentStep == Opening && savedStep != Opening) {
                     val resolvedStep = resolveInitialStep(savedStep)
                     _state.update { it.copy(currentStep = resolvedStep) }
+                    logOnboardingStep(
+                        when (resolvedStep) {
+                            Opening -> 1
+                            Intro -> 2 + _state.value.introPage
+                            PermissionCardStack -> 6
+                        }
+                    )
                 }
             }
         }
+    }
+
+    private fun logOnboardingStep(step: Int) {
+        val clampedStep = step.coerceIn(1, 6)
+        if (clampedStep != lastLoggedStep) {
+            lastLoggedStep = clampedStep
+            analytics.log(
+                AnalyticsEvents.ONBOARDING_SCREEN_VIEW,
+                mapOf(AnalyticsParams.STEP to clampedStep)
+            )
+        }
+    }
+
+    private fun normalizePermissionType(id: String): String = when (id) {
+        "usage" -> "usage_access"
+        "accessibility" -> "accessibility"
+        "notifications" -> "notifications"
+        "overlay" -> "overlay"
+        else -> id
     }
 
     private fun resolveInitialStep(savedStep: OnboardingStep): OnboardingStep {
@@ -66,6 +100,8 @@ class PermissionViewModel(
     }
 
     private fun checkPermissions() {
+        val prevPermissions = _state.value.permissions.associate { it.id to it.isGranted }
+
         val permissions = listOf(
             PermissionItem(
                 id = "accessibility",
@@ -89,6 +125,19 @@ class PermissionViewModel(
                 illustration = AppStrings.PermissionNotificationsIllustration
             )
         )
+
+        permissions.forEach { p ->
+            val wasGranted = prevPermissions[p.id] == true
+            if (!wasGranted && p.isGranted) {
+                analytics.log(
+                    AnalyticsEvents.PERMISSION_RESULT,
+                    mapOf(
+                        AnalyticsParams.TYPE to normalizePermissionType(p.id),
+                        AnalyticsParams.RESULT to "granted"
+                    )
+                )
+            }
+        }
 
         val allGranted = permissions.all { p -> p.isGranted }
 
@@ -115,8 +164,20 @@ class PermissionViewModel(
         val s = _state.value
         when (s.currentStep) {
             PermissionCardStack -> {
+                val currentItem = s.permissions.getOrNull(s.activeCardIndex)
+                if (currentItem != null && !currentItem.isGranted) {
+                    analytics.log(
+                        AnalyticsEvents.PERMISSION_RESULT,
+                        mapOf(
+                            AnalyticsParams.TYPE to normalizePermissionType(currentItem.id),
+                            AnalyticsParams.RESULT to "skipped"
+                        )
+                    )
+                }
+
                 if (s.activeCardIndex >= s.permissions.size - 1) {
                     viewModelScope.launch {
+                        analytics.log(AnalyticsEvents.ONBOARDING_COMPLETED)
                         userPreferences.setPermissionsCompleted(true)
                         userPreferences.setLastOnboardingStep(PermissionCardStack.name)
                         _effects.send(PermissionEffect.AllGranted)
@@ -127,7 +188,9 @@ class PermissionViewModel(
             }
             Intro -> {
                 if (s.introPage < INTRO_PAGE_COUNT - 1) {
-                    _state.update { it.copy(introPage = it.introPage + 1) }
+                    val nextPage = s.introPage + 1
+                    _state.update { it.copy(introPage = nextPage) }
+                    logOnboardingStep(2 + nextPage)
                 } else {
                     viewModelScope.launch {
                         userPreferences.setFocusAreas(s.focusAreas)
@@ -135,7 +198,10 @@ class PermissionViewModel(
                     }
                 }
             }
-            Opening -> goTo(Intro)
+            Opening -> {
+                goTo(Intro)
+                logOnboardingStep(2)
+            }
         }
     }
 
@@ -146,17 +212,33 @@ class PermissionViewModel(
             return
         }
         if (s.currentStep == Intro && s.introPage > 0) {
-            _state.update { it.copy(introPage = it.introPage - 1) }
+            val prevPage = s.introPage - 1
+            _state.update { it.copy(introPage = prevPage) }
+            logOnboardingStep(2 + prevPage)
             return
         }
         val prev = s.stepHistory.lastOrNull() ?: return
         _state.update { it.copy(currentStep = prev, stepHistory = it.stepHistory.dropLast(1)) }
         viewModelScope.launch { userPreferences.setLastOnboardingStep(prev.name) }
+        logOnboardingStep(
+            when (prev) {
+                Opening -> 1
+                Intro -> 2 + _state.value.introPage
+                PermissionCardStack -> 6
+            }
+        )
     }
 
     private fun goTo(next: OnboardingStep) {
         _state.update { it.copy(currentStep = next, stepHistory = it.stepHistory + it.currentStep) }
         viewModelScope.launch { userPreferences.setLastOnboardingStep(next.name) }
+        logOnboardingStep(
+            when (next) {
+                Opening -> 1
+                Intro -> 2 + _state.value.introPage
+                PermissionCardStack -> 6
+            }
+        )
     }
 
     private fun retryCurrentPermission() {
@@ -164,6 +246,12 @@ class PermissionViewModel(
     }
 
     private fun grantPermission(id: String) {
+        val type = normalizePermissionType(id)
+        analytics.log(
+            AnalyticsEvents.PERMISSION_PROMPT_SHOWN,
+            mapOf(AnalyticsParams.TYPE to type)
+        )
+
         when (id) {
             "usage" -> _effects.trySend(PermissionEffect.NavigateToUsageStatsSettings)
             "notifications" -> _effects.trySend(PermissionEffect.RequestNotificationPermission)

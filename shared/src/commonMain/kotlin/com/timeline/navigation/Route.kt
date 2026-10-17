@@ -26,7 +26,7 @@ sealed interface Route : NavKey {
     @Serializable
     data object CustomerCenter : Route
     @Serializable
-    data class Paywall(val isDealsVariant: Boolean = false) : Route
+    data class Paywall(val isDealsVariant: Boolean = false, val source: String = "locked_feature") : Route
     @Serializable
     data class FullScreenImage(val path: String) : Route
 }

@@ -46,6 +46,8 @@ kotlinx-serialization = "1.7.3"
 ktor = "3.1.1"
 purchases = "3.7.0"
 firebaseCrashlytics = "20.1.0"
+firebaseAnalytics = "22.2.0"
+installReferrer = "2.2"
 googleGmsGoogleServices = "4.5.0"
 googleFirebaseCrashlytics = "3.0.8"
 firebaseAgent = "17.16.0"
@@ -120,6 +122,8 @@ purchases-kmp-core = { module = "com.revenuecat.purchases:purchases-kmp-core", v
 purchases-kmp-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases" }
 purchases-android-ui = { module = "com.revenuecat.purchases:purchases-ui", version = "10.20.0" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics", version.ref = "firebaseAnalytics" }
+install-referrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installReferrer" }
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai", version.ref = "firebaseAgent" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }

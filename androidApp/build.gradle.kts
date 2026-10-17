@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
+    implementation(libs.install.referrer)
     implementation(libs.googleid)
     debugImplementation(libs.compose.uiTooling)
 
@@ -56,6 +58,8 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.compose.viewmodel)
+
+    testImplementation(libs.junit)
 }
 
 android {

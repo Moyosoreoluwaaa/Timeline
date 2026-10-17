@@ -39,4 +39,7 @@ actual val platformModule: Module = module {
 
     // Network Monitor
     single<NetworkMonitor> { AlwaysConnectedNetworkMonitor() }
+
+    // Analytics (iOS No-Op)
+    single<com.timeline.analytics.Analytics> { com.timeline.analytics.NoOpAnalytics() }
 }

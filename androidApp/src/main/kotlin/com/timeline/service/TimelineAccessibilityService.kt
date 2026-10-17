@@ -41,6 +41,12 @@ class TimelineAccessibilityService : AccessibilityService() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         Logger.d { "TimelineAccessibilityService unbound" }
+        try {
+            val analytics: com.timeline.analytics.Analytics = org.koin.mp.KoinPlatform.getKoin().get()
+            analytics.log(com.timeline.analytics.AnalyticsEvents.ACCESSIBILITY_SERVICE_DISCONNECTED)
+        } catch (e: Exception) {
+            Logger.w(e) { "Failed to log accessibility_service_disconnected" }
+        }
         instance = null
         return super.onUnbind(intent)
     }

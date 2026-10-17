@@ -11,11 +11,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.timeline.analytics.Analytics
+import com.timeline.analytics.AnalyticsEvents
+import com.timeline.analytics.AnalyticsParams
 import kotlin.time.Clock
 
 class PaywallViewModel(
     private val subscriptionManager: SubscriptionManager,
-    private val userPreferences: UserPreferences
+    private val userPreferences: UserPreferences,
+    private val analytics: Analytics
 ) : ViewModel() {
     private val _state = MutableStateFlow(PaywallState())
     val state = _state.asStateFlow()
@@ -53,6 +57,7 @@ class PaywallViewModel(
 
     private fun purchase(rcPackage: Package) {
         viewModelScope.launch {
+            analytics.log(AnalyticsEvents.PURCHASE_STARTED)
             _state.update { it.copy(isLoading = true) }
             
             // Simulation: Start trial
@@ -73,9 +78,19 @@ class PaywallViewModel(
             _state.update { it.copy(isLoading = true) }
             val result = subscriptionManager.restore()
             _state.update { it.copy(isLoading = false) }
-            result.onSuccess {
+            result.onSuccess { customerInfo ->
+                val hasActiveEntitlements = customerInfo.entitlements.active.isNotEmpty()
+                val status = if (hasActiveEntitlements) "success" else "none_found"
+                analytics.log(
+                    AnalyticsEvents.RESTORE_TAPPED,
+                    mapOf(AnalyticsParams.RESULT to status)
+                )
                 _effects.send(PaywallEffect.PurchaseSuccess)
             }.onFailure {
+                analytics.log(
+                    AnalyticsEvents.RESTORE_TAPPED,
+                    mapOf(AnalyticsParams.RESULT to "error")
+                )
                 _effects.send(PaywallEffect.PurchaseError(it.message ?: "Restore failed"))
             }
         }

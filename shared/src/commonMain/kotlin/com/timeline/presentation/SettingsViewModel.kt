@@ -13,13 +13,18 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
+import com.timeline.analytics.Analytics
+import com.timeline.analytics.AnalyticsEvents
+import com.timeline.analytics.AnalyticsParams
+
 class SettingsViewModel(
     private val exclusionPolicy: ExclusionPolicy,
     private val userPreferences: UserPreferences,
     private val authRepository: AuthRepository,
     private val subscriptionManager: SubscriptionManager,
     private val notificationManager: NotificationManager,
-    private val appInfoProvider: AppInfoProvider
+    private val appInfoProvider: AppInfoProvider,
+    private val analytics: Analytics
 ) : ViewModel() {
 
     private val _availableApps = MutableStateFlow<List<AppBasicInfo>>(emptyList())
@@ -70,21 +75,38 @@ class SettingsViewModel(
             is SettingsEvent.ToggleExclusion -> {
                 viewModelScope.launch {
                     exclusionPolicy.toggleExclusion(event.packageName)
+                    val excluded = exclusionPolicy.getExcludedPackages().firstOrNull() ?: emptySet()
+                    analytics.log(
+                        AnalyticsEvents.EXCLUSION_LIST_CHANGED,
+                        mapOf(AnalyticsParams.EXCLUDED_COUNT to excluded.size)
+                    )
                 }
             }
             is SettingsEvent.SetUsageTracking -> {
                 viewModelScope.launch {
                     userPreferences.setUsageTrackingEnabled(event.enabled)
+                    analytics.log(
+                        AnalyticsEvents.CAPTURE_TOGGLED,
+                        mapOf(AnalyticsParams.ENABLED to event.enabled)
+                    )
                 }
             }
             is SettingsEvent.SetScreenshotCapture -> {
                 viewModelScope.launch {
                     userPreferences.setScreenshotCaptureEnabled(event.enabled)
+                    analytics.log(
+                        AnalyticsEvents.CAPTURE_TOGGLED,
+                        mapOf(AnalyticsParams.ENABLED to event.enabled)
+                    )
                 }
             }
             is SettingsEvent.SetDataRetention -> {
                 viewModelScope.launch {
                     userPreferences.setDataRetentionDays(event.days)
+                    analytics.log(
+                        AnalyticsEvents.RETENTION_CHANGED,
+                        mapOf(AnalyticsParams.DAYS to event.days)
+                    )
                 }
             }
             is SettingsEvent.SetReasoningMode -> {

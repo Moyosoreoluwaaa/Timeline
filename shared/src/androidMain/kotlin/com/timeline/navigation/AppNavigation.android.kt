@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.revenuecat.purchases.kmp.ui.revenuecatui.CustomerCenter
+import com.timeline.domain.Session
 import com.timeline.domain.SubscriptionManager
 import com.timeline.domain.UserPreferences
 import com.timeline.presentation.AuthViewModel
@@ -42,6 +43,7 @@ import com.timeline.ui.SettingsScreen
 import com.timeline.ui.components.SubscriptionBanner
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -69,6 +71,8 @@ actual fun AppNavigation(
     val authViewModel: AuthViewModel = koinViewModel()
     val userPreferences: UserPreferences = koinInject()
     val subscriptionManager: SubscriptionManager = koinInject()
+    val analytics: com.timeline.analytics.Analytics = koinInject()
+    val repository: com.timeline.data.TimelineRepository = koinInject()
     val context = LocalContext.current
 
     val prefsState by userPreferences.state.collectAsStateWithLifecycle(null)
@@ -77,6 +81,24 @@ actual fun AppNavigation(
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
     val isPro by subscriptionManager.isPro.collectAsStateWithLifecycle()
     val customerInfo by subscriptionManager.customerInfo.collectAsStateWithLifecycle()
+
+    var sessionOpenedLogged by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!sessionOpenedLogged) {
+            sessionOpenedLogged = true
+            val sessions = repository.getTimeline().firstOrNull() ?: emptyList<Session>()
+            val count = sessions.size
+            val bucket = when {
+                count == 0 -> "0"
+                count in 1..10 -> "1-10"
+                else -> "10+"
+            }
+            analytics.log(
+                com.timeline.analytics.AnalyticsEvents.SESSION_OPENED,
+                mapOf(com.timeline.analytics.AnalyticsParams.SESSIONS_BUCKET to bucket)
+            )
+        }
+    }
 
     val backStack = remember { mutableStateListOf<NavKey>() }
     var showSplash by remember { mutableStateOf(true) }
@@ -139,7 +161,7 @@ actual fun AppNavigation(
 
                         PAYWALL -> {
                             if (backStack.lastOrNull() !is Route.Paywall) {
-                                backStack.add(Route.Paywall())
+                                backStack.add(Route.Paywall(source = "onboarding"))
                             }
                         }
                     }
@@ -153,6 +175,20 @@ actual fun AppNavigation(
         val activity = context as? android.app.Activity
         if (activity?.intent?.getBooleanExtra("navigate_to_highlight", false) == true) {
             activity.intent.removeExtra("navigate_to_highlight")
+            analytics.log(
+                com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_OPENED,
+                mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to "notification")
+            )
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val window = when {
+                hour < 12 -> "morning"
+                hour < 17 -> "afternoon"
+                else -> "evening"
+            }
+            analytics.log(
+                com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_NOTIFICATION_TAPPED,
+                mapOf(com.timeline.analytics.AnalyticsParams.WINDOW to window)
+            )
             backStack.add(Route.Highlight)
         }
     }
@@ -187,6 +223,28 @@ actual fun AppNavigation(
 
     if (backStack.isNotEmpty()) {
         val currentRoute = backStack.last()
+
+        LaunchedEffect(currentRoute) {
+            val screenName = when (currentRoute) {
+                is Route.Permission -> "permission"
+                is Route.Auth -> "auth"
+                is Route.Paywall -> "paywall"
+                is Route.CustomerCenter -> "customer_center"
+                is Route.Insights -> "insights"
+                is Route.Highlight, is Route.SimplifiedHighlight, is Route.RawHighlight -> "highlights"
+                is Route.Settings -> "settings"
+                is Route.HighlightLoading -> "highlight_loading"
+                is Route.FullScreenImage -> "full_screen_image"
+                is Route.Timeline -> null // Tracked via HorizontalPager pages
+                else -> null
+            }
+            if (screenName != null) {
+                analytics.log(
+                    com.timeline.analytics.AnalyticsEvents.SCREEN_VIEW,
+                    mapOf(com.timeline.analytics.AnalyticsParams.SCREEN_NAME to screenName)
+                )
+            }
+        }
 
         BackHandler(enabled = backStack.size > 1) {
             if (backStack.size > 1) {
@@ -255,6 +313,21 @@ actual fun AppNavigation(
                                     val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = 1) { 3 }
                                     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
+                                    LaunchedEffect(pagerState) {
+                                        androidx.compose.runtime.snapshotFlow { pagerState.currentPage }.collect { page ->
+                                            val screenName = when (page) {
+                                                0 -> "highlights"
+                                                1 -> "timeline"
+                                                2 -> "settings"
+                                                else -> "timeline"
+                                            }
+                                            analytics.log(
+                                                com.timeline.analytics.AnalyticsEvents.SCREEN_VIEW,
+                                                mapOf(com.timeline.analytics.AnalyticsParams.SCREEN_NAME to screenName)
+                                            )
+                                        }
+                                    }
+
                                     // Same as the top-level collector above: only
                                     // screen navigation is handled here now.
                                     LaunchedEffect(tutorialViewModel, pagerState) {
@@ -273,7 +346,7 @@ actual fun AppNavigation(
                                                         }
                                                         PAYWALL -> {
                                                             if (backStack.lastOrNull() !is Route.Paywall) {
-                                                                backStack.add(Route.Paywall())
+                                                                backStack.add(Route.Paywall(source = "onboarding"))
                                                             }
                                                         }
                                                     }
@@ -312,6 +385,10 @@ actual fun AppNavigation(
                                                         }
                                                     },
                                                     onNavigateToHighlight = {
+                                                        analytics.log(
+                                                            com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_OPENED,
+                                                            mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to "summary_bar")
+                                                        )
                                                         coroutineScope.launch {
                                                             pagerState.animateScrollToPage(0)
                                                         }
@@ -319,7 +396,7 @@ actual fun AppNavigation(
                                                     subscriptionBanner = subscriptionBanner,
                                                     onNavigateToPaywall = {
                                                         if (backStack.lastOrNull() !is Route.Paywall) {
-                                                            backStack.add(Route.Paywall())
+                                                            backStack.add(Route.Paywall(source = "locked_feature"))
                                                         }
                                                     }
                                                 )
@@ -329,7 +406,7 @@ actual fun AppNavigation(
                                                     viewModel = settingsViewModel,
                                                     tutorialViewModel = tutorialViewModel,
                                                     onNavigateToPaywall = { isDeals ->
-                                                        backStack.add(Route.Paywall(isDealsVariant = isDeals))
+                                                        backStack.add(Route.Paywall(isDealsVariant = isDeals, source = "settings"))
                                                     },
                                                     onNavigateToCustomerCenter = {
                                                         backStack.add(Route.CustomerCenter)
@@ -434,12 +511,12 @@ actual fun AppNavigation(
                                     )
                                 }
 
-                                is Route.Settings -> {
+                                 is Route.Settings -> {
                                     SettingsScreen(
                                         viewModel = settingsViewModel,
                                         tutorialViewModel = tutorialViewModel,
                                         onNavigateToPaywall = { isDeals ->
-                                            backStack.add(Route.Paywall(isDealsVariant = isDeals))
+                                            backStack.add(Route.Paywall(isDealsVariant = isDeals, source = "settings"))
                                         },
                                         onNavigateToCustomerCenter = {
                                             backStack.add(Route.CustomerCenter)
@@ -467,10 +544,22 @@ actual fun AppNavigation(
 
                                 is Route.Paywall -> {
                                     val paywallViewModel: PaywallViewModel = koinViewModel()
+
+                                    LaunchedEffect(route.source) {
+                                        analytics.log(
+                                            com.timeline.analytics.AnalyticsEvents.PAYWALL_VIEW,
+                                            mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to route.source)
+                                        )
+                                    }
+
                                     NewPaywallScreen(
                                         viewModel = paywallViewModel,
                                         style = if (route.isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
                                         onDismiss = {
+                                            analytics.log(
+                                                com.timeline.analytics.AnalyticsEvents.PAYWALL_DISMISSED,
+                                                mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to route.source)
+                                            )
                                             tutorialViewModel.onEvent(TutorialEvent.SkipTutorial)
                                             if (backStack.size > 1) {
                                                 backStack.removeAt(backStack.size - 1)

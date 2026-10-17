@@ -58,4 +58,7 @@ actual val platformModule: Module = module {
 
     // Network Monitor
     singleOf(::AndroidNetworkMonitor) { bind<NetworkMonitor>() }
+
+    // Analytics
+    single<com.timeline.analytics.Analytics> { com.timeline.analytics.FirebaseAnalyticsImpl(get<Context>()) }
 }

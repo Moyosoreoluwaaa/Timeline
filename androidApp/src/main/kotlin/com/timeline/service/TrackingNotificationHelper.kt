@@ -47,10 +47,11 @@ class TrackingNotificationHelper(private val context: Context) {
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    fun showDigestNotification(title: String, text: String) {
+    fun showDigestNotification(title: String, text: String, window: String = "morning") {
         val intent = Intent(context, Class.forName("com.timeline.MainActivity")).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("navigate_to_highlight", true)
+            putExtra("notification_window", window)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, 3, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

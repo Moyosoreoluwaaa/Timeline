@@ -13,10 +13,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.timeline.analytics.Analytics
+import com.timeline.analytics.AnalyticsEvents
+import com.timeline.analytics.AnalyticsParams
+
 class TutorialViewModel(
     private val userPreferences: UserPreferences,
     private val appInfoProvider: com.timeline.domain.AppInfoProvider,
-    private val subscriptionManager: com.timeline.domain.SubscriptionManager
+    private val subscriptionManager: com.timeline.domain.SubscriptionManager,
+    private val analytics: Analytics
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TutorialState())
@@ -30,11 +35,19 @@ class TutorialViewModel(
             TutorialEvent.StartTutorial -> startTutorial()
             TutorialEvent.NextStep -> advanceStep()
             TutorialEvent.PreviousStep -> rewindStep()
-            TutorialEvent.SkipTutorial -> dismissTutorial()
+            TutorialEvent.SkipTutorial -> skipTutorial()
             is TutorialEvent.SetHighlightLoading -> _state.update { it.copy(isHighlightLoading = event.isLoading) }
             is TutorialEvent.UpdateTargetBounds -> updateTargetBounds(event.step, event.bounds)
             is TutorialEvent.RealGestureObserved -> handleRealGesture(event.gesture)
         }
+    }
+
+    private fun skipTutorial() {
+        analytics.log(
+            AnalyticsEvents.TUTORIAL_SKIPPED,
+            mapOf(AnalyticsParams.AT_STEP to _state.value.currentStep.ordinal)
+        )
+        dismissTutorial()
     }
 
     // Applies the "what should the real UI look like for this step" values
@@ -94,6 +107,7 @@ class TutorialViewModel(
     }
 
     private fun startTutorial() {
+        analytics.log(AnalyticsEvents.TUTORIAL_BEGIN)
         viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -255,11 +269,13 @@ class TutorialViewModel(
             }
 
             TutorialStep.PRO_PAYWALL_STEP -> {
+                analytics.log(AnalyticsEvents.TUTORIAL_COMPLETE)
                 dismissTutorial()
                 return
             }
 
             TutorialStep.COMPLETED -> {
+                analytics.log(AnalyticsEvents.TUTORIAL_COMPLETE)
                 dismissTutorial()
                 return
             }

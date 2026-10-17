@@ -18,6 +18,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -27,6 +28,7 @@ class TrackingService : Service() {
     private val repository: TimelineRepository by inject()
     private val exclusionPolicy: ExclusionPolicy by inject()
     private val userPreferences: UserPreferences by inject()
+    private val analytics: com.timeline.analytics.Analytics by inject()
     
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var trackingJob: Job? = null
@@ -45,7 +47,17 @@ class TrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Logger.d { "TrackingService started" }
+        val restartReason = intent?.getStringExtra("restart_reason")
+            ?: if (intent == null) "killed" else null
+
+        if (restartReason != null) {
+            analytics.log(
+                com.timeline.analytics.AnalyticsEvents.SERVICE_RESTARTED,
+                mapOf(com.timeline.analytics.AnalyticsParams.REASON to restartReason)
+            )
+        }
+
+        Logger.d { "TrackingService started (restartReason: $restartReason)" }
         startForeground(TrackingNotificationHelper.NOTIFICATION_ID, notificationHelper.buildNotification())
         startTracking()
 
@@ -56,6 +68,7 @@ class TrackingService : Service() {
         Logger.d { "onTaskRemoved fired - restarting TrackingService" }
         val restartIntent = Intent(applicationContext, TrackingService::class.java).apply {
             setPackage(packageName)
+            putExtra("restart_reason", "killed")
         }
         val restartPendingIntent = PendingIntent.getService(
             applicationContext,
@@ -74,6 +87,15 @@ class TrackingService : Service() {
 
     private fun startTracking() {
         trackingJob?.cancel()
+
+        serviceScope.launch {
+            val prefs = userPreferences.state.first()
+            if (!prefs.hasTrackingStarted) {
+                userPreferences.setTrackingStarted(true)
+                analytics.log(com.timeline.analytics.AnalyticsEvents.TRACKING_STARTED)
+            }
+        }
+
         trackingJob = serviceScope.launch {
             var lastScreenshotTime = 0L
             while (isActive) {

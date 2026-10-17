@@ -41,6 +41,8 @@ data class PreferencesState(
     val isLoggedIn: Boolean,
     val trialStartedAt: Long?, // null = not started
     val lastOnboardingStep: String,
+    val isAnalyticsEnabled: Boolean = true,
+    val hasTrackingStarted: Boolean = false,
     val focusAreas: Set<String> = emptySet(),
     val experiments: com.timeline.domain.model.ExperimentFlags = com.timeline.domain.model.ExperimentFlags()
 )
@@ -55,6 +57,8 @@ object UserPreferenceKeys {
     val IS_TUTORIAL_COMPLETED = booleanPreferencesKey("is_tutorial_completed")
     val IS_USAGE_TRACKING_ENABLED = booleanPreferencesKey("is_usage_tracking_enabled")
     val IS_SCREENSHOT_CAPTURE_ENABLED = booleanPreferencesKey("is_screenshot_capture_enabled")
+    val IS_ANALYTICS_ENABLED = booleanPreferencesKey("is_analytics_enabled")
+    val HAS_TRACKING_STARTED = booleanPreferencesKey("has_tracking_started")
     val IS_AI_REASONING_ENABLED = booleanPreferencesKey("is_ai_reasoning_enabled")
     val HIGHLIGHT_REASONING_MODE = stringPreferencesKey("highlight_reasoning_mode")
     val DIGEST_FREQUENCY = intPreferencesKey("digest_frequency")
@@ -115,6 +119,8 @@ class UserPreferences(
                 trialStartedAt = prefs[UserPreferenceKeys.trialStartedAt(userId)],
                 lastOnboardingStep = prefs[UserPreferenceKeys.lastOnboardingStep(userId)]
                     ?: "Opening",
+                isAnalyticsEnabled = prefs[UserPreferenceKeys.IS_ANALYTICS_ENABLED] ?: true,
+                hasTrackingStarted = prefs[UserPreferenceKeys.HAS_TRACKING_STARTED] ?: false,
                 isTutorial = prefs[UserPreferenceKeys.IS_TUTORIAL_COMPLETED] ?: false,
                 focusAreas = prefs[UserPreferenceKeys.FOCUS_AREAS] ?: emptySet(),
                 experiments = com.timeline.domain.model.ExperimentFlags(
@@ -181,6 +187,14 @@ class UserPreferences(
 
     suspend fun setScreenshotCaptureEnabled(enabled: Boolean) {
         dataStore.edit { it[UserPreferenceKeys.IS_SCREENSHOT_CAPTURE_ENABLED] = enabled }
+    }
+
+    suspend fun setAnalyticsEnabled(enabled: Boolean) {
+        dataStore.edit { it[UserPreferenceKeys.IS_ANALYTICS_ENABLED] = enabled }
+    }
+
+    suspend fun setTrackingStarted(started: Boolean) {
+        dataStore.edit { it[UserPreferenceKeys.HAS_TRACKING_STARTED] = started }
     }
 
     suspend fun setAgentReasoningEnabled(enabled: Boolean) {

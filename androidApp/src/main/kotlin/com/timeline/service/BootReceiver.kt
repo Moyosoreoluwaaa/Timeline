@@ -23,7 +23,9 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Logger.withTag("BootReceiver").d { "Boot completed — restarting TrackingService" }
-            val serviceIntent = Intent(context, TrackingService::class.java)
+            val serviceIntent = Intent(context, TrackingService::class.java).apply {
+                putExtra("restart_reason", "boot")
+            }
             context.startForegroundService(serviceIntent)
         }
     }
