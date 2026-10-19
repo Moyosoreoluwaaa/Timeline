@@ -51,6 +51,12 @@ enum class TutorialStep(
         title = "Summary & Highlights",
         description = "Tap the bar to open Highlights."
     ),
+    // Step 4b: Loading state — shown while highlights are being generated.
+    SPOTLIGHT_HIGHLIGHT_LOADING(
+        screen = TutorialScreen.HIGHLIGHT,
+        title = "Analyzing Your Day",
+        description = "Sit tight while we generate your personalized highlight cards."
+    ),
     SPOTLIGHT_HIGHLIGHT_CARD(
         screen = TutorialScreen.HIGHLIGHT,
         title = "Daily Highlights",

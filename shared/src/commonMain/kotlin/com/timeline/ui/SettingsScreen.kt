@@ -68,16 +68,19 @@ fun SettingsScreen(
             }
 
             TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> {
+                // Spotlight App Exclusion card was tapped — open the sheet
                 showExclusionsSheet = true
             }
 
             TutorialStep.SPOTLIGHT_DATA_RETENTION -> {
+                // Exclusions sheet step done — close it and spotlight Data Retention
                 showExclusionsSheet = false
                 showRetentionSheet = false
                 scrollState.animateScrollToItem(9)
             }
 
             TutorialStep.SPOTLIGHT_RETENTION_SHEET -> {
+                // Data Retention card was tapped — open the retention sheet
                 showRetentionSheet = true
             }
 

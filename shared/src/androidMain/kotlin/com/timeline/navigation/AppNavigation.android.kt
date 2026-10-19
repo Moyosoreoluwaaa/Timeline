@@ -400,17 +400,50 @@ actual fun AppNavigation(
                                             }
                                         )
                                     } else {
-                                        com.timeline.ui.SimplifiedHighlightScreen(
-                                            viewModel = simplifiedHighlightViewModel,
-                                            tutorialViewModel = tutorialViewModel,
-                                            onNavigateBack = {
-                                                if (backStack.size > 1) {
-                                                    backStack.removeAt(backStack.size - 1)
-                                                }
+                                        // Navigation-level loading state: show loading screen first,
+                                        // then transition to the highlight content.
+                                        var highlightShowLoading by remember(route) { mutableStateOf(true) }
+
+                                        LaunchedEffect(highlightShowLoading) {
+                                            if (!highlightShowLoading &&
+                                                tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_HIGHLIGHT_LOADING
+                                            ) {
+                                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
                                             }
-                                        )
+                                        }
+
+                                        androidx.compose.animation.AnimatedContent(
+                                            targetState = highlightShowLoading,
+                                            transitionSpec = {
+                                                androidx.compose.animation.fadeIn(
+                                                    animationSpec = androidx.compose.animation.core.tween(600)
+                                                ) togetherWith androidx.compose.animation.fadeOut(
+                                                    animationSpec = androidx.compose.animation.core.tween(400)
+                                                )
+                                            },
+                                            label = "HighlightLoadingTransition",
+                                            modifier = Modifier.fillMaxSize()
+                                        ) { loading ->
+                                            if (loading) {
+                                                com.timeline.ui.NewHighlightLoadingScreen(
+                                                    screenshots = simplifiedHighlightState.dynamicScreenshots,
+                                                    onFinished = { highlightShowLoading = false }
+                                                )
+                                            } else {
+                                                com.timeline.ui.SimplifiedHighlightScreen(
+                                                    viewModel = simplifiedHighlightViewModel,
+                                                    tutorialViewModel = tutorialViewModel,
+                                                    onNavigateBack = {
+                                                        if (backStack.size > 1) {
+                                                            backStack.removeAt(backStack.size - 1)
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
+
 
                                 is Route.Insights -> {
                                     InsightsHostScreen(
@@ -471,19 +504,24 @@ actual fun AppNavigation(
                                                 com.timeline.analytics.AnalyticsEvents.PAYWALL_DISMISSED,
                                                 mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to route.source)
                                             )
-                                            tutorialViewModel.onEvent(TutorialEvent.SkipTutorial)
-                                            if (backStack.size > 1) {
+                                            // Advance tutorial from PRO_PAYWALL_STEP (triggers 1s COMPLETED delay + navigate to Timeline)
+                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                            // Navigate back to Timeline regardless (non-tutorial paywall also pops cleanly)
+                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         },
                                         onPurchaseSuccess = {
-                                            tutorialViewModel.onEvent(TutorialEvent.SkipTutorial)
-                                            if (backStack.size > 1) {
+                                            // Advance tutorial from PRO_PAYWALL_STEP (triggers 1s COMPLETED delay + navigate to Timeline)
+                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                            // Navigate back to Timeline
+                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         }
                                     )
                                 }
+
 
                                 is Route.FullScreenImage -> {}
                             }

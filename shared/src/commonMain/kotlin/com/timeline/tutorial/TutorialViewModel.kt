@@ -233,18 +233,21 @@ class TutorialViewModel(
             TutorialStep.SPOTLIGHT_DATE_CONTAINER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
             TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
 
-            // Step 4 -> Step 5: Settings gear & privacy controls
+            // Step 4 -> Step 4b: Navigate to Highlight, show loading tutorial card first
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))
-                TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD
+                TutorialStep.SPOTLIGHT_HIGHLIGHT_LOADING
             }
+
+            // Step 4b -> Step 5: Loading done, spotlight the highlight card
+            TutorialStep.SPOTLIGHT_HIGHLIGHT_LOADING -> TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD
 
             TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
                 TutorialStep.SPOTLIGHT_SETTINGS_ICON
             }
 
-            // Step 5 -> Step 6: Excluded Apps and Retention
+            // Step 5 -> Step 6: Navigate to Settings, spotlight App Exclusions
             TutorialStep.SPOTLIGHT_SETTINGS_ICON -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.SETTINGS))
                 TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
@@ -254,14 +257,24 @@ class TutorialViewModel(
             TutorialStep.SPOTLIGHT_REASONING_SHEET -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
             TutorialStep.SPOTLIGHT_TRACKING_OPTIONS -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
 
-            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> {
+            // Spotlight App Exclusions -> open the exclusions sheet
+            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET
+
+            // Exclusions sheet done -> spotlight Data Retention card
+            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> TutorialStep.SPOTLIGHT_DATA_RETENTION
+
+            // Spotlight Data Retention -> open the retention sheet
+            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.SPOTLIGHT_RETENTION_SHEET
+
+            // Retention sheet done -> navigate to Paywall
+            TutorialStep.SPOTLIGHT_RETENTION_SHEET -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.PAYWALL))
                 TutorialStep.PRO_PAYWALL_STEP
             }
-            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> TutorialStep.PRO_PAYWALL_STEP
-            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.PRO_PAYWALL_STEP
-            TutorialStep.SPOTLIGHT_RETENTION_SHEET -> TutorialStep.PRO_PAYWALL_STEP
-            TutorialStep.GESTURE_DRAG_SETTINGS -> TutorialStep.PRO_PAYWALL_STEP
+            TutorialStep.GESTURE_DRAG_SETTINGS -> {
+                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.PAYWALL))
+                TutorialStep.PRO_PAYWALL_STEP
+            }
 
             TutorialStep.PRO_PAYWALL_STEP -> {
                 analytics.log(AnalyticsEvents.TUTORIAL_COMPLETE)
@@ -303,18 +316,25 @@ class TutorialViewModel(
     private fun dismissTutorial() {
         viewModelScope.launch {
             userPreferences.setTutorialCompleted(true)
+            // Show the COMPLETED card for 1 second before the overlay disappears
             _state.update {
                 it.copy(
-                    isActive = false,
-                    isPreparingData = false,
-                    tutorialSessions = emptyList<Session>(),
                     currentStep = TutorialStep.COMPLETED,
+                    isPreparingData = false,
                     sheetLock = null,
                     requiredFullScreenImagePath = null,
                     requiredSelectedSessionId = null,
                     gestureLockActive = false
                 )
             }
+            kotlinx.coroutines.delay(1000)
+            _state.update {
+                it.copy(
+                    isActive = false,
+                    tutorialSessions = emptyList<Session>()
+                )
+            }
+            _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
         }
     }
-}
+}

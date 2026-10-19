@@ -160,9 +160,11 @@ internal fun SettingsListContent(
                     }
                 ),
                 onClick = {
-                    onOpenExclusionsSheet()
                     if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_APP_EXCLUSIONS) {
+                        // NextStep → SPOTLIGHT_EXCLUSIONS_SHEET; SettingsScreen.LaunchedEffect opens the sheet
                         tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                    } else {
+                        onOpenExclusionsSheet()
                     }
                 }
             )
@@ -178,13 +180,16 @@ internal fun SettingsListContent(
                     }
                 ),
                 onClick = {
-                    onOpenRetentionSheet()
                     if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_DATA_RETENTION) {
+                        // NextStep → SPOTLIGHT_RETENTION_SHEET; SettingsScreen.LaunchedEffect opens the sheet
                         tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                    } else {
+                        onOpenRetentionSheet()
                     }
                 }
             )
         }
+
 
         item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 

@@ -72,6 +72,48 @@ fun TutorialShowcaseOverlay(
             return@AnimatedVisibility
         }
 
+        // For the loading step, show the card without the dimming scrim so the
+        // loading animation behind it remains fully visible.
+        if (currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_LOADING) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .align(Alignment.BottomCenter)
+                        .padding(vertical = 48.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { /* card is informational only during loading */ },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = currentStep.title,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = currentStep.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+            return@AnimatedVisibility
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()

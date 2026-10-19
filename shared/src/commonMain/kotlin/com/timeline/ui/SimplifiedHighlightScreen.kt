@@ -1,12 +1,6 @@
 package com.timeline.ui
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,9 +24,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -65,98 +56,79 @@ fun SimplifiedHighlightScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
 
-    var showLoading by remember { mutableStateOf(true) }
-
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    AnimatedContent(
-        targetState = showLoading,
-        transitionSpec = {
-            fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(400))
-        },
-        label = "SimplifiedHighlightLoadingTransition",
-        modifier = Modifier.fillMaxSize()
-    ) { loading ->
-        if (loading) {
-            NewHighlightLoadingScreen(
-                screenshots = state.dynamicScreenshots,
-                onFinished = { showLoading = false }
-            )
-        } else {
-            Scaffold(
-                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentWindowInsets = WindowInsets.safeDrawing,
-                topBar = {
-                    CustomTopAppBar(
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "Highlights",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                                    contentDescription = "Back",
-                                    modifier = Modifier.size(Dimensions.IconSmall)
-                                )
-                            }
-                        },
-                        scrollBehavior = scrollBehavior
-                    )
-                }
-            ) { padding ->
-                val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius)
-                    .coerceAtLeast(0.dp)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(top = topPadding)
-                        .background(MaterialTheme.colorScheme.surface)
-                ) {
-                    PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
-                        onRefresh = {
-                            viewModel.onEvent(SimplifiedHighlightEvent.Refresh)
-                            showLoading = true
-                        },
-                        modifier = Modifier.fillMaxSize()
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        contentWindowInsets = WindowInsets.safeDrawing,
+        topBar = {
+            CustomTopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight()
-                            ) {
-                                HighlightCardStack(
-                                    segments = state.segments,
-                                    activeFilter = state.timeOfDayFilter,
-                                    onSelectFilter = { filter ->
-                                        if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
-                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                        } else {
-                                            viewModel.onEvent(SimplifiedHighlightEvent.SetFilter(filter))
-                                        }
-                                    },
-                                    tutorialStep = tutorialState.currentStep,
-                                    onBoundsCalculated = { step, bounds ->
-                                        tutorialViewModel.onEvent(
-                                            TutorialEvent.UpdateTargetBounds(step, bounds)
-                                        )
-                                    }
+                        Text(
+                            text = "Highlights",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(Dimensions.IconSmall)
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        val topPadding = (padding.calculateTopPadding() - TopAppBarCutoutRadius)
+            .coerceAtLeast(0.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = topPadding)
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
+            PullToRefreshBox(
+                isRefreshing = state.isRefreshing,
+                onRefresh = {
+                    viewModel.onEvent(SimplifiedHighlightEvent.Refresh)
+                },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                    ) {
+                        HighlightCardStack(
+                            segments = state.segments,
+                            activeFilter = state.timeOfDayFilter,
+                            onSelectFilter = { filter ->
+                                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
+                                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                } else {
+                                    viewModel.onEvent(SimplifiedHighlightEvent.SetFilter(filter))
+                                }
+                            },
+                            tutorialStep = tutorialState.currentStep,
+                            onBoundsCalculated = { step, bounds ->
+                                tutorialViewModel.onEvent(
+                                    TutorialEvent.UpdateTargetBounds(step, bounds)
                                 )
                             }
-                        }
+                        )
                     }
                 }
             }
