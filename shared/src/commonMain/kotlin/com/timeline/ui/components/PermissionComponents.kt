@@ -10,8 +10,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -67,9 +69,10 @@ fun PermissionCardStackStep(
 
     val exitEasing = remember { CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f) }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier.fillMaxSize()
     ) {
+        val screenHeight = maxHeight
         AnimatedVisibility(
             visible = isTitleVisible,
             enter = fadeIn(onboardingTween(250)) + slideInVertically(
@@ -105,7 +108,7 @@ fun PermissionCardStackStep(
 
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomCenter
+            contentAlignment = Alignment.TopCenter
         ) {
             val baseCardHeight = 440.dp
             val peekStep = 18.dp
@@ -133,6 +136,7 @@ fun PermissionCardStackStep(
                         permission = permission,
                         index = actualIndex,
                         cardHeight = cardHeight,
+                        screenHeight = screenHeight,
                         offsetY = { offsetY }
                     )
                 }
@@ -186,13 +190,14 @@ private fun PermissionCard(
     permission: PermissionItem,
     index: Int,
     cardHeight: Dp,
+    screenHeight: Dp,
     offsetY: () -> Dp
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(cardHeight)
-            .graphicsLayer { translationY = offsetY().toPx() },
+            .fillMaxHeight()
+            .padding(top = screenHeight - cardHeight + offsetY()),
         shape = RoundedCornerShape(
             topStart = 32.dp,
             topEnd = 32.dp,
@@ -200,7 +205,6 @@ private fun PermissionCard(
             bottomEnd = 0.dp
         ),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = ((3 - index) * 4).dp,
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
