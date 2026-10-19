@@ -2,6 +2,9 @@ package com.timeline.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.timeline.analytics.Analytics
+import com.timeline.analytics.AnalyticsEvents
+import com.timeline.analytics.AnalyticsParams
 import com.timeline.domain.NotificationManager
 import com.timeline.domain.PermissionManager
 import com.timeline.domain.UserPreferences
@@ -10,16 +13,12 @@ import com.timeline.presentation.OnboardingStep.Opening
 import com.timeline.presentation.OnboardingStep.PermissionCardStack
 import com.timeline.util.AppStrings
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
-import com.timeline.analytics.Analytics
-import com.timeline.analytics.AnalyticsEvents
-import com.timeline.analytics.AnalyticsParams
 
 class PermissionViewModel(
     private val permissionManager: PermissionManager,
@@ -45,16 +44,25 @@ class PermissionViewModel(
                     "Welcome", "ValueProposition", "Storytelling", "Customization" -> Intro
                     else -> runCatching { OnboardingStep.valueOf(stepName) }.getOrNull()
                 }
-                if (savedStep != null && _state.value.currentStep == Opening && savedStep != Opening) {
-                    val resolvedStep = resolveInitialStep(savedStep)
-                    _state.update { it.copy(currentStep = resolvedStep) }
-                    logOnboardingStep(
-                        when (resolvedStep) {
-                            Opening -> 1
-                            Intro -> 2 + _state.value.introPage
-                            PermissionCardStack, OnboardingStep.Done -> 6
+
+                val currentPermissions = _state.value.permissions
+                val anyGranted = currentPermissions.any { it.isGranted }
+
+                // If user already granted part of permissions or has saved progress beyond Opening, restore to next permission
+                if (_state.value.currentStep == Opening) {
+                    if (anyGranted || (savedStep != null && savedStep != Opening)) {
+                        val firstUngrantedIndex = currentPermissions.indexOfFirst { !it.isGranted }.let {
+                            if (it == -1) currentPermissions.size.coerceAtLeast(0) else it
                         }
-                    )
+                        _state.update {
+                            it.copy(
+                                currentStep = PermissionCardStack,
+                                activeCardIndex = firstUngrantedIndex,
+                                isRestoredFlow = true
+                            )
+                        }
+                        logOnboardingStep(8)
+                    }
                 }
             }
         }
@@ -183,25 +191,20 @@ class PermissionViewModel(
         when (s.currentStep) {
             PermissionCardStack -> {
                 val currentItem = s.permissions.getOrNull(s.activeCardIndex)
-                if (currentItem != null && !currentItem.isGranted) {
-                    analytics.log(
-                        AnalyticsEvents.PERMISSION_RESULT,
-                        mapOf(
-                            AnalyticsParams.TYPE to normalizePermissionType(currentItem.id),
-                            AnalyticsParams.RESULT to "skipped"
-                        )
-                    )
-                }
-
-                if (s.activeCardIndex >= s.permissions.size - 1) {
-                    viewModelScope.launch {
-                        analytics.log(AnalyticsEvents.ONBOARDING_COMPLETED)
-                        userPreferences.setPermissionsCompleted(true)
-                        userPreferences.setLastOnboardingStep(OnboardingStep.Done.name)
-                        goTo(OnboardingStep.Done)
+                // In strict mode, only advance when current permission is granted
+                if (currentItem?.isGranted == true) {
+                    if (s.activeCardIndex >= s.permissions.size - 1) {
+                        if (s.permissions.all { it.isGranted }) {
+                            viewModelScope.launch {
+                                analytics.log(AnalyticsEvents.ONBOARDING_COMPLETED)
+                                userPreferences.setPermissionsCompleted(true)
+                                userPreferences.setLastOnboardingStep(OnboardingStep.Done.name)
+                                goTo(OnboardingStep.Done)
+                            }
+                        }
+                    } else {
+                        _state.update { it.copy(activeCardIndex = it.activeCardIndex + 1) }
                     }
-                } else {
-                    _state.update { it.copy(activeCardIndex = it.activeCardIndex + 1) }
                 }
             }
             OnboardingStep.Done -> {
@@ -217,9 +220,12 @@ class PermissionViewModel(
                 } else {
                     viewModelScope.launch {
                         userPreferences.setFocusAreas(s.focusAreas)
-                        goTo(PermissionCardStack)
+                        goTo(OnboardingStep.ThreePermissions)
                     }
                 }
+            }
+            OnboardingStep.ThreePermissions -> {
+                goTo(PermissionCardStack)
             }
             Opening -> {
                 goTo(Intro)
@@ -247,7 +253,8 @@ class PermissionViewModel(
             when (prev) {
                 Opening -> 1
                 Intro -> 2 + _state.value.introPage
-                PermissionCardStack, OnboardingStep.Done -> 6
+                OnboardingStep.ThreePermissions -> 7
+                PermissionCardStack, OnboardingStep.Done -> 8
             }
         )
     }
@@ -259,7 +266,8 @@ class PermissionViewModel(
             when (next) {
                 Opening -> 1
                 Intro -> 2 + _state.value.introPage
-                PermissionCardStack, OnboardingStep.Done -> 6
+                OnboardingStep.ThreePermissions -> 7
+                PermissionCardStack, OnboardingStep.Done -> 8
             }
         )
     }

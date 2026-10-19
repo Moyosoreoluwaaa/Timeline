@@ -6,6 +6,7 @@ const val INTRO_PAGE_COUNT = 5
 enum class OnboardingStep {
     Opening,
     Intro,                 // 5-page carousel (replaces Welcome, ValueProposition, Storytelling, Customization)
+    ThreePermissions,      // Overview of the 3 required permissions before the permission card stack
     PermissionCardStack,
     Done
 }
@@ -27,7 +28,8 @@ data class PermissionState(
     val activeCardIndex: Int = 0,
     val introPage: Int = 0,
     val focusAreas: Set<String> = emptySet(),
-    val error: String? = null
+    val error: String? = null,
+    val isRestoredFlow: Boolean = false
 )
 
 sealed interface PermissionEvent {

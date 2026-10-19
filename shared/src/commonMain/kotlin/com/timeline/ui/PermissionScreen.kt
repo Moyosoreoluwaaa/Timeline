@@ -46,7 +46,8 @@ fun PermissionScreen(
     onNavigateToNotification: () -> Unit,
     onNavigateToAccessibility: () -> Unit,
     onNavigateToBatteryOptimization: () -> Unit,
-    onAllGranted: () -> Unit
+    onAllGranted: () -> Unit,
+    onExitApp: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -75,8 +76,19 @@ fun PermissionScreen(
         }
     }
 
-    BackHandler(enabled = state.currentStep != OnboardingStep.Opening && state.currentStep != OnboardingStep.Done) {
-        viewModel.onEvent(PermissionEvent.PreviousStep)
+    // Determine if back should exit the app:
+    // 1) Opening step (first step of onboarding)
+    // 2) User was restored back into permission step and has no stepHistory
+    val shouldExitOnBack = state.currentStep == OnboardingStep.Opening ||
+            (state.isRestoredFlow && state.stepHistory.isEmpty() && state.currentStep == OnboardingStep.PermissionCardStack) ||
+            (state.currentStep == OnboardingStep.Intro && state.introPage == 0 && state.stepHistory.isEmpty())
+
+    BackHandler(enabled = state.currentStep != OnboardingStep.Done) {
+        if (shouldExitOnBack) {
+            onExitApp()
+        } else {
+            viewModel.onEvent(PermissionEvent.PreviousStep)
+        }
     }
 
     val scheme = MaterialTheme.colorScheme
@@ -99,27 +111,33 @@ fun PermissionScreen(
                     val currentProgress = when (state.currentStep) {
                         OnboardingStep.Opening -> 0
                         OnboardingStep.Intro -> state.introPage
-                        OnboardingStep.PermissionCardStack -> INTRO_PAGE_COUNT + state.activeCardIndex.coerceIn(
+                        OnboardingStep.ThreePermissions -> INTRO_PAGE_COUNT
+                        OnboardingStep.PermissionCardStack -> INTRO_PAGE_COUNT + 1 + state.activeCardIndex.coerceIn(
                             0,
                             state.permissions.lastIndex.coerceAtLeast(0)
                         )
-                        OnboardingStep.Done -> INTRO_PAGE_COUNT + state.permissions.size
+                        OnboardingStep.Done -> INTRO_PAGE_COUNT + 1 + state.permissions.size
                     }
-                    val totalProgress = INTRO_PAGE_COUNT + state.permissions.size
+                    val totalProgress = INTRO_PAGE_COUNT + 1 + state.permissions.size
+
+                    // Remove Skip from ThreePermissions and PermissionCardStack steps
+                    val canSkip = state.currentStep == OnboardingStep.Intro
 
                     OnboardingTopBar(
                         current = currentProgress,
                         total = totalProgress,
                         canGoBack = state.currentStep != OnboardingStep.Done,
-                        canSkip = state.currentStep != OnboardingStep.Done,
+                        canSkip = canSkip,
                         onBack = {
-                            viewModel.onEvent(PermissionEvent.PreviousStep)
+                            if (shouldExitOnBack) {
+                                onExitApp()
+                            } else {
+                                viewModel.onEvent(PermissionEvent.PreviousStep)
+                            }
                         },
                         onSkip = {
                             if (state.currentStep == OnboardingStep.Intro) {
                                 viewModel.onEvent(PermissionEvent.SkipIntro)
-                            } else {
-                                viewModel.onEvent(PermissionEvent.NextStep)
                             }
                         }
                     )

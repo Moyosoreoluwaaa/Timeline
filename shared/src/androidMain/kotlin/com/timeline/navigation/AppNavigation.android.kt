@@ -32,7 +32,10 @@ import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.TimelineViewModel
 import com.timeline.tutorial.AppRootContainer
 import com.timeline.tutorial.TutorialEvent
-import com.timeline.tutorial.TutorialScreen.*
+import com.timeline.tutorial.TutorialScreen.HIGHLIGHT
+import com.timeline.tutorial.TutorialScreen.PAYWALL
+import com.timeline.tutorial.TutorialScreen.SETTINGS
+import com.timeline.tutorial.TutorialScreen.TIMELINE
 import com.timeline.tutorial.TutorialViewModel
 import com.timeline.ui.AuthScreen
 import com.timeline.ui.InsightsHostScreen
@@ -291,7 +294,8 @@ actual fun AppNavigation(
                                             tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
                                             backStack.clear()
                                             backStack.add(Route.Timeline)
-                                        }
+                                        },
+                                        onExitApp = onExitApp
                                     )
                                 }
 

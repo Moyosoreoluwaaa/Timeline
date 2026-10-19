@@ -14,6 +14,18 @@ object AppStrings {
     const val OnboardingStackTitle = "Permissions Setup"
     const val OnboardingStackSubtitle = "Enable permissions to activate your automated timeline."
 
+    // Three Permissions Overview
+    const val ThreePermissionsTitle = "Three permissions. One timeline."
+    const val ThreePermissionsSubtitle = "Timeline only works with all three. Each does one job."
+    const val ThreePermissionsButton = "Set up Timeline"
+    const val ThreePermissionsFootnote = "You can exclude any app later in Settings."
+
+    const val PermAccessibilityJob = "Knows which app is open."
+    const val PermAccessibilityLimit = "Never reads what you type."
+    const val PermUsageJob = "Counts the minutes in each app."
+    const val PermNotificationsJob = "Tells you when a highlight is ready."
+    const val PermNotificationsLimit = "Up to three a day."
+
     // Accessibility Flow
 
     // Usage Flow
