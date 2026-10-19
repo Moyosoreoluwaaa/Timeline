@@ -44,6 +44,9 @@ import com.timeline.presentation.PermissionItem
 import com.timeline.presentation.PermissionState
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.delay
 
 @Composable
@@ -62,50 +65,41 @@ fun PermissionCardStackStep(
         isControlsVisible = true
     }
 
+    val exitEasing = remember { CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f) }
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+        modifier = Modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .statusBarsPadding()
+        AnimatedVisibility(
+            visible = isTitleVisible,
+            enter = fadeIn(onboardingTween(250)) + slideInVertically(
+                initialOffsetY = { -it / 2 },
+                animationSpec = onboardingTween(250)
+            ),
+            modifier = Modifier.align(Alignment.TopStart)
         ) {
-            if (state.permissions.isNotEmpty()) {
-                OnboardingTopBar(
-                    current = INTRO_PAGE_COUNT + state.activeCardIndex.coerceIn(
-                        0,
-                        state.permissions.lastIndex
-                    ),
-                    total = INTRO_PAGE_COUNT + state.permissions.size,
-                    onSkip = { onEvent(PermissionEvent.NextStep) }
-                )
-            }
-            AnimatedVisibility(
-                visible = isTitleVisible,
-                enter = fadeIn(onboardingTween(500)) + slideInVertically(
-                    initialOffsetY = { -it / 2 },
-                    animationSpec = onboardingTween(500)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
                         horizontal = Dimensions.PaddingLarge,
                         vertical = Dimensions.PaddingMedium
                     )
-                ) {
-                    Text(
-                        text = AppStrings.OnboardingStackTitle,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-                    Text(
-                        text = AppStrings.OnboardingStackSubtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
+            ) {
+                Text(
+                    text = AppStrings.OnboardingStackTitle,
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+                Text(
+                    text = AppStrings.OnboardingStackSubtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
@@ -113,24 +107,33 @@ fun PermissionCardStackStep(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
+            val baseCardHeight = 440.dp
+            val peekStep = 18.dp
+
             state.permissions.asReversed().forEachIndexed { indexFromEnd, permission ->
                 val actualIndex = state.permissions.size - 1 - indexFromEnd
                 val isVisible = actualIndex >= state.activeCardIndex
+                val cardHeight = baseCardHeight + (peekStep * actualIndex)
 
                 val offsetY by animateDpAsState(
-                    targetValue = if (isVisible) 0.dp else 1200.dp,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    label = "CardOffsetY"
+                    targetValue = if (isVisible) 0.dp else 550.dp,
+                    animationSpec = if (isVisible) {
+                        spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    } else {
+                        tween(durationMillis = 250, easing = exitEasing)
+                    },
+                    label = "CardOffsetY_$actualIndex"
                 )
 
-                if (offsetY < 1200.dp) {
+                if (offsetY < 550.dp) {
                     PermissionCard(
                         permission = permission,
                         index = actualIndex,
-                        offsetY = offsetY
+                        cardHeight = cardHeight,
+                        offsetY = { offsetY }
                     )
                 }
             }
@@ -138,33 +141,22 @@ fun PermissionCardStackStep(
 
         AnimatedVisibility(
             visible = isControlsVisible,
-            enter = fadeIn(animationSpec = onboardingTween(500)) + slideInVertically(
+            enter = fadeIn(animationSpec = onboardingTween(250)) + slideInVertically(
                 initialOffsetY = { it / 2 },
-                animationSpec = onboardingTween(500)
+                animationSpec = onboardingTween(250)
             ),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
                     .padding(Dimensions.PaddingLarge)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalAlignment = Alignment.Start,
                     verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
                 ) {
-                    if (OnboardingPagerStyle == PagerStyle.PillDots && state.permissions.isNotEmpty()) {
-                        OnboardingPillDots(
-                            current = INTRO_PAGE_COUNT + state.activeCardIndex.coerceIn(
-                                0,
-                                state.permissions.lastIndex
-                            ),
-                            total = INTRO_PAGE_COUNT + state.permissions.size
-                        )
-                    }
-
                     if (currentPermission != null) {
                         OnboardingActionButton(
                             text = if (currentPermission.isGranted) AppStrings.ButtonAlreadyGranted else AppStrings.ButtonGrantAccess,
@@ -181,7 +173,7 @@ fun PermissionCardStackStep(
             }
         }
 
-        if (state.activeCardIndex >= state.permissions.size) {
+        if (state.activeCardIndex >= state.permissions.size && state.permissions.isNotEmpty()) {
             LaunchedEffect(Unit) {
                 onEvent(PermissionEvent.NextStep)
             }
@@ -193,22 +185,17 @@ fun PermissionCardStackStep(
 private fun PermissionCard(
     permission: PermissionItem,
     index: Int,
-    offsetY: androidx.compose.ui.unit.Dp
+    cardHeight: Dp,
+    offsetY: () -> Dp
 ) {
-    val cardHeight = when (index) {
-        0 -> 460.dp
-        1 -> 520.dp
-        else -> 580.dp
-    }
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(cardHeight)
-            .graphicsLayer { translationY = offsetY.toPx() },
+            .graphicsLayer { translationY = offsetY().toPx() },
         shape = RoundedCornerShape(
-            topStart = 40.dp,
-            topEnd = 40.dp,
+            topStart = 32.dp,
+            topEnd = 32.dp,
             bottomStart = 0.dp,
             bottomEnd = 0.dp
         ),
@@ -223,32 +210,37 @@ private fun PermissionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Dimensions.PaddingLarge),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-            OnboardingIllustration(
-                icon = when (permission.id) {
-                    "accessibility" -> Icons.Rounded.AccessibilityNew
-                    "usage" -> Icons.Rounded.BarChart
-                    else -> Icons.Rounded.Notifications
-                },
-                color = MaterialTheme.colorScheme.primary
-            )
+            Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                OnboardingIllustration(
+                    icon = when (permission.id) {
+                        "accessibility" -> Icons.Rounded.AccessibilityNew
+                        "usage" -> Icons.Rounded.BarChart
+                        else -> Icons.Rounded.Notifications
+                    },
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
             Text(
                 text = permission.title,
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             Text(
                 text = permission.description,
                 style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                textAlign = TextAlign.Start,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(160.dp))
         }
     }
 }

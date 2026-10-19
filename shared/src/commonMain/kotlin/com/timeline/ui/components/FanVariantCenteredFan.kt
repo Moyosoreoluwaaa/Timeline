@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,7 +58,7 @@ internal fun CardFan(
     onEvent: (PermissionEvent) -> Unit,
 ) {
     val showFan = page == 0 || page == FOCUS_PAGE
-    val showBadges = page != HIGHLIGHT_PAGE && page != EXCLUSION_PAGE
+    val showBadges = page == 0 || page == FOCUS_PAGE
     val mirrorBadges = page == FOCUS_PAGE
 
     val backCardImage = painterResource(Res.drawable.on_balance)
@@ -67,10 +68,16 @@ internal fun CardFan(
         label = "FrontTilt"
     )
 
-    Box(Modifier.fillMaxWidth(spec.widthFraction)) {
+    Box(
+        Modifier
+            .fillMaxWidth(spec.widthFraction)
+            .wrapContentHeight()
+    ) {
         AnimatedVisibility(
             visible = showFan,
-            modifier = Modifier.matchParentSize(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp),
             enter = fadeIn(onboardingTween(250)),
             exit = fadeOut(onboardingTween(150))
         ) {
@@ -90,7 +97,9 @@ internal fun CardFan(
         }
         ConceptCardHost(
             page, focusAreas, onEvent,
-            modifier = Modifier.graphicsLayer { rotationZ = frontTiltState.value }
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { rotationZ = frontTiltState.value }
         )
         if (showBadges) FanBadges(mirrored = mirrorBadges)
     }

@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,27 +36,12 @@ internal fun IntroFooter(
     buttonLabel: String,
     onNext: () -> Unit,
 ) {
-    val leftAligned = variant == FanVariant.ScreenshotWall
-    val horizontal = if (leftAligned) Alignment.Start else Alignment.CenterHorizontally
-    val textAlign = if (leftAligned) TextAlign.Start else TextAlign.Center
-
     Column(
         Modifier
             .fillMaxWidth()
             .padding(start = 24.dp, end = 24.dp, bottom = 20.dp),
-        horizontalAlignment = horizontal
+        horizontalAlignment = Alignment.Start
     ) {
-        if (leftAligned) {
-            Box(
-                Modifier
-                    .width(24.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(introPalette.accent)
-            )
-            Spacer(Modifier.height(10.dp))
-        }
-
         AnimatedContent(
             targetState = page,
             transitionSpec = {
@@ -72,12 +58,16 @@ internal fun IntroFooter(
             label = "IntroCopy"
         ) { p ->
             val copy = IntroPages[p.coerceIn(0, IntroPages.lastIndex)]
-            Column(horizontalAlignment = horizontal) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
+            ) {
                 Text(
                     text = copy.title,
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                     color = introPalette.textPrimary,
-                    textAlign = TextAlign.Start
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -85,7 +75,8 @@ internal fun IntroFooter(
                     fontSize = 15.sp,
                     lineHeight = 22.sp,
                     color = introPalette.textSecondary,
-                    textAlign = textAlign
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -95,7 +86,7 @@ internal fun IntroFooter(
             OnboardingPillDots(
                 current = page,
                 total = totalSteps,
-                alignment = if (leftAligned) Alignment.Start else Alignment.CenterHorizontally
+                alignment = Alignment.Start
             )
             Spacer(Modifier.height(16.dp))
         } else {

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import com.timeline.analytics.Analytics
@@ -51,7 +52,7 @@ class PermissionViewModel(
                         when (resolvedStep) {
                             Opening -> 1
                             Intro -> 2 + _state.value.introPage
-                            PermissionCardStack -> 6
+                            PermissionCardStack, OnboardingStep.Done -> 6
                         }
                     )
                 }
@@ -141,22 +142,39 @@ class PermissionViewModel(
 
         val allGranted = permissions.all { p -> p.isGranted }
 
-        _state.update { currentState ->
-            // Re-evaluate the active index if the current permission is now granted.
-            // This ensures that if the user returns and a permission is granted,
-            // the card automatically advances without requiring an extra click.
+        val currentState = _state.value
+        val currentCard = currentState.permissions.getOrNull(currentState.activeCardIndex)
+        val currentWasJustGranted = currentCard != null &&
+            prevPermissions[currentCard.id] == false &&
+            permissions.find { it.id == currentCard.id }?.isGranted == true
+
+        if (currentState.currentStep == PermissionCardStack && currentWasJustGranted) {
+            // Update permissions and allGranted immediately so UI shows it as granted,
+            // then wait 350ms so user sees confirmation before card slide down animation triggers.
+            _state.update {
+                it.copy(
+                    permissions = permissions,
+                    allGranted = allGranted
+                )
+            }
+            viewModelScope.launch {
+                delay(350L)
+                nextStep()
+            }
+        } else {
             var nextCardIndex = currentState.activeCardIndex
-            if (currentState.currentStep == PermissionCardStack) {
+            if (currentState.currentStep == PermissionCardStack && prevPermissions.isEmpty()) {
                 while (nextCardIndex < permissions.size && permissions[nextCardIndex].isGranted) {
                     nextCardIndex++
                 }
             }
-
-            currentState.copy(
-                permissions = permissions,
-                allGranted = allGranted,
-                activeCardIndex = nextCardIndex
-            )
+            _state.update {
+                it.copy(
+                    permissions = permissions,
+                    allGranted = allGranted,
+                    activeCardIndex = nextCardIndex
+                )
+            }
         }
     }
 
@@ -179,11 +197,16 @@ class PermissionViewModel(
                     viewModelScope.launch {
                         analytics.log(AnalyticsEvents.ONBOARDING_COMPLETED)
                         userPreferences.setPermissionsCompleted(true)
-                        userPreferences.setLastOnboardingStep(PermissionCardStack.name)
-                        _effects.send(PermissionEffect.AllGranted)
+                        userPreferences.setLastOnboardingStep(OnboardingStep.Done.name)
+                        goTo(OnboardingStep.Done)
                     }
                 } else {
                     _state.update { it.copy(activeCardIndex = it.activeCardIndex + 1) }
+                }
+            }
+            OnboardingStep.Done -> {
+                viewModelScope.launch {
+                    _effects.send(PermissionEffect.AllGranted)
                 }
             }
             Intro -> {
@@ -224,7 +247,7 @@ class PermissionViewModel(
             when (prev) {
                 Opening -> 1
                 Intro -> 2 + _state.value.introPage
-                PermissionCardStack -> 6
+                PermissionCardStack, OnboardingStep.Done -> 6
             }
         )
     }
@@ -236,7 +259,7 @@ class PermissionViewModel(
             when (next) {
                 Opening -> 1
                 Intro -> 2 + _state.value.introPage
-                PermissionCardStack -> 6
+                PermissionCardStack, OnboardingStep.Done -> 6
             }
         )
     }

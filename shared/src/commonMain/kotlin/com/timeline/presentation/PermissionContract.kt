@@ -6,7 +6,8 @@ const val INTRO_PAGE_COUNT = 5
 enum class OnboardingStep {
     Opening,
     Intro,                 // 5-page carousel (replaces Welcome, ValueProposition, Storytelling, Customization)
-    PermissionCardStack
+    PermissionCardStack,
+    Done
 }
 
 data class PermissionItem(

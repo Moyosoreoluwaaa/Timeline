@@ -100,9 +100,9 @@ fun OnboardingActionButton(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = onboardingTween()) + slideInVertically(
+        enter = fadeIn(animationSpec = onboardingTween(250)) + slideInVertically(
             initialOffsetY = { it / 2 },
-            animationSpec = onboardingTween()
+            animationSpec = onboardingTween(250)
         )
     ) {
         Button(
@@ -145,9 +145,9 @@ fun OnboardingIllustration(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn(animationSpec = onboardingTween()) + slideInVertically(
+        enter = fadeIn(animationSpec = onboardingTween(250)) + slideInVertically(
             initialOffsetY = { -it / 2 },
-            animationSpec = onboardingTween()
+            animationSpec = onboardingTween(250)
         )
     ) {
         Box(

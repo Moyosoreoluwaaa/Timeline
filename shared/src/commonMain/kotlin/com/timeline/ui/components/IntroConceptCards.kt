@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +41,7 @@ internal fun ConceptCardHost(
     AnimatedContent(
         targetState = page,
         modifier = modifier,
+        contentAlignment = Alignment.TopCenter,
         transitionSpec = {
             val forward = targetState > initialState
             val enter = fadeIn(onboardingTween(250)) + slideInVertically(animationSpec = onboardingTween(250)) { if (forward) it / 8 else -it / 8 }
@@ -49,12 +51,17 @@ internal fun ConceptCardHost(
         },
         label = "IntroCard"
     ) { p ->
-        when (p) {
-            0 -> UsageCard()
-            HIGHLIGHT_PAGE -> HighlightStack()
-            EXCLUSION_PAGE -> ExclusionCard()
-            NOTIFICATION_PAGE -> NotificationCard()
-            else -> FocusCard(focusAreas) { onEvent(PermissionEvent.ToggleFocusArea(it)) }
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            when (p) {
+                0 -> UsageCard()
+                HIGHLIGHT_PAGE -> HighlightStack()
+                EXCLUSION_PAGE -> ExclusionCard()
+                NOTIFICATION_PAGE -> NotificationCard()
+                else -> FocusCard(focusAreas) { onEvent(PermissionEvent.ToggleFocusArea(it)) }
+            }
         }
     }
 }

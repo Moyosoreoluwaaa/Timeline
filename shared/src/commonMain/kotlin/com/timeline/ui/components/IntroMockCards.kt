@@ -102,8 +102,8 @@ internal fun HighlightStack() {
             "You wound down with messages and music after 8."
         ),
     )
-    val cardHeight = 124.dp
-    val peek = 48.dp
+    val cardHeight = 156.dp
+    val peek = 46.dp
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -121,7 +121,7 @@ internal fun HighlightStack() {
                         .height(cardHeight)
                         .offset(y = peek * index)
                         .graphicsLayer { scaleX = 1f - depth * 0.06f },
-                    padding = 14.dp
+                    padding = 16.dp
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconTile(item.icon)
@@ -129,10 +129,13 @@ internal fun HighlightStack() {
                         Text(
                             item.label,
                             color = introPalette.accent,
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
                         )
+                        Spacer(Modifier.width(4.dp))
                         Caption(item.range)
                     }
                     Spacer(Modifier.height(10.dp))
@@ -148,10 +151,12 @@ internal fun HighlightStack() {
             }
         }
 
+        Spacer(Modifier.height(12.dp))
+
         Image(
             painter = painterResource(Res.drawable.open_hand),
             contentDescription = "Open hand illustration",
-            modifier = Modifier.size(120.dp),
+            modifier = Modifier.size(156.dp),
             contentScale = ContentScale.Fit
         )
     }
@@ -166,24 +171,12 @@ internal fun ExclusionCard() {
     )
     val enabled = remember { mutableStateListOf(false, true, true) }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.secure_lock),
-            contentDescription = "Secure lock",
-            modifier = Modifier.size(120.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        IntroCard {
-            Caption("Screenshots")
-            Spacer(Modifier.height(4.dp))
-            rows.forEachIndexed { i, (icon, name) ->
-                AppRow(icon, name, subtitle = if (enabled[i]) null else "excluded") {
-                    Switch(checked = enabled[i], onCheckedChange = { enabled[i] = it })
-                }
+    IntroCard {
+        Caption("Screenshots")
+        Spacer(Modifier.height(4.dp))
+        rows.forEachIndexed { i, (icon, name) ->
+            AppRow(icon, name, subtitle = if (enabled[i]) null else "excluded") {
+                Switch(checked = enabled[i], onCheckedChange = { enabled[i] = it })
             }
         }
     }
@@ -196,12 +189,12 @@ internal fun NotificationCard() {
         contentAlignment = Alignment.TopEnd
     ) {
         Column(Modifier.fillMaxWidth()) {
-            val peek = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
+            val peek = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
             Box(
                 Modifier
                     .padding(horizontal = 28.dp)
                     .fillMaxWidth()
-                    .height(8.dp)
+                    .height(10.dp)
                     .clip(peek)
                     .background(introPalette.card.copy(alpha = 0.5f))
             )
@@ -209,44 +202,65 @@ internal fun NotificationCard() {
                 Modifier
                     .padding(horizontal = 14.dp)
                     .fillMaxWidth()
-                    .height(8.dp)
+                    .height(10.dp)
                     .clip(peek)
                     .background(introPalette.card.copy(alpha = 0.75f))
             )
-            IntroCard(padding = 14.dp) {
-                Row {
-                    Box(
-                        Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(introPalette.accent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Rounded.Schedule,
-                            null,
-                            tint = introPalette.onAccent,
-                            modifier = Modifier.size(20.dp)
-                        )
+            Box(Modifier.fillMaxWidth()) {
+                IntroCard(padding = 18.dp) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(introPalette.accent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Rounded.Schedule,
+                                null,
+                                tint = introPalette.onAccent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Caption("Timeline · now")
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                "Your afternoon highlight is ready",
+                                color = introPalette.textPrimary,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                "You focused for 2 hours, then wound down around 6.",
+                                color = introPalette.textSecondary,
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            )
+                        }
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Caption("Timeline · now")
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            "Your afternoon highlight is ready",
-                            color = introPalette.textPrimary,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            "You focused for 2 hours, then wound down around 6.",
-                            color = introPalette.textSecondary,
-                            fontSize = 12.sp,
-                            lineHeight = 17.sp
-                        )
-                    }
+                }
+
+                // Clock icon anchored directly to the right-bottom edge of the card
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 12.dp, y = 14.dp)
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(introPalette.card)
+                        .border(0.5.dp, introPalette.stroke, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.Schedule,
+                        contentDescription = null,
+                        tint = introPalette.accent,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
@@ -255,8 +269,8 @@ internal fun NotificationCard() {
             painter = painterResource(Res.drawable.on_fence),
             contentDescription = "Character sitting on fence",
             modifier = Modifier
-                .offset(x = (-12).dp, y = (-48).dp)
-                .size(90.dp),
+                .offset(x = (-16).dp, y = (-54).dp)
+                .size(120.dp),
             contentScale = ContentScale.Fit
         )
     }

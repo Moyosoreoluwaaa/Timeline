@@ -193,12 +193,12 @@ actual fun AppNavigation(
     }
 
     // Direct navigation logic (bypassing Auth)
-    LaunchedEffect(prefsState, permState.allGranted, backStack.lastOrNull()) {
+    LaunchedEffect(prefsState, backStack.lastOrNull()) {
         val state = prefsState ?: return@LaunchedEffect
         
-        // If we are already on the Permission screen, we might stay there until granted
+        // If onboarding hasn't been completed, route to Permission
         val currentRoute = backStack.lastOrNull()
-        val needsOnboarding = !state.isPermissionsCompleted || !permState.allGranted
+        val needsOnboarding = !state.isPermissionsCompleted
 
         if (currentRoute == null) {
             backStack.clear()
@@ -208,7 +208,6 @@ actual fun AppNavigation(
                 backStack.add(Route.Timeline)
             }
         } else if (currentRoute == Route.Timeline && needsOnboarding) {
-            // If user somehow revokes permissions while in the app, return them to permission screen
             backStack.add(Route.Permission)
         }
     }
@@ -298,13 +297,11 @@ actual fun AppNavigation(
 
                                 is Route.Timeline -> {
                                     LaunchedEffect(
-                                        permState.allGranted,
                                         prefsState?.isPermissionsCompleted,
                                         prefsState?.isTutorial
                                     ) {
-                                        val isFullyGranted =
-                                            permState.allGranted && prefsState?.isPermissionsCompleted == true
-                                        if (isFullyGranted && prefsState?.isTutorial == false && !tutorialState.isActive) {
+                                        val isCompleted = prefsState?.isPermissionsCompleted == true
+                                        if (isCompleted && prefsState?.isTutorial == false && !tutorialState.isActive) {
                                             tutorialViewModel.onEvent(TutorialEvent.StartTutorial)
                                         }
                                     }

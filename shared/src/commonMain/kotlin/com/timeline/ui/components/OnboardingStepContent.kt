@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.timeline.presentation.INTRO_PAGE_COUNT
@@ -52,6 +54,11 @@ import timeline.shared.generated.resources.Res
 import timeline.shared.generated.resources.artifacts_options
 import timeline.shared.generated.resources.timeline_splash_icon
 import kotlin.time.Duration.Companion.milliseconds
+
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.Icon
 
 @Composable
 fun OnboardingStepContent(
@@ -70,6 +77,57 @@ fun OnboardingStepContent(
         )
 
         OnboardingStep.PermissionCardStack -> PermissionCardStackStep(state, onEvent)
+        OnboardingStep.Done -> DoneStep()
+    }
+}
+
+@Composable
+fun DoneStep() {
+    val palette = introPalette
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.PaddingLarge),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(palette.accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Success",
+                    tint = palette.accent,
+                    modifier = Modifier.size(56.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "You're All Set!",
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                color = palette.textPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Setting up your timeline experience...",
+                style = MaterialTheme.typography.bodyLarge,
+                color = palette.textSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -99,12 +157,10 @@ fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
     }
 
     val fullTitleText = AppStrings.OnboardingWelcomeTitle
-    var displayedTitleText by remember { mutableStateOf("") }
     var titleTextIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(fullTitleText) {
         while (titleTextIndex < fullTitleText.length) {
-            displayedTitleText = fullTitleText.substring(0, titleTextIndex + 1)
             titleTextIndex++
             delay(50L.milliseconds)
         }
@@ -122,100 +178,114 @@ fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
         isFooterVisible = true
     }
 
+    val revealedTitle = buildAnnotatedString {
+        append(fullTitleText.take(titleTextIndex))
+        withStyle(SpanStyle(color = androidx.compose.ui.graphics.Color.Transparent)) {
+            append(fullTitleText.drop(titleTextIndex))
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(Res.drawable.artifacts_options),
             contentDescription = "Get Started bg",
             contentScale = ContentScale.Fit,
             modifier = Modifier
-                .size(280.dp)
+                .size(320.dp)
                 .align(Alignment.Center)
-                .padding(bottom = 30.dp)
+                .padding(bottom = 100.dp)
         )
 
-        OnboardingLayout(
-            bottomBar = {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(
+                    start = Dimensions.PaddingLarge,
+                    end = Dimensions.PaddingLarge,
+                    bottom = Dimensions.PaddingLarge
+                ),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+        ) {
+            AnimatedVisibility(
+                visible = isTitleVisible,
+                enter = fadeIn(animationSpec = onboardingTween(250)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = onboardingTween(250)
+                        )
+            ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium)
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(Res.drawable.timeline_splash_icon),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
+                    Image(
+                        painter = painterResource(Res.drawable.timeline_splash_icon),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    )
 
-                        Text(
-                            text = displayedTitleText,
-                            style = MaterialTheme.typography.displayLarge.copy(
-                                fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(30.dp))
-
-                    AnimatedVisibility(
-                        visible = isButtonVisible,
-                        enter = fadeIn(animationSpec = onboardingTween()) +
-                                slideInVertically(
-                                    initialOffsetY = { it / 2 },
-                                    animationSpec = onboardingTween()
-                                )
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Button(
-                                onClick = { onEvent(PermissionEvent.NextStep) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(Dimensions.ButtonHeight),
-                                shape = com.timeline.ui.theme.AppShapes.Pill,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.onSurface,
-                                    contentColor = MaterialTheme.colorScheme.surface
-                                )
-                            ) {
-                                Text(
-                                    text = "Get Started",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = isFooterVisible,
-                        enter = fadeIn(animationSpec = onboardingTween()) +
-                                slideInVertically(
-                                    initialOffsetY = { it / 2 },
-                                    animationSpec = onboardingTween()
-                                )
-                    ) {
-                        Text(
-                            text = annotatedString,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                textAlign = TextAlign.Center,
-                                lineHeight = 16.sp
-                            ),
-                            modifier = Modifier.padding(horizontal = Dimensions.PaddingSmall)
-                        )
-                    }
+                    Text(
+                        text = revealedTitle,
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
-        ) { }
+
+            AnimatedVisibility(
+                visible = isButtonVisible,
+                enter = fadeIn(animationSpec = onboardingTween(250)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = onboardingTween(250)
+                        )
+            ) {
+                Button(
+                    onClick = { onEvent(PermissionEvent.NextStep) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Dimensions.ButtonHeight),
+                    shape = com.timeline.ui.theme.AppShapes.Pill,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Text(
+                        text = "Get Started",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isFooterVisible,
+                enter = fadeIn(animationSpec = onboardingTween(250)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 2 },
+                            animationSpec = onboardingTween(250)
+                        )
+            ) {
+                Text(
+                    text = annotatedString,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Start,
+                        lineHeight = 16.sp
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
 }
