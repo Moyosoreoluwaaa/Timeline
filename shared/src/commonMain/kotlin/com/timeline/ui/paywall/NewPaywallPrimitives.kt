@@ -36,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -74,13 +73,14 @@ fun NewPaywallGradientBackdrop(
 }
 
 @Composable
-fun NewPaywallTopBar(onClose: () -> Unit) {
+fun NewPaywallTopBar(onClose: () -> Unit, contentColor: Color? = null) {
     val colors = NewPaywallPalette.colors
+    val tint = contentColor ?: colors.onBackground
     Box(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = AppStrings.AppName,
             style = MaterialTheme.typography.titleLarge,
-            color = colors.onBackground,
+            color = tint,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterStart)
         )
@@ -88,7 +88,7 @@ fun NewPaywallTopBar(onClose: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = AppStrings.ContentDescClose,
-                tint = colors.onBackground
+                tint = tint
             )
         }
     }
@@ -140,7 +140,7 @@ fun NewPaywallFeatureRow(
         Spacer(modifier = Modifier.width(Dimensions.PaddingMedium))
         Text(
             text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = colors.onBackground
         )
     }
@@ -242,20 +242,29 @@ fun NewPaywallFooterDisclaimer(text: String = AppStrings.PaywallCancelAnytime) {
     )
 }
 
+fun cleanStoreTitle(rawTitle: String): String {
+    return rawTitle.replace(Regex("""\s*\(.*?\)\s*$"""), "").trim().ifBlank { "Timeline Pro" }
+}
+
 @Composable
-fun NewPaywallHeadline(title: String, subtitle: String) {
+fun NewPaywallHeadline(
+    title: String,
+    subtitle: String,
+    titleColor: Color? = null,
+    subtitleColor: Color? = null
+) {
     val colors = NewPaywallPalette.colors
     Text(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
-        color = colors.onBackground,
+        color = titleColor ?: colors.onBackground,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Start
     )
     Text(
         text = subtitle,
         style = MaterialTheme.typography.bodyLarge,
-        color = colors.onBackgroundMuted,
+        color = subtitleColor ?: colors.onBackgroundMuted,
         textAlign = TextAlign.Start
     )
 }

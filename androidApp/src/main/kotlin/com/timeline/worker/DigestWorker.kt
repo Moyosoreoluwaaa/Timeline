@@ -55,11 +55,12 @@ class DigestWorker(
 
         val sessions = repository.getTimeline().firstOrNull() ?: emptyList()
         val appNames = sessions.map { it.packageName }.distinct().take(3).joinToString(", ")
+        val summaryAppName = if (appNames.isNotBlank()) "Daily Summary ($appNames)" else "Daily Summary"
         
         val startTime = System.currentTimeMillis()
         val result = reasoningService.generateDailyNarrative(
             packageName = "ALL_APPS",
-            appName = "Daily Summary ($appNames)",
+            appName = summaryAppName,
             date = dateString,
             ocrDumps = listOf("Active usage today across $appNames"),
             labels = emptyList(),

@@ -12,9 +12,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.timeline.util.AppStrings
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
@@ -32,6 +31,15 @@ fun ArcHighlightLoadingScreen(
         onFinished()
     }
 
+    // Step through the loading messages automatically
+    var currentStepIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (currentStepIndex < AppStrings.HighlightLoadingSteps.lastIndex) {
+            delay(3500.milliseconds)
+            currentStepIndex++
+        }
+    }
+
     // Smooth continuous movement along the arc
     val infiniteTransition = rememberInfiniteTransition(label = "arc_rotation")
     val rotationPhase by infiniteTransition.animateFloat(
@@ -42,6 +50,17 @@ fun ArcHighlightLoadingScreen(
             repeatMode = RepeatMode.Restart
         ),
         label = "phase"
+    )
+
+    // Shimmer for the skeleton lines below the headline
+    val shimmerAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
     )
 
     val mockBrushes = remember {
@@ -61,45 +80,37 @@ fun ArcHighlightLoadingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.Start
         ) {
-            // Arc Carousel
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // ── Arc carousel ──────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Dimensions tuned for horizontal arc curve
-                val radiusX = 160f
-                val radiusY = 40f
+                val radiusX = 180f
+                val radiusY = 48f
 
                 for (i in 0 until itemCount) {
                     val angle = (2 * PI / itemCount * i + rotationPhase).toFloat()
                     val normalizedSin = sin(angle)
                     val normalizedCos = cos(angle)
 
-                    // Curve layout calculation
                     val translationX = normalizedCos * radiusX
-                    val translationY = -normalizedSin * radiusY // Negative value arches center upwards
-
-                    // Inward rotation along the curve
+                    val translationY = -normalizedSin * radiusY
                     val rotationZ = normalizedCos * 22f
-
-                    // Subtle scale drop toward outer edges
                     val scale = (0.85f + (1f - kotlin.math.abs(normalizedCos)) * 0.2f).coerceIn(0.75f, 1.05f)
-
-                    // Smooth fade out for cards rotating toward the back/off-screen
                     val alpha = if (normalizedSin >= -0.2f) {
                         (1f - (kotlin.math.abs(normalizedCos) * 0.4f)).coerceIn(0.2f, 1f)
                     } else {
-                        0f // Hide back-facing cards to maintain single arc curve
+                        0f
                     }
 
                     val path = if (screenshots.isNotEmpty()) screenshots[i % screenshots.size] else null
@@ -145,63 +156,44 @@ fun ArcHighlightLoadingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(44.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Animated Text
-            FadingWordText(
-                text = "Your daily narrative got a major upgrade",
+            // ── Left-aligned headline step message ────────────────────────
+            Text(
+                text = AppStrings.HighlightLoadingSteps[currentStepIndex],
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
-                delayBetweenWords = 130L,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // ── Shimmer skeleton lines ─────────────────────────────────────
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(bottom = 12.dp)
+                    .fillMaxWidth()
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(Color.White.copy(alpha = shimmerAlpha))
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(Color.White.copy(alpha = shimmerAlpha))
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.45f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(Color.White.copy(alpha = shimmerAlpha))
             )
 
-            FadingWordText(
-                text = "Higher-quality reasoning, faster generation, and smarter creative insights",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Normal,
-                color = Color.White.copy(alpha = 0.7f),
-                delayBetweenWords = 100L,
-                modifier = Modifier.fillMaxWidth(0.8f)
-            )
+            Spacer(modifier = Modifier.height(50.dp))
         }
     }
-}
-
-@Composable
-fun FadingWordText(
-    text: String,
-    style: androidx.compose.ui.text.TextStyle,
-    color: Color,
-    fontWeight: FontWeight = FontWeight.Normal,
-    delayBetweenWords: Long = 120L,
-    modifier: Modifier = Modifier
-) {
-    val words = remember(text) { text.split(" ") }
-    var visibleWords by remember(text) { mutableIntStateOf(0) }
-
-    LaunchedEffect(text) {
-        visibleWords = 0
-        delay(150.milliseconds)
-        while (visibleWords < words.size) {
-            visibleWords++
-            delay(delayBetweenWords.milliseconds)
-        }
-    }
-
-    val displayedText = remember(visibleWords, words) {
-        words.take(visibleWords).joinToString(" ")
-    }
-
-    Text(
-        text = displayedText,
-        style = style,
-        fontWeight = fontWeight,
-        color = color,
-        modifier = modifier,
-        textAlign = TextAlign.Center
-    )
 }

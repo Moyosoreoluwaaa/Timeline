@@ -135,11 +135,14 @@ fun TimelineEntry(
     }
 }
 
-private fun formatDuration(minutes: Int, seconds: Int): String {
-    val totalMinutes = minutes + (seconds / 60)
-    val h = totalMinutes / 60
-    val m = totalMinutes % 60
-    return if (h > 0) "${h}h ${m}m" else "${m}m"
+fun formatDuration(minutes: Long, seconds: Long): String {
+    val totalSeconds = minutes * 60 + seconds
+    return if (totalSeconds < 60) {
+        "${totalSeconds}s"
+    } else {
+        val totalMinutes = totalSeconds / 60
+        "${totalMinutes}m"
+    }
 }
 
 @Composable
@@ -212,8 +215,9 @@ fun BottomSummary(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                val totalMins = summary.totalHours * 60 + summary.totalMinutes
                 Text(
-                    text = "${summary.totalHours}h ${summary.totalMinutes}m",
+                    text = "${totalMins}m",
                     style = MaterialTheme.typography.titleMedium
                 )
             }

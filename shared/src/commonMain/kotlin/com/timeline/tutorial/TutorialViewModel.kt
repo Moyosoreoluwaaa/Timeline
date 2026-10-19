@@ -85,15 +85,12 @@ class TutorialViewModel(
         }
 
         val lockGestures = when (step) {
-            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON,
-            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION,
-            TutorialStep.SPOTLIGHT_DATE_CONTAINER,
-            TutorialStep.SPOTLIGHT_DATE_PICKER,
-            TutorialStep.SPOTLIGHT_SUMMARY_BAR,
+            TutorialStep.SPOTLIGHT_APP_ENTRY,
             TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL,
             TutorialStep.FULL_SCREEN_IMAGE_PREVIEW,
             TutorialStep.EXPAND_BOTTOM_SHEET,
-            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> true
+            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR,
+            TutorialStep.SPOTLIGHT_SUMMARY_BAR -> true
             else -> false
         }
 
@@ -226,16 +223,17 @@ class TutorialViewModel(
             TutorialStep.PREREQUISITE_CHECK -> TutorialStep.SPOTLIGHT_APP_ENTRY
             TutorialStep.SPOTLIGHT_APP_ENTRY -> TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL
             TutorialStep.SPOTLIGHT_SCREENSHOT_THUMBNAIL -> TutorialStep.FULL_SCREEN_IMAGE_PREVIEW
-            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> TutorialStep.EXPAND_BOTTOM_SHEET
+            TutorialStep.FULL_SCREEN_IMAGE_PREVIEW -> TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR
             TutorialStep.EXPAND_BOTTOM_SHEET -> TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR
-            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> TutorialStep.SPOTLIGHT_TIME_FILTER_ICON
+            // Step 3 -> Step 4: Summary bar and Highlights
+            TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
 
-            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION
-            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_DATE_CONTAINER
-            TutorialStep.SPOTLIGHT_DATE_CONTAINER -> TutorialStep.SPOTLIGHT_DATE_PICKER
-
+            TutorialStep.SPOTLIGHT_TIME_FILTER_ICON -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
+            TutorialStep.SPOTLIGHT_TIME_FILTER_SECTION -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
+            TutorialStep.SPOTLIGHT_DATE_CONTAINER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
             TutorialStep.SPOTLIGHT_DATE_PICKER -> TutorialStep.SPOTLIGHT_SUMMARY_BAR
 
+            // Step 4 -> Step 5: Settings gear & privacy controls
             TutorialStep.SPOTLIGHT_SUMMARY_BAR -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.HIGHLIGHT))
                 TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD
@@ -246,27 +244,24 @@ class TutorialViewModel(
                 TutorialStep.SPOTLIGHT_SETTINGS_ICON
             }
 
+            // Step 5 -> Step 6: Excluded Apps and Retention
             TutorialStep.SPOTLIGHT_SETTINGS_ICON -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.SETTINGS))
-                TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE
+                TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
             }
 
-            TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE -> TutorialStep.SPOTLIGHT_REASONING_SHEET
-            TutorialStep.SPOTLIGHT_REASONING_SHEET -> TutorialStep.SPOTLIGHT_TRACKING_OPTIONS
+            TutorialStep.SPOTLIGHT_HIGHLIGHTS_PREFERENCE -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
+            TutorialStep.SPOTLIGHT_REASONING_SHEET -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
             TutorialStep.SPOTLIGHT_TRACKING_OPTIONS -> TutorialStep.SPOTLIGHT_APP_EXCLUSIONS
-            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET
-            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> TutorialStep.SPOTLIGHT_DATA_RETENTION
-            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.SPOTLIGHT_RETENTION_SHEET
 
-            TutorialStep.SPOTLIGHT_RETENTION_SHEET -> {
-                _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.TIMELINE))
-                TutorialStep.GESTURE_DRAG_SETTINGS
-            }
-
-            TutorialStep.GESTURE_DRAG_SETTINGS -> {
+            TutorialStep.SPOTLIGHT_APP_EXCLUSIONS -> {
                 _effects.trySend(TutorialEffect.NavigateToScreen(TutorialScreen.PAYWALL))
                 TutorialStep.PRO_PAYWALL_STEP
             }
+            TutorialStep.SPOTLIGHT_EXCLUSIONS_SHEET -> TutorialStep.PRO_PAYWALL_STEP
+            TutorialStep.SPOTLIGHT_DATA_RETENTION -> TutorialStep.PRO_PAYWALL_STEP
+            TutorialStep.SPOTLIGHT_RETENTION_SHEET -> TutorialStep.PRO_PAYWALL_STEP
+            TutorialStep.GESTURE_DRAG_SETTINGS -> TutorialStep.PRO_PAYWALL_STEP
 
             TutorialStep.PRO_PAYWALL_STEP -> {
                 analytics.log(AnalyticsEvents.TUTORIAL_COMPLETE)

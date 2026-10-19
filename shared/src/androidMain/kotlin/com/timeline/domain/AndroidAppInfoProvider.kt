@@ -56,4 +56,21 @@ class AndroidAppInfoProvider(private val context: Context) : AppInfoProvider {
             emptyList()
         }
     }
+
+    override fun getAppVersionName(): String {
+        return try {
+            val pInfo = packageManager.getPackageInfo(context.packageName, 0)
+            val vName = pInfo.versionName ?: "1.0.0"
+            val vCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                pInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                pInfo.versionCode.toLong()
+            }
+            "$vName ($vCode)"
+        } catch (e: Exception) {
+            Logger.w(tag = "AndroidAppInfoProvider") { "Failed to get package info: ${e.message}" }
+            "1.0.0"
+        }
+    }
 }

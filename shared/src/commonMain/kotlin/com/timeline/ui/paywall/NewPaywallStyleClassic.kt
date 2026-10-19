@@ -78,7 +78,7 @@ fun NewPaywallStyleClassic(
 
             state.currentOffering?.availablePackages?.forEach { rcPackage ->
                 NewPaywallPlanRow(
-                    title = rcPackage.storeProduct.title,
+                    title = cleanStoreTitle(rcPackage.storeProduct.title),
                     subtitle = rcPackage.storeProduct.price.formatted,
                     selected = selectedPackage?.identifier == rcPackage.identifier,
                     onClick = { selectedPackage = rcPackage },

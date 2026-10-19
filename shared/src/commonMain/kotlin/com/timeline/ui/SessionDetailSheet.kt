@@ -1,8 +1,5 @@
 package com.timeline.ui
 
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,6 +8,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,11 +39,9 @@ fun SessionDetailSheet(
     // the tutorial from spotlighting stale bounds captured right as this
     // row fades out (alpha = Full - expansionProgress, below).
     isThumbnailRowVisible: () -> Boolean = { true },
-    // Overrides state.isSheetExpanded for layout purposes (fillMaxHeight,
-    // header's "isExpanded" label). Defaults to the raw view-model value;
-    // TimelineScreen passes the tutorial's effective value while a tutorial
-    // step is controlling the sheet, since that can differ from
-    // state.isSheetExpanded once the tutorial stops writing through to it.
+    // Overrides state.isSheetExpanded for layout purposes (header's "isExpanded"
+    // label). Defaults to the raw view-model value; TimelineScreen passes the
+    // tutorial's effective value while a tutorial step is controlling the sheet.
     isSheetExpandedOverride: Boolean? = null
 ) {
     val session = state.selectedSession ?: return
@@ -59,7 +55,7 @@ fun SessionDetailSheet(
         SessionDetailHeader(
             session = session,
             isExpanded = isSheetExpanded,
-            totalSessions = state.relatedSessions.size
+            relatedSessions = state.relatedSessions.ifEmpty { listOf(session) }
         )
 
         Surface(
@@ -69,37 +65,46 @@ fun SessionDetailSheet(
             color = MaterialTheme.colorScheme.surfaceContainerLowest
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Dimensions.PaddingMedium)
-                            .padding(top = Dimensions.PaddingMedium)
-                            .padding(bottom = Dimensions.IconHuge)
-                            .graphicsLayer {
-                                val progress = expansionProgress()
-                                alpha = AppAlpha.Full - progress
-                                translationY = -progress * Dimensions.SpacingHuge.value
-                            }
-                    ) {
-                        StatRow(session)
-                        Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+
+                // ── Collapsed view: stat row + scrollable images ───────────
+                // Fades out and slides up as the sheet expands
+                val allSegments = remember(state.relatedSessions, session) {
+                    val targetSessions = state.relatedSessions.ifEmpty { listOf(session) }
+                    targetSessions
+                        .flatMap { it.segments }
+                        .filter { it.screenshotPath != null }
+                        .distinctBy { it.screenshotPath }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Dimensions.PaddingMedium)
+                        .padding(top = Dimensions.PaddingMedium)
+                        .graphicsLayer {
+                            val progress = expansionProgress()
+                            alpha = AppAlpha.Full - progress
+                            translationY = -progress * Dimensions.SpacingHuge.value
+                        }
+                ) {
+                    StatRow(session)
+                    Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+
+                    if (allSegments.isNotEmpty()) {
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall)
+                            horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
+                            contentPadding = PaddingValues(end = Dimensions.PaddingMedium)
                         ) {
-                            val segmentsWithScreenshots = session.segments.filter { it.screenshotPath != null }
-                            itemsIndexed(segmentsWithScreenshots) { index, segment ->
+                            itemsIndexed(allSegments) { index, segment ->
                                 val path = segment.screenshotPath!!
 
-                                ScreenshotImage(
-                                    path = path,
-                                    contentDescription = AppStrings.ContentDescSessionSegment,
+                                Box(
                                     modifier = Modifier
                                         .width(Dimensions.SpacingMega)
                                         .height(Dimensions.SpacingUltra)
-                                        .clickable { onShowFullScreenImage(path) }
                                         .clip(MaterialTheme.shapes.small)
+                                        .clickable { onShowFullScreenImage(path) }
                                         .then(
                                             if (index == 0 && onBoundsCalculated != null) {
                                                 Modifier.spotlightTarget(
@@ -109,20 +114,53 @@ fun SessionDetailSheet(
                                                 )
                                             } else Modifier
                                         )
-                                )
+                                ) {
+                                    ScreenshotImage(
+                                        path = path,
+                                        contentDescription = AppStrings.ContentDescSessionSegment,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(1.35f), // Keyboard crop
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+
+                                    // Overlay label: capture time only
+                                    Surface(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .fillMaxWidth(),
+                                        color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = segment.timestamp.formatTime(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = com.timeline.ui.theme.AppColors.BrandYellow
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-
-                    ExpandedSessionContent(
-                        appSessions = state.relatedSessions,
-                        progress = expansionProgress,
-                        onImageClick = { path ->
-                            if (path != null) onShowFullScreenImage(path)
-                        }
-                    )
                 }
 
+                // ── Expanded view: full session detail fills screen height ─
+                // Fades in and slides up from below as the sheet expands
+                ExpandedSessionContent(
+                    appSessions = state.relatedSessions.ifEmpty { listOf(session) },
+                    progress = expansionProgress,
+                    onImageClick = { path ->
+                        if (path != null) onShowFullScreenImage(path)
+                    }
+                )
+
+                // ── Bottom footer: prev / next navigation ──────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

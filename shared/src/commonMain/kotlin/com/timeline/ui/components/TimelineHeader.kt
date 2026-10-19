@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,10 +44,13 @@ import androidx.compose.ui.unit.dp
 import com.timeline.presentation.TimeFilter
 import com.timeline.tutorial.TutorialStep
 import com.timeline.tutorial.spotlightTarget
-import com.timeline.ui.theme.AppShapes
+import androidx.compose.ui.text.font.FontWeight
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.TimeFormatter
 import kotlin.time.Instant
+import org.jetbrains.compose.resources.painterResource
+import timeline.shared.generated.resources.Res
+import timeline.shared.generated.resources.timeline_splash_icon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,11 +80,19 @@ fun TimelineHeader(
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(Res.drawable.timeline_splash_icon),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
                 Spacer(modifier = Modifier.width(Dimensions.PaddingSmall))
                 Column {
                     Text(
                         text = "Timeline",
-                        style = MaterialTheme.typography.headlineLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(2.dp))
 
@@ -98,7 +110,9 @@ fun TimelineHeader(
                         Text(
                             text = selectedDate?.let { TimeFormatter.formatDate(it) } ?: "Today, September 14, 2026",
                             style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(
+//                                horizontal = 8.dp,
+                                vertical = 4.dp)
                         )
                     }
                 }

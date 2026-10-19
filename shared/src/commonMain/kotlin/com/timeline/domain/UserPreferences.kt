@@ -114,7 +114,7 @@ class UserPreferences(
                 highlightReasoningMode = reasoningMode,
                 digestFrequency = frequency,
                 digestHours = hoursList,
-                dataRetentionDays = prefs[UserPreferenceKeys.dataRetentionDays(userId)] ?: 30,
+                dataRetentionDays = prefs[UserPreferenceKeys.dataRetentionDays(userId)] ?: 7,
                 isLoggedIn = prefs[UserPreferenceKeys.IS_LOGGED_IN] ?: false,
                 trialStartedAt = prefs[UserPreferenceKeys.trialStartedAt(userId)],
                 lastOnboardingStep = prefs[UserPreferenceKeys.lastOnboardingStep(userId)]

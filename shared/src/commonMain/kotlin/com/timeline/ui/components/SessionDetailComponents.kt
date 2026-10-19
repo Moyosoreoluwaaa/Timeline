@@ -1,39 +1,51 @@
 package com.timeline.ui.components
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.timeline.domain.Session
 import com.timeline.ui.AppIcon
-import com.timeline.ui.LocalNavAnimatedVisibilityScope
-import com.timeline.ui.LocalSharedTransitionScope
 import com.timeline.ui.ScreenshotImage
 import com.timeline.ui.theme.AppAlpha
-import com.timeline.ui.theme.AppWeights
+import com.timeline.ui.theme.AppColors
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 import kotlinx.datetime.TimeZone
@@ -43,8 +55,16 @@ import kotlinx.datetime.toLocalDateTime
 fun SessionDetailHeader(
     session: Session,
     isExpanded: Boolean,
-    totalSessions: Int
+    relatedSessions: List<Session>
 ) {
+    val totalSessions = relatedSessions.size
+    val totalSeconds = relatedSessions.sumOf { it.durationMinutes * 60 + it.durationSeconds }
+    val totalDurationFormatted = if (totalSeconds < 60) {
+        "${totalSeconds}s"
+    } else {
+        "${totalSeconds / 60}m"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -77,7 +97,7 @@ fun SessionDetailHeader(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = formatDuration(session.durationMinutes, session.durationSeconds),
+                    text = totalDurationFormatted,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -117,7 +137,7 @@ fun SessionDetailFooter(
     ) {
         if (prevSession != null) {
             Column(
-                horizontalAlignment = Alignment.Start,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.medium)
                     .clickable { onPrevClick() }
@@ -191,50 +211,61 @@ fun ExpandedSessionContent(
                     StatRow(session)
                     Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
 
-                    val segmentsWithScreenshots = remember(session) {
-                        session.segments.filter { it.screenshotPath != null }
+                    val uniqueSegments = remember(session.segments) {
+                        session.segments
+                            .filter { it.screenshotPath != null }
+                            .distinctBy { it.screenshotPath }
                     }
 
-                    if (segmentsWithScreenshots.isNotEmpty()) {
+                    if (uniqueSegments.isNotEmpty()) {
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
                             contentPadding = PaddingValues(vertical = Dimensions.Half)
                         ) {
-                            items(segmentsWithScreenshots) { segment ->
+                            items(uniqueSegments) { segment ->
                                 val path = segment.screenshotPath!!
                                 Column(
                                     modifier = Modifier
                                         .width(Dimensions.SpacingMega)
                                         .clickable { onImageClick(path) }
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = segment.timestamp.formatTime(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.secondary
-                                        )
-                                        Spacer(modifier = Modifier.width(Dimensions.Half))
-//                                        Text(
-//                                            text = segment.activityDescription ?: "Activity",
-//                                            style = MaterialTheme.typography.labelSmall,
-//                                            maxLines = 1,
-//                                            overflow = TextOverflow.Ellipsis,
-//                                            modifier = Modifier.weight(AppWeights.Full)
-//                                        )
-                                    }
-                                    Spacer(modifier = Modifier.height(Dimensions.Half))
-                                    ScreenshotImage(
-                                        path = path,
-                                        contentDescription = null,
+                                    Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(Dimensions.SpacingUltra)
                                             .clip(MaterialTheme.shapes.small)
-                                    )
+                                    ) {
+                                        ScreenshotImage(
+                                            path = path,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .fillMaxHeight(1.35f), // Keyboard crop: zoom top 74% of screenshot
+                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                        )
+
+                                        // Overlay label: capture time only
+                                        Surface(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomStart)
+                                                .fillMaxWidth(),
+                                            color = Color.Black.copy(alpha = 0.65f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = segment.timestamp.formatTime(),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = AppColors.BrandYellow
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -279,12 +310,4 @@ fun kotlin.time.Instant.formatTime(): String {
     val amPm = if (hour < 12) "AM" else "PM"
     val minute = local.minute.toString().padStart(2, '0')
     return "$displayHour:$minute $amPm"
-}
-
-fun formatDuration(durationMinutes: Long, durationSeconds: Long): String {
-    return if (durationMinutes > 0) {
-        "${durationMinutes}m"
-    } else {
-        "${durationSeconds}s"
-    }
 }

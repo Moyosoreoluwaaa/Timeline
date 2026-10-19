@@ -47,13 +47,15 @@ fun NewPaywallStyleLimitedOffer(
                 .padding(Dimensions.PaddingLarge),
             horizontalAlignment = Alignment.Start
         ) {
-            NewPaywallTopBar(onClose = onDismiss)
+            NewPaywallTopBar(onClose = onDismiss, contentColor = Color(0xFF1A1208))
             Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
             ProBadge()
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             NewPaywallHeadline(
                 title = AppStrings.PaywallUnlockDeeper,
-                subtitle = AppStrings.PaywallGoBeyond
+                subtitle = AppStrings.PaywallGoBeyond,
+                titleColor = Color(0xFF1A1208),
+                subtitleColor = Color(0xFF2C241B)
             )
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
@@ -106,7 +108,7 @@ fun NewPaywallStyleLimitedOffer(
 
             state.currentOffering?.availablePackages?.forEach { rcPackage ->
                 NewPaywallPlanRow(
-                    title = rcPackage.storeProduct.title,
+                    title = cleanStoreTitle(rcPackage.storeProduct.title),
                     subtitle = rcPackage.storeProduct.price.formatted,
                     selected = selectedPackage?.identifier == rcPackage.identifier,
                     onClick = { selectedPackage = rcPackage },

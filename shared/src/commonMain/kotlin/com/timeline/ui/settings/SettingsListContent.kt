@@ -192,6 +192,6 @@ internal fun SettingsListContent(
         item { InfoCard(title = AppStrings.SettingsContactUsTitle, icon = Icons.Outlined.SupportAgent, onClick = onContactUs) }
         item { InfoCard(title = AppStrings.SettingsReportBugsTitle, icon = Icons.Outlined.BugReport, onClick = onOpenBugReportSheet) }
         item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
-        item { SettingsFooter() }
+        item { SettingsFooter(version = state.appVersion) }
     }
 }

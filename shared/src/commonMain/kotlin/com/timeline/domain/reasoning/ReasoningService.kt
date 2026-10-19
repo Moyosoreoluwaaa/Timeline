@@ -1,8 +1,5 @@
 package com.timeline.domain.reasoning
 
-import com.timeline.domain.ml.ImageAnalysisResult
-import kotlinx.coroutines.flow.Flow
-
 interface ReasoningService {
     /**
      * Tier 1: Local reasoning using regex and heuristics.
@@ -78,21 +75,32 @@ class LocalHeuristicService : ReasoningService {
             }
         }
 
+        val cleanAppName = appName.replace(Regex("""\(\s*\)"""), "").trim().ifBlank { "your apps" }
+        val targetApp = if (cleanAppName.startsWith("Daily Summary", ignoreCase = true)) "your day" else cleanAppName
+
         val baseSummary = when (mode) {
-            HighlightReasoningMode.CONCISE -> "Active usage session in $appName."
+            HighlightReasoningMode.CONCISE -> "Active usage session across $targetApp."
             HighlightReasoningMode.BALANCED -> when (cognitiveMode) {
-                "Communication" -> "Coordinated and shared updates with team members in $appName."
-                "Deep Focus" -> "Maintained high concentration on planning and documentation in $appName."
-                "Information Seeking" -> "Researched resources in $appName."
-                "Creative" -> "Explored visual workflows in $appName."
-                else -> "Engaged in focused activity in $appName."
+                "Communication" -> "Coordinated and shared updates with team members in $cleanAppName."
+                "Deep Focus" -> "Maintained high concentration on planning and documentation in $cleanAppName."
+                "Information Seeking" -> "Researched resources in $cleanAppName."
+                "Creative" -> "Explored visual workflows in $cleanAppName."
+                else -> if (cleanAppName.startsWith("Daily Summary", ignoreCase = true)) {
+                    "A productive session navigating your daily activities."
+                } else {
+                    "Engaged in focused activity in $cleanAppName."
+                }
             }
             HighlightReasoningMode.EXPLANATORY -> when (cognitiveMode) {
-                "Communication" -> "Focused on maintaining team alignment through proactive messaging and review of project threads within $appName."
-                "Deep Focus" -> "Dedicated time to deep work, focusing on technical architecture, documentation, or implementation tasks within $appName."
-                "Information Seeking" -> "Conducted comprehensive research, navigating documentation and online resources to support current work within $appName."
-                "Creative" -> "Invested time in design iterations, exploring visual concepts and prototyping new ideas within $appName."
-                else -> "Engaged in a productive, sustained work session, focusing on task execution and workflow management within $appName."
+                "Communication" -> "Focused on maintaining team alignment through proactive messaging and review of project threads within $cleanAppName."
+                "Deep Focus" -> "Dedicated time to deep work, focusing on technical architecture, documentation, or implementation tasks within $cleanAppName."
+                "Information Seeking" -> "Conducted comprehensive research, navigating documentation and online resources to support current work within $cleanAppName."
+                "Creative" -> "Invested time in design iterations, exploring visual concepts and prototyping new ideas within $cleanAppName."
+                else -> if (cleanAppName.startsWith("Daily Summary", ignoreCase = true)) {
+                    "A sustained and organized recap across your core daily workflows."
+                } else {
+                    "Engaged in a productive, sustained work session, focusing on task execution and workflow management within $cleanAppName."
+                }
             }
         }
 

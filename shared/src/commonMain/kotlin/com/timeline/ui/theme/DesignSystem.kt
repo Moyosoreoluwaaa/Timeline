@@ -47,64 +47,86 @@ object AppShapes {
 }
 
 object AppTypography {
-    val H1 = TextStyle(
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
+    // Display (welcome, paywall): 32, semibold, tracking -1%
+    val Display = TextStyle(
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
         fontWeight = FontWeight.SemiBold,
-//        color = Palette.Ink
+        letterSpacing = (-0.32).sp,
+        fontFeatureSettings = "tnum"
     )
+    // Screen title: 26, semibold
+    val ScreenTitle = TextStyle(
+        fontSize = 26.sp,
+        lineHeight = 34.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFeatureSettings = "tnum"
+    )
+    val H1 = ScreenTitle
     val H2 = TextStyle(
-        fontSize = 24.sp,
-        lineHeight = 32.sp,
-        fontWeight = FontWeight.Medium,
-//        color = Palette.Ink
+        fontSize = 22.sp,
+        lineHeight = 30.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFeatureSettings = "tnum"
     )
     val H3 = TextStyle(
-        fontSize = 20.sp,
-        lineHeight = 28.sp,
+        fontSize = 18.sp,
+        lineHeight = 26.sp,
         fontWeight = FontWeight.SemiBold,
-        //color = Palette.Ink
+        fontFeatureSettings = "tnum"
     )
+    // Narrative (Highlights): 25, regular, Plus Jakarta Sans
+    val Narrative = TextStyle(
+        fontSize = 25.sp,
+        lineHeight = 35.sp,
+        fontWeight = FontWeight.Normal,
+        fontFeatureSettings = "tnum"
+    )
+    // Body: 16, regular
     val Body = TextStyle(
         fontSize = 16.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.Normal,
-        //color = Palette.Ink
+        fontFeatureSettings = "tnum"
     )
     val Para = TextStyle(
         fontSize = 16.sp,
-        lineHeight = 27.sp,
-        fontWeight = FontWeight.Normal,
-        //color = Palette.Ink
-    )
-    val Title = TextStyle(
-        fontSize = 16.sp,
         lineHeight = 24.sp,
-        fontWeight = FontWeight.SemiBold,
-        //color = Palette.Ink
-    )
-    val Cap = TextStyle(
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
         fontWeight = FontWeight.Normal,
-        //color = Palette.InkSecondary
+        fontFeatureSettings = "tnum"
     )
+    // Card title: 18, semibold
+    val Title = TextStyle(
+        fontSize = 18.sp,
+        lineHeight = 26.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFeatureSettings = "tnum"
+    )
+    // Caption and times: 13, medium
+    val Cap = TextStyle(
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        fontWeight = FontWeight.Medium,
+        fontFeatureSettings = "tnum"
+    )
+    // Section label: 12, medium, all caps with +6% tracking (+0.72sp). Nothing smaller than 12.
     val Micro = TextStyle(
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        fontWeight = FontWeight.Normal,
-        //color = Palette.InkSecondary
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.72.sp,
+        fontFeatureSettings = "tnum"
     )
     val Tab = TextStyle(
-        fontSize = 10.sp,
-        lineHeight = 12.sp,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
         fontWeight = FontWeight.Medium,
-        //color = Palette.InkTertiary
+        fontFeatureSettings = "tnum"
     )
     val Stat = TextStyle(
         fontSize = 26.sp,
-        lineHeight = 32.sp,
+        lineHeight = 34.sp,
         fontWeight = FontWeight.SemiBold,
-        //color = Palette.Ink
+        fontFeatureSettings = "tnum"
     )
 }

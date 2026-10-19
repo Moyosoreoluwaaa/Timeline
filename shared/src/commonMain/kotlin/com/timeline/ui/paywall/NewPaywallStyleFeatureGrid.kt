@@ -52,8 +52,8 @@ fun NewPaywallStyleFeatureGrid(
             ProBadge()
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             NewPaywallHeadline(
-                title = "See everything, all the time.",
-                subtitle = "Everything you need to understand your habits."
+                title = AppStrings.PaywallFeatureGridTitle,
+                subtitle = AppStrings.PaywallFeatureGridSubtitle
             )
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
@@ -203,7 +203,7 @@ private fun BillingToggle(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = pkg.storeProduct.title,
+                    text = cleanStoreTitle(pkg.storeProduct.title),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (selected) NewPaywallPalette.Background else NewPaywallPalette.OnBackgroundMuted,
                     fontWeight = FontWeight.SemiBold

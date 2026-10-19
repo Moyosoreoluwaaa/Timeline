@@ -15,110 +15,88 @@ enum class TutorialStep(
     PREREQUISITE_CHECK(
         screen = TutorialScreen.TIMELINE,
         title = "Preparing Showcase",
-        description = "Verifying mock usage data and screenshots..."
+        description = "Verifying mock usage data and captures..."
     ),
+    // Step 1: App entry: tap a row to open the sheet.
     SPOTLIGHT_APP_ENTRY(
         screen = TutorialScreen.TIMELINE,
-        title = "App Usage Entry",
-        description = "Tap an app entry to inspect recorded usage sessions."
+        title = "App Entry",
+        description = "Tap any app to see what you did in it."
     ),
+    // Step 2: Screenshot thumbnail and full-screen preview: tap to open, tap to close.
     SPOTLIGHT_SCREENSHOT_THUMBNAIL(
         screen = TutorialScreen.TIMELINE,
-        title = "Screenshot Thumbnail",
-        description = "Tap the screenshot thumbnail to view full-screen captures."
-        // Requires: sheet COLLAPSED (partial). This is where the thumbnail
-        // row is opaque and measurable. Do not confuse with EXPAND_BOTTOM_SHEET.
+        title = "Captures Preview",
+        description = "Tap to open, tap to close."
     ),
     FULL_SCREEN_IMAGE_PREVIEW(
         screen = TutorialScreen.TIMELINE,
         title = "Full-Screen Preview",
-        description = "Tap anywhere on the overlay to dismiss the preview."
+        description = "Tap anywhere to close the preview."
     ),
+    // Step 3: Expand sheet and Prev/Next: drag up, then use the floating row.
     EXPAND_BOTTOM_SHEET(
         screen = TutorialScreen.TIMELINE,
         title = "Expand Sheet",
-        description = "Drag or expand the bottom sheet to view detailed sessions."
+        description = "Drag up, then use the floating row."
     ),
     SPOTLIGHT_SESSION_NAVIGATOR(
         screen = TutorialScreen.TIMELINE,
         title = "Session Controls",
-        description = "Use Previous and Next controls to cycle between sessions."
+        description = "Drag up, then use the floating row."
     ),
-    SPOTLIGHT_TIME_FILTER_ICON(
-        screen = TutorialScreen.TIMELINE,
-        title = "Time Filter Icon",
-        description = "Tap the clock icon to reveal filter options by time of day."
-    ),
-    SPOTLIGHT_TIME_FILTER_SECTION(
-        screen = TutorialScreen.TIMELINE,
-        title = "Time Filter Options",
-        description = "Filter your timeline sessions by Morning, Afternoon, or Evening."
-    ),
-    SPOTLIGHT_DATE_CONTAINER(
-        screen = TutorialScreen.TIMELINE,
-        title = "Date Selector",
-        description = "Tap the date header to view usage logs from previous dates."
-    ),
-    SPOTLIGHT_DATE_PICKER(
-        screen = TutorialScreen.TIMELINE,
-        title = "Date Picker",
-        description = "Select and view usage logs from previous dates."
-    ),
+    // Step 4: Summary bar and Highlights: tap the bar to open Highlights.
     SPOTLIGHT_SUMMARY_BAR(
         screen = TutorialScreen.TIMELINE,
-        title = "Usage Summary Bar",
-        description = "Tap the summary bar to open highlights and skip loading."
+        title = "Summary & Highlights",
+        description = "Tap the bar to open Highlights."
     ),
     SPOTLIGHT_HIGHLIGHT_CARD(
         screen = TutorialScreen.HIGHLIGHT,
-        title = "Interactive Highlights",
+        title = "Daily Highlights",
         description = "Tap any highlight card to inspect details."
     ),
+    // Step 5: Settings gear and capture toggle: this is your master privacy control.
     SPOTLIGHT_SETTINGS_ICON(
         screen = TutorialScreen.TIMELINE,
-        title = "Configure Preferences",
-        description = "Tap the settings gear icon to customize tracking and data options."
-    ),
-    SPOTLIGHT_HIGHLIGHTS_PREFERENCE(
-        screen = TutorialScreen.SETTINGS,
-        title = "Highlights & Reasoning",
-        description = "Adjust your narrative style and digest frequency."
-    ),
-    SPOTLIGHT_REASONING_SHEET(
-        screen = TutorialScreen.SETTINGS,
-        title = "Reasoning Mode",
-        description = "Select your preferred narrative style in this sheet."
+        title = "Privacy Controls",
+        description = "This is your master privacy control."
     ),
     SPOTLIGHT_TRACKING_OPTIONS(
         screen = TutorialScreen.SETTINGS,
-        title = "Tracking Controls",
-        description = "Toggle app interaction logging and screenshot captures here."
+        title = "Tracking & Privacy",
+        description = "This is your master privacy control."
     ),
+    // Step 6: Manage App Exclusion: include the retention slider in the same spotlight.
     SPOTLIGHT_APP_EXCLUSIONS(
         screen = TutorialScreen.SETTINGS,
-        title = "Manage App Exclusion",
-        description = "Tap here to exclude specific private apps from being tracked."
+        title = "Excluded Apps & Retention",
+        description = "Exclude private apps and adjust your data retention slider."
     ),
     SPOTLIGHT_EXCLUSIONS_SHEET(
         screen = TutorialScreen.SETTINGS,
-        title = "Exclude Apps",
-        description = "Toggle the switch next to any app to prevent it from appearing in your timeline."
+        title = "Excluded Apps",
+        description = "Toggle the switch next to any app to exclude it from your timeline."
     ),
     SPOTLIGHT_DATA_RETENTION(
         screen = TutorialScreen.SETTINGS,
-        title = "Adjust Data Retention",
-        description = "Tap here to adjust how many days your local screenshots and logs are kept."
+        title = "Data Retention",
+        description = "Choose your local capture retention period."
     ),
     SPOTLIGHT_RETENTION_SHEET(
         screen = TutorialScreen.SETTINGS,
         title = "Retention Period",
-        description = "Drag the slider to set your preferred data cleanup frequency."
+        description = "Set your preferred cleanup period."
     ),
-    GESTURE_DRAG_SETTINGS(
-        screen = TutorialScreen.TIMELINE,
-        title = "Edge Gestures to Settings",
-        description = "Drag left to navigate to Settings, then drag right to return to Timeline."
-    ),
+    // Cut steps retained for backwards-safe enum compatibility
+    SPOTLIGHT_TIME_FILTER_ICON(screen = TutorialScreen.TIMELINE, title = "", description = ""),
+    SPOTLIGHT_TIME_FILTER_SECTION(screen = TutorialScreen.TIMELINE, title = "", description = ""),
+    SPOTLIGHT_DATE_CONTAINER(screen = TutorialScreen.TIMELINE, title = "", description = ""),
+    SPOTLIGHT_DATE_PICKER(screen = TutorialScreen.TIMELINE, title = "", description = ""),
+    SPOTLIGHT_HIGHLIGHTS_PREFERENCE(screen = TutorialScreen.SETTINGS, title = "", description = ""),
+    SPOTLIGHT_REASONING_SHEET(screen = TutorialScreen.SETTINGS, title = "", description = ""),
+    GESTURE_DRAG_SETTINGS(screen = TutorialScreen.TIMELINE, title = "", description = ""),
+
     PRO_PAYWALL_STEP(
         screen = TutorialScreen.PAYWALL,
         title = "Timeline Pro Experience",

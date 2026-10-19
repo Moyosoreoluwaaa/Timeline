@@ -48,9 +48,10 @@ class SettingsViewModel(
             trialStatus = calculateTrialStatus(prefs.trialStartedAt),
             highlightReasoningMode = prefs.highlightReasoningMode,
             digestFrequency = prefs.digestFrequency,
-            digestHours = prefs.digestHours
+            digestHours = prefs.digestHours,
+            appVersion = appInfoProvider.getAppVersionName()
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState(appVersion = appInfoProvider.getAppVersionName()))
 
     private fun calculateTrialStatus(startedAt: Long?): TrialStatus {
         if (startedAt == null) return TrialStatus.NOT_STARTED

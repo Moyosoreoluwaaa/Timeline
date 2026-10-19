@@ -66,7 +66,7 @@ fun OnboardingTopBar(
             fontSize = 14.sp,
             modifier = Modifier
                 .align(Alignment.End)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(50))
                 .clickable(role = Role.Button, onClick = onSkip)
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         )

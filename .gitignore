@@ -23,3 +23,4 @@ captures
 node_modules/
 /androidApp/release/baselineProfiles/0/androidApp-release.dm
 /androidApp/release/baselineProfiles/1/androidApp-release.dm
+gradle.properties

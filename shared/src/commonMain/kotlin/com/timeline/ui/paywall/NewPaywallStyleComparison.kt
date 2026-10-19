@@ -51,8 +51,8 @@ fun NewPaywallStyleComparison(
             ProBadge()
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
             NewPaywallHeadline(
-                title = "Free vs PRO.",
-                subtitle = "See exactly what you unlock."
+                title = AppStrings.PaywallComparisonTitle,
+                subtitle = AppStrings.PaywallComparisonSubtitle
             )
 
             Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
@@ -74,7 +74,7 @@ fun NewPaywallStyleComparison(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = pkg.storeProduct.title,
+                                text = cleanStoreTitle(pkg.storeProduct.title),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = colors.onBackground
                             )

@@ -8,13 +8,14 @@ data class SettingsState(
     val availableApps: List<AppInfo> = emptyList(),
     val isUsageTrackingEnabled: Boolean = true,
     val isScreenshotCaptureEnabled: Boolean = true,
-    val dataRetentionDays: Int = 30,
+    val dataRetentionDays: Int = 7,
     val isLoggedIn: Boolean = false,
     val isPro: Boolean = false,
     val trialStatus: TrialStatus = TrialStatus.NOT_STARTED,
     val highlightReasoningMode: HighlightReasoningMode = HighlightReasoningMode.BALANCED,
     val digestFrequency: Int = 3,
-    val digestHours: List<Int> = listOf(12, 17, 21)
+    val digestHours: List<Int> = listOf(12, 17, 21),
+    val appVersion: String = ""
 )
 
 data class AppInfo(

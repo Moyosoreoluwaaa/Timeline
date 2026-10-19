@@ -50,6 +50,7 @@ fun SplashScreen(
         Box(
             modifier = Modifier
                 .size(120.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .drawWithContent {
                     drawContent()
                     val width = size.width

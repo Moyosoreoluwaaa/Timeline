@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.koin.compose.viewmodel)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.testJunit)
 }
 
 android {
@@ -112,8 +113,17 @@ android {
                 debugSymbolLevel = "FULL"
             }
             
-            // Fallback to debug signing
-            signingConfig = signingConfigs.getByName("debug")
+            // Use release signing if configured, fallback to debug
+            val isSigningConfigured = project.hasProperty("RELEASE_STORE_FILE") && 
+                                    project.hasProperty("RELEASE_STORE_PASSWORD") &&
+                                    project.hasProperty("RELEASE_KEY_ALIAS") &&
+                                    project.hasProperty("RELEASE_KEY_PASSWORD")
+            
+            signingConfig = if (isSigningConfigured) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
@@ -126,6 +136,20 @@ android {
     }
 }
 
+// Helper function to bump version code in gradle.properties
+fun bumpVersionCode(vCode: Int) {
+    val propsFile = project.rootProject.file("gradle.properties")
+    if (propsFile.exists()) {
+        val props = Properties()
+        propsFile.inputStream().use { props.load(it) }
+        val currentCodeStr = props.getProperty("APP_VERSION_CODE")
+        val nextCode = (currentCodeStr?.toIntOrNull() ?: vCode) + 1
+        props.setProperty("APP_VERSION_CODE", nextCode.toString())
+        propsFile.outputStream().use { props.store(it, "Auto-incremented version code") }
+        println("Version code bumped to $nextCode in gradle.properties")
+    }
+}
+
 // Safely copy and rename the bundle to the project's 'release' folder for easy access
 tasks.register("renameReleaseBundle") {
     dependsOn("bundleRelease")
@@ -133,7 +157,6 @@ tasks.register("renameReleaseBundle") {
     val buildDir = layout.buildDirectory
     val vName = android.defaultConfig.versionName ?: "1.0"
     val vCode = android.defaultConfig.versionCode ?: 1
-    val propsFile = project.rootProject.file("gradle.properties")
     val releaseDir = project.file("release")
 
     doLast {
@@ -145,24 +168,42 @@ tasks.register("renameReleaseBundle") {
             val targetFile = File(releaseDir, fileName)
             bundleFile.copyTo(targetFile, overwrite = true)
             println("Production bundle copied to: ${targetFile.absolutePath}")
-            
-            // Auto-increment version code for the NEXT build
-            if (propsFile.exists()) {
-                val props = Properties()
-                propsFile.inputStream().use { props.load(it) }
-                val currentCodeStr = props.getProperty("APP_VERSION_CODE")
-                val nextCode = (currentCodeStr?.toIntOrNull() ?: vCode) + 1
-                props.setProperty("APP_VERSION_CODE", nextCode.toString())
-                propsFile.outputStream().use { props.store(it, "Auto-incremented version code") }
-                println("Version code bumped to $nextCode in gradle.properties")
-            }
+            bumpVersionCode(vCode)
         } else {
             println("Error: Could not find bundle at ${bundleFile.absolutePath}")
         }
     }
 }
 
-// Automatically trigger renaming and version bumping after every release bundle build
+// Safely copy and rename the signed APK to the project's 'release' folder and bump version code
+tasks.register("renameReleaseApk") {
+    dependsOn("assembleRelease")
+    
+    val buildDir = layout.buildDirectory
+    val vName = android.defaultConfig.versionName ?: "1.0"
+    val vCode = android.defaultConfig.versionCode ?: 1
+    val releaseDir = project.file("release")
+
+    doLast {
+        val fileName = "Timeline-v$vName($vCode).apk"
+        val apkFile = buildDir.dir("outputs/apk/release/androidApp-release.apk").get().asFile
+        
+        if (apkFile.exists()) {
+            if (!releaseDir.exists()) releaseDir.mkdirs()
+            val targetFile = File(releaseDir, fileName)
+            apkFile.copyTo(targetFile, overwrite = true)
+            println("Production APK copied to: ${targetFile.absolutePath}")
+            bumpVersionCode(vCode)
+        } else {
+            println("Error: Could not find APK at ${apkFile.absolutePath}")
+        }
+    }
+}
+
+// Automatically trigger renaming and version bumping after every release bundle or release apk build
 tasks.matching { it.name == "bundleRelease" }.configureEach {
     finalizedBy("renameReleaseBundle")
+}
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy("renameReleaseApk")
 }

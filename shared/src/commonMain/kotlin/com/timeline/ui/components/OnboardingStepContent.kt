@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -129,12 +126,12 @@ fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
         Image(
             painter = painterResource(Res.drawable.artifacts_options),
             contentDescription = "Get Started bg",
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
-                .size(250.dp)
+                .size(280.dp)
                 .align(Alignment.Center)
+                .padding(bottom = 30.dp)
         )
-        Spacer(modifier = Modifier.height(40.dp))
 
         OnboardingLayout(
             bottomBar = {
@@ -149,33 +146,22 @@ fun OpeningStep(onEvent: (PermissionEvent) -> Unit) {
                     ) {
                         Image(
                             painter = painterResource(Res.drawable.timeline_splash_icon),
-                            contentDescription = "Splash Logo",
-                            contentScale = ContentScale.Crop,
+                            contentDescription = null,
                             modifier = Modifier
-                                .size(65.dp)
-                                .clip(RoundedCornerShape(20))
-                                .padding(12.dp)
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(8.dp))
                         )
 
-                        AnimatedVisibility(
-                            visible = isTitleVisible,
-                            enter = fadeIn(animationSpec = onboardingTween()) +
-                                    slideInVertically(
-                                        initialOffsetY = { -it / 2 },
-                                        animationSpec = onboardingTween()
-                                    )
-                        ) {
-                            Text(
-                                text = displayedTitleText,
-                                style = MaterialTheme.typography.displaySmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            )
-                        }
+                        Text(
+                            text = displayedTitleText,
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .padding(horizontal = 8.dp)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(30.dp))
 
                     AnimatedVisibility(
                         visible = isButtonVisible,

@@ -134,12 +134,13 @@ class RawHighlightReasoningCoordinator(
             val appNames = groupedByApp.keys.map { pkg ->
                 allItems.firstOrNull { it.packageName == pkg }?.displayName ?: appInfoProvider.getAppName(pkg)
             }.distinct().joinToString(", ")
+            val summaryAppName = if (appNames.isNotBlank()) "Daily Summary ($appNames)" else "Daily Summary"
 
             val yesterdayOverallSummary = repository.getAppDailyReasoning("ALL_APPS", yesterdayDateString).firstOrNull()?.summary
 
             val triagedAll = ContextTriagingService.triageSession(
                 packageName = "ALL_APPS",
-                appName = "Daily Summary ($appNames)",
+                appName = summaryAppName,
                 date = dateString,
                 frames = allTriagedFrames,
                 yesterdaySummary = yesterdayOverallSummary
@@ -153,7 +154,7 @@ class RawHighlightReasoningCoordinator(
 
             val overallResult = reasoningService.generateDailyNarrative(
                 packageName = "ALL_APPS",
-                appName = "Daily Summary ($appNames)",
+                appName = summaryAppName,
                 date = dateString,
                 ocrDumps = promptDumps,
                 labels = triagedAll.aggregatedLabels,
@@ -166,7 +167,7 @@ class RawHighlightReasoningCoordinator(
             }.onFailure {
                 val fallback = localHeuristicService.generateDailyNarrative(
                     packageName = "ALL_APPS",
-                    appName = "Daily Summary ($appNames)",
+                    appName = summaryAppName,
                     date = dateString,
                     ocrDumps = promptDumps,
                     labels = triagedAll.aggregatedLabels,

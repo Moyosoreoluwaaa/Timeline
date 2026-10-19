@@ -1,23 +1,22 @@
 package com.timeline.navigation
 
-import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.ui.Modifier
-import kotlinx.coroutines.launch
-import com.timeline.ui.TimelineScreen
-import com.timeline.presentation.TimelineViewModel
-import com.timeline.presentation.SettingsViewModel
-import com.timeline.presentation.PermissionViewModel
-import com.timeline.ui.PermissionScreen
-import com.timeline.ui.SettingsScreen
-import com.timeline.ui.AuthScreen
-import com.timeline.ui.InsightsHostScreen
-import com.timeline.ui.paywall.NewPaywallScreen
-import com.timeline.ui.paywall.NewPaywallStyle
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.PaywallViewModel
+import com.timeline.presentation.PermissionViewModel
+import com.timeline.presentation.SettingsViewModel
+import com.timeline.presentation.TimelineViewModel
+import com.timeline.ui.AuthScreen
+import com.timeline.ui.InsightsHostScreen
+import com.timeline.ui.PermissionScreen
+import com.timeline.ui.SettingsScreen
+import com.timeline.ui.TimelineScreen
+import com.timeline.ui.paywall.NewPaywallScreen
+import com.timeline.ui.paywall.NewPaywallStyle
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -56,47 +55,12 @@ actual fun AppNavigation(
             )
         }
         Route.Timeline -> {
-            val pagerState = rememberPagerState(initialPage = 1) { 3 }
-            val coroutineScope = rememberCoroutineScope()
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
-                when (page) {
-                    0 -> {
-                        val highlightViewModel: com.timeline.presentation.SimplifiedHighlightViewModel = koinViewModel()
-                        com.timeline.ui.SimplifiedHighlightScreen(
-                            viewModel = highlightViewModel,
-                            onNavigateBack = {
-                                coroutineScope.launch { pagerState.animateScrollToPage(1) }
-                            }
-                        )
-                    }
-                    1 -> {
-                        TimelineScreen(
-                            viewModel = timelineViewModel,
-                            onNavigateToSettings = {
-                                coroutineScope.launch { pagerState.animateScrollToPage(2) }
-                            },
-                            onNavigateToHighlight = {
-                                coroutineScope.launch { pagerState.animateScrollToPage(0) }
-                            },
-                            onBoundsCalculated = { step, bounds -> }
-                        )
-                    }
-                    2 -> {
-                        SettingsScreen(
-                            viewModel = settingsViewModel,
-                            onNavigateToPaywall = { isDeals -> currentRoute = Route.Paywall(isDeals) },
-                            onNavigateToAuth = { currentRoute = Route.Auth },
-                            onBack = {
-                                coroutineScope.launch { pagerState.animateScrollToPage(1) }
-                            }
-                        )
-                    }
-                }
-            }
+            TimelineScreen(
+                viewModel = timelineViewModel,
+                onNavigateToSettings = { currentRoute = Route.Settings },
+                onNavigateToHighlight = { currentRoute = Route.Highlight },
+                onBoundsCalculated = { step, bounds -> }
+            )
         }
         Route.Insights -> {
             InsightsHostScreen(

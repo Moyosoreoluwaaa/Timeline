@@ -14,7 +14,11 @@ import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
 
 @Composable
-internal fun SettingsFooter(modifier: Modifier = Modifier) {
+internal fun SettingsFooter(
+    modifier: Modifier = Modifier,
+    version: String? = null
+) {
+    val displayVersion = if (!version.isNullOrBlank()) version else AppStrings.SettingsAppVersionValue
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -22,7 +26,7 @@ internal fun SettingsFooter(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = AppStrings.CommonVersion.replace("%s", AppStrings.SettingsAppVersionValue),
+            text = AppStrings.CommonVersion.replace("%s", displayVersion),
             style = MaterialTheme.typography.labelMedium
         )
         Spacer(modifier = Modifier.height(Dimensions.Quat))

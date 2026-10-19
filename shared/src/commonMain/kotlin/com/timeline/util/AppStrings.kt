@@ -4,132 +4,42 @@ object AppStrings {
     const val AppName = "Timeline"
 
     // Auth Screen
-    const val AuthWelcomeTitle = "Welcome to $AppName"
-    const val AuthWelcomeSubtitle = "Turn your app usage into clarity."
     const val AuthSignInGoogle = "Sign in with Google"
-    const val AuthSignInApple = "Sign in with Apple"
-    const val AuthOr = "or"
-    const val AuthEmailPlaceholder = "Email address"
     const val AuthDontHaveAccount = "Don't have an account?"
     const val AuthSignInWithGoogleLink = "Sign in with Google"
 
     // Onboarding Intro
     const val OnboardingWelcomeTitle = "Welcome to $AppName"
-    const val OnboardingWelcomeSubtitle = "A private timeline of your phone activity—so you can understand your time, not lose it."
-    const val OnboardingValuePropTitle = "We build your activity timeline"
-    const val OnboardingValuePropSubtitle = "Timeline quietly records when you use apps so we can show you a clear, honest view of your day."
-    const val OnboardingOverviewTitle = "To make this work, we need 3 permissions"
-    const val OnboardingOverviewSubtitle = "These let Timeline run in the background and keep your data accurate and private."
-
-    // Onboarding Mode Selection & Value Props
-    const val OnboardingModeTitle = "Choose your tracking experience"
-    const val OnboardingModeSubtitle = "Select the depth of timeline clarity and background automation you want."
-    const val OnboardingProModeTitle = "Timeline Pro (Full Automation)"
-    const val OnboardingProModeDesc = "Automatic screen capture and text recognition for high-fidelity timeline recall."
-    const val OnboardingProModeButton = "Select Pro Experience"
-    const val OnboardingProModeBadge = "RECOMMENDED"
-    const val OnboardingBasicModeTitle = "Basic Tracking (Usage Stats)"
-    const val OnboardingBasicModeDesc = "App launch frequency and usage duration tracking without screenshot captures."
-    const val OnboardingBasicModeButton = "Select Basic Experience"
-
-    const val OnboardingValueProp1Title = "On-Device & Private"
-    const val OnboardingValueProp1Desc = "Everything stays on your phone. We never sell or share your activity data."
-    const val OnboardingValueProp2Title = "Smart Reasoning Narratives"
-    const val OnboardingValueProp2Desc = "Understand where your time went with concise, meaningful activity summaries."
 
     const val OnboardingStackTitle = "Permissions Setup"
     const val OnboardingStackSubtitle = "Enable permissions to activate your automated timeline."
 
     // Accessibility Flow
-    const val OnboardingAccessibilityIntroTitle = "Accessibility is required to build your timeline"
-    const val OnboardingAccessibilityIntro1 = "See when you open or switch apps so we can record activity accurately."
-    const val OnboardingAccessibilityIntro2 = "Understand what's on your screen to group and label your activity."
-    const val OnboardingAccessibilityIntro3 = "Run in the background to keep your timeline complete."
-    const val OnboardingAccessibilityIntroFooter = "Your data stays on your device. We never collect, share, or sell your information."
-
-    const val OnboardingAccessibilityGrantTitle = "Accessibility access"
-    const val OnboardingAccessibilityGrantSubtitle = "Lets Timeline observe what you're doing on your device so we can build an accurate timeline."
-
-    const val OnboardingAccessibilitySuccessTitle = "Nice! Accessibility access is enabled"
-    const val OnboardingAccessibilitySuccessSubtitle = "Timeline can now build a more accurate activity timeline."
-
-    const val OnboardingAccessibilityFailureTitle = "Accessibility access not granted yet"
-    const val OnboardingAccessibilityFailureSubtitle = "You can still use Timeline, but your timeline may be incomplete or less accurate."
 
     // Usage Flow
-    const val OnboardingUsageIntroTitle = "We need to see app usage"
-    const val OnboardingUsageIntroSubtitle = "Usage access helps Timeline understand which apps you use and when."
-    const val OnboardingUsageIntro1 = "See which apps you use and how long."
-    const val OnboardingUsageIntro2 = "Build daily and weekly insights from your activity."
-    const val OnboardingUsageIntro3 = "Everything stays private and on your device."
-    const val OnboardingUsageIntro4 = "We don't access content. We only collect app names and usage time."
-
-    const val OnboardingUsageGrantTitle = "App Usage access"
-    const val OnboardingUsageGrantSubtitle = "Lets Timeline see which apps you use and for how long."
-
-    const val OnboardingUsageSuccessTitle = "Nice! Usage access is enabled"
-    const val OnboardingUsageSuccessSubtitle = "Timeline can now see which apps you use and how long."
-
-    const val OnboardingUsageFailureTitle = "Usage access not granted yet"
-    const val OnboardingUsageFailureSubtitle = "You can still continue, but Timeline won't be able to show app usage or insights."
 
     // Notifications Flow
-    const val OnboardingNotificationsIntroTitle = "Stay informed"
-    const val OnboardingNotificationsIntroSubtitle = "Notifications keep Timeline running in the background."
-    const val OnboardingNotificationsIntro1 = "Reminds you about your day with smart summaries."
-    const val OnboardingNotificationsIntro2 = "Keeps your timeline up to date even when the app is in the background."
-    const val OnboardingNotificationsIntro3 = "You're in control. You can turn off notifications anytime."
-
-    const val OnboardingNotificationsGrantTitle = "Notifications"
-    const val OnboardingNotificationsGrantSubtitle = "Keeps Timeline running in the background and reminds you about your day."
 
     // Final Step
-    const val OnboardingAllSetTitle = "All set! Timeline is ready"
-    const val OnboardingAllSetSubtitle = "We'll start building your timeline in the background."
-    const val OnboardingAllSet1 = "Private by default"
-    const val OnboardingAllSet2 = "On your device"
-    const val OnboardingAllSet3 = "You're in control"
 
     // Buttons
     const val ButtonNext = "Next"
     const val ButtonGrantAccess = "Grant Access"
-    const val ButtonEnable = "Enable"
     const val ButtonContinue = "Continue"
-    const val ButtonTryAgain = "Try Again"
-    const val ButtonNotNow = "Not now"
-    const val ButtonMaybeLater = "Maybe later"
-    const val ButtonOpenTimeline = "Open Timeline"
-    const val ButtonUnderstandContinue = "I Understand & Continue"
-    const val ButtonOpenSettings = "Open Settings"
-    const val ButtonContinueSettings = "Continue to Settings"
     const val ButtonAlreadyGranted = "Already Granted"
-    const val ButtonSkipForNow = "Skip for Now"
-    const val ButtonCancel = "Cancel"
 
     // Legacy / Other
-    const val PermissionAllSetTitle = "You're all set!"
-    const val PermissionAlmostThereTitle = "Almost there..."
-    const val PermissionAllSetSubtitle = "Everything is ready for your timeline."
-    const val PermissionAlmostThereSubtitle = "To show you real insights, we need access to how you use your apps."
-    const val PermissionAllowButton = "Allow Access"
-    const val PermissionNotNowButton = "Not Now"
 
     // Permission Details
     const val PermissionUsageTitle = "Usage access"
     const val PermissionUsageDesc = "Analyze how you spend time."
     const val PermissionUsageIllustration = "illustrations/usage_access.png"
-    const val PermissionOverlayTitle = "Display over other apps"
-    const val PermissionOverlayDesc = "Enable background screen capture support."
-    const val PermissionOverlayIllustration = "illustrations/overlay.png"
     const val PermissionNotificationsTitle = "Notifications"
-    const val PermissionNotificationsDesc = "Deliver important alerts and reminders."
+    const val PermissionNotificationsDesc = "So we can tell you when your highlight is ready."
     const val PermissionNotificationsIllustration = "illustrations/notifications.png"
     const val PermissionAccessibilityTitle = "Accessibility Service"
-    const val PermissionAccessibilityDesc = "Powers advanced automated activity tracking."
+    const val PermissionAccessibilityDesc = "Lets Timeline see which app is open. It never reads what you type."
     const val PermissionAccessibilityIllustration = "illustrations/accessibility.png"
-    const val PermissionBatteryTitle = "Battery Optimization"
-    const val PermissionBatteryDesc = "Prevents background service interruptions."
-    const val PermissionBatteryIllustration = "illustrations/battery.png"
 
     // Intro carousel
     const val IntroPage1Title    = "Where did your day go?"
@@ -151,10 +61,7 @@ object AppStrings {
 
     // Timeline Screen
     const val TimelineTitle = "Timeline"
-    const val TimelineToday = "Today"
-    const val TimelineTimeOfDay = "Time of Day"
-    const val TimelineSettings = "Settings"
-    const val TimelineNoActivity = "Oops no snapshots yet, check back later."
+    const val TimelineNoActivity = "Nothing captured yet. Use your phone as usual and your first story arrives at 12 PM."
     const val TimelineTotalUsage = "Total usage"
     const val TimelineSessionsCount = "Sessions"
     const val TimelineMostUsed = "Most used"
@@ -168,18 +75,11 @@ object AppStrings {
 
     // Highlight Screen
     const val HighlightTitle = "Highlight"
-    const val HighlightSample = "Sample"
     const val HighlightPickDate = "Pick Date"
-    const val HighlightAnalyzing = "Analyzing..."
     const val HighlightTags = "Tags"
     const val HighlightContentStarts = "Content Starts"
     const val HighlightSessionEnds = "Session Ends"
     const val HighlightNoHighlights = "No Highlights Yet"
-    const val HighlightEmptyStateDesc = "As you use apps, screenshots are captured and processed using Google ML Kit to extract text (OCR) and recognize visual elements."
-    const val HighlightTryDemo = "Try Demo Highlight"
-    const val HighlightAllApps = "All Apps"
-    const val HighlightTapToAnalyze = "Background analysis active..."
-    const val HighlightWaiting = "Waiting for analysis..."
     const val HighlightCopied = "Copied to clipboard"
     const val HighlightSmartActive = "Active (Starburst)"
     const val HighlightPenToggle = "Pen (Toggle Reasoning)"
@@ -210,18 +110,19 @@ object AppStrings {
     const val HighlightReasoningDots = "Reasoning..."
     const val HighlightAgentSynthesis = "AI Synthesis"
 
+    /** Step messages shown in ArcHighlightLoadingScreen while the highlight is being built. */
+    val HighlightLoadingSteps = listOf(
+        "Scanning your sessions",
+        "Reading what you worked on",
+        "Grouping your app switches",
+        "Pulling out the key moments",
+        "Writing your highlight"
+    )
+
     // Real Data & Device Sync
-    const val RealDataSyncTitle = "Sync Device Usage"
-    const val RealDataSyncDesc = "Sync real app activity from your device"
     const val RealDataSyncButton = "Sync Real Data"
     const val RealDataPermissionBannerTitle = "Usage Access Required"
     const val RealDataPermissionBannerDesc = "Grant Usage Access so Timeline can track and analyze your real device app activity."
-    const val RealDataGrantButton = "Grant Usage Access"
-    const val RealDataSyncing = "Syncing device usage..."
-    const val RealDataSyncedSuccess = "Synced %d real sessions from your device"
-    const val RealDataNoActivityYet = "No real device activity recorded yet today. Open some apps on your device and tap Sync!"
-    const val RealDataActiveTrackingNotice = "Live tracking is active. Real usage will update continuously."
-
     // Insights Dashboard
     const val InsightsOverview = "Overview"
     const val InsightsApps = "Apps"
@@ -229,11 +130,8 @@ object AppStrings {
     const val InsightsPatterns = "Patterns"
     const val InsightsUsageUp = "Your usage is up"
     const val InsightsUsageDown = "Your usage is down"
-    const val InsightsVsPrevious = "vs previous 7 days"
-    const val InsightsBiggestPattern = "Your biggest pattern"
     const val InsightsMostUsedApp = "Most used app"
     const val InsightsMostActiveDay = "Most active day"
-    const val InsightsWhereTimeGoes = "WHERE YOUR TIME GOES"
     const val InsightsTopAppsDesc = "Here are your top apps by usage."
     const val InsightsSeeAllApps = "See all %d apps"
     const val InsightsUsageTrend = "USAGE TREND"
@@ -254,9 +152,6 @@ object AppStrings {
     const val SessionStarted = "Started"
     const val SessionEnded = "Ended"
     const val SessionDuration = "Duration"
-    const val SessionCount = "%d %s"
-    const val SessionCountSingle = "session"
-    const val SessionCountPlural = "sessions"
     const val SessionPrev = "Prev"
     const val SessionNext = "Next"
     const val SessionNoScreenshots = "No screenshots available"
@@ -265,35 +160,20 @@ object AppStrings {
     const val SettingsTitle = "Settings"
     const val SettingsCategoryPreference = "PREFERENCE"
     const val SettingsCategoryTracking = "TRACKING"
-    const val SettingsCategoryCapture = "CAPTURE"
-    const val SettingsCategoryPermissions = "PERMISSIONS"
     const val SettingsCategoryData = "DATA"
-    const val SettingsCategoryAbout = "ABOUT"
     const val SettingsCategorySupport = "SUPPORT"
     const val SettingsHighlightsReasoning = "Highlights & Reasoning"
     const val SettingsManageSubscription = "Manage Subscription"
-    const val SettingsUsageTrackingTitle = "Log App Interaction"
-    const val SettingsUsageTrackingDesc = "Record app interaction."
-    const val SettingsScreenshotCaptureTitle = "Screenshot Capture"
-    const val SettingsScreenshotCaptureDesc = "Save snapshots during sessions."
-    const val SettingsAppExclusionsTitle = "Manage App Exclusion"
-    const val SettingsAppExclusionsDesc = "Manage excluded apps."
-    const val SettingsExclusionTrialOrPro = "Unlock with Trial or Pro"
-    const val SettingsDataRetentionTitle = "Adjust Data Retention"
-    const val SettingsDataRetentionDesc = "Keep data for %d days"
-    const val SettingsDataRetentionSelect = "Select retention period"
-    const val SettingsScheduleFrequency = "Schedule and Frequency"
+    const val SettingsUsageTrackingTitle = "Track app usage"
+    const val SettingsScreenshotCaptureTitle = "Capture screens"
+    const val SettingsAppExclusionsTitle = "Excluded apps"
+    const val SettingsDataRetentionTitle = "Data retention"
     const val SettingsReasoningMode = "Reasoning Mode"
     const val SettingsFrequencyLabel = "%d times daily"
     const val SettingsDaysLabel = "%d days"
-    const val SettingsAboutTimelineTitle = "About the $AppName app"
-    const val SettingsAboutTimelineDesc = "Learn more about the application."
-    const val SettingsAppVersionTitle = "Application version"
     const val SettingsAppVersionValue = "1.0.0 (9) - Stable"
     const val SettingsContactUsTitle = "Contact Support"
-    const val SettingsContactUsDesc = "Need help? Reach out to us."
     const val SettingsReportBugsTitle = "Report a bug"
-    const val SettingsReportBugsDesc = "Found an issue? Let us know."
     const val SettingsUpgradeTitle = "You're a free user, get more"
     const val SettingsMadeByMo = "Made with ❤ by Mo"
     const val SettingsAccountOptions = "Account Options"
@@ -320,7 +200,7 @@ object AppStrings {
     const val PaywallMonthlyPrice = "$3.99 / month"
     const val PaywallUnlimitedHistory = "Unlimited history"
     const val PaywallDailyMonthlyDigest = "Daily & monthly digest"
-    const val PaywallAdvancedInsights = "Advanced insights"
+    const val PaywallAdvancedInsights = "Advanced insights & trends"
     const val PaywallPrioritySupport = "Priority support"
     const val PaywallMonthlyOption = "Monthly"
     const val PaywallMonthlyBilling = "$3.99 / billed monthly"
@@ -332,30 +212,18 @@ object AppStrings {
     const val PaywallRestorePurchases = "Restore Purchases"
     const val PaywallPrivacyPolicy = "Privacy Policy"
     const val PaywallTermsOfUse = "Terms of Use"
+    // Style-specific headlines (previously hardcoded in each style file)
+    const val PaywallFeatureGridTitle = "See everything, all the time."
+    const val PaywallFeatureGridSubtitle = "Everything you need to understand your habits."
+    const val PaywallComparisonTitle = "Free vs PRO."
+    const val PaywallComparisonSubtitle = "See exactly what you unlock."
 
     // Accessibility / Content Descriptions
     const val ContentDescClose = "Close"
     const val ContentDescBack = "Back"
-    const val ContentDescSettings = "Settings"
-    const val ContentDescExpand = "Expand"
-    const val ContentDescCollapse = "Collapse"
     const val ContentDescPrevSession = "Previous Session"
     const val ContentDescNextSession = "Next Session"
-    const val ContentDescAppIcon = "App Icon"
-    const val ContentDescScreenshot = "Screenshot"
     const val ContentDescSessionSegment = "Session segment"
 
     // Permission Screen
-    const val PermissionModeTitle = "How would you prefer to see your highlights?"
-    const val PermissionModeSubtitle = "Choose your preferred highlight style and frequency."
-    const val PermissionModeConciseBrief = "Brief summary: Focused check-ins & peak productivity."
-    const val PermissionModeDetailedBrief = "Comprehensive breakdown: Active digital workflows across apps."
-    const val PermissionModeBalancedBrief = "Balanced daily narrative and smart summaries."
-    const val PermissionModeBalanced = "Balanced"
-    const val PermissionModeConcise = "Concise"
-    const val PermissionModeDetailedPro = "Explanatory"
-    const val PermissionTimingTitle = "Highlight Timing"
-    const val PermissionConfirmStart = "Confirm"
-    const val PermissionAccessibilityPrivacy = "Accessibility & Privacy"
-    const val PermissionAccessibilityPrivacyDesc = "Timeline uses Accessibility to detect app switches and capture visual context for your daily highlights. Data processing happens on-device and through secure cloud services to improve app functionality and deliver the best highlights."
 }

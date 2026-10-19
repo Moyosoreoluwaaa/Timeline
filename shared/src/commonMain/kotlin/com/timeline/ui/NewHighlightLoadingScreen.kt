@@ -51,8 +51,8 @@ fun NewHighlightLoadingScreen(
             ) {
                 FlatCircularCardsSpinner(
                     itemCount = 10,
-                    cardSize = 72.dp,
-                    radius = 120.dp,
+                    cardSize = 92.dp,
+                    radius = 135.dp,
                     rotationDurationMs = 20000
                 ) { index ->
                     Card(
@@ -92,28 +92,20 @@ fun NewHighlightLoadingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(44.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Animated Text preserved from the previous loading logic
-            FadingWordText(
-                text = "Your daily narrative got a major upgrade",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                delayBetweenWords = 130L,
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(bottom = 12.dp)
-            )
+//            FadingWordText(
+//                text = "Your daily narrative got a major upgrade",
+//                style = MaterialTheme.typography.headlineLarge,
+//                fontWeight = FontWeight.ExtraBold,
+//                color = MaterialTheme.colorScheme.onSurface,
+//                delayBetweenWords = 130L,
+//                modifier = Modifier
+//                    .fillMaxWidth(0.9f)
+//                    .padding(bottom = 12.dp)
+//            )
 
-            FadingWordText(
-                text = "Higher-quality reasoning, faster generation, and smarter creative insights",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                delayBetweenWords = 100L,
-                modifier = Modifier.fillMaxWidth(0.8f)
-            )
         }
     }
 }

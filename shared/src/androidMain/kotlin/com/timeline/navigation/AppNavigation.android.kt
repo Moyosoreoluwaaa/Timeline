@@ -44,7 +44,6 @@ import com.timeline.ui.components.SubscriptionBanner
 import com.timeline.ui.paywall.NewPaywallScreen
 import com.timeline.ui.paywall.NewPaywallStyle
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.time.Duration.Companion.milliseconds
@@ -310,119 +309,30 @@ actual fun AppNavigation(
                                         }
                                     }
 
-                                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(initialPage = 1) { 3 }
-                                    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
-
-                                    LaunchedEffect(pagerState) {
-                                        androidx.compose.runtime.snapshotFlow { pagerState.currentPage }.collect { page ->
-                                            val screenName = when (page) {
-                                                0 -> "highlights"
-                                                1 -> "timeline"
-                                                2 -> "settings"
-                                                else -> "timeline"
+                                    AppRootContainer(
+                                        timelineViewModel = timelineViewModel,
+                                        tutorialViewModel = tutorialViewModel,
+                                        onNavigateToSettings = {
+                                            if (tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_SETTINGS_ICON) {
+                                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                            } else {
+                                                backStack.add(Route.Settings)
                                             }
+                                        },
+                                        onNavigateToHighlight = {
                                             analytics.log(
-                                                com.timeline.analytics.AnalyticsEvents.SCREEN_VIEW,
-                                                mapOf(com.timeline.analytics.AnalyticsParams.SCREEN_NAME to screenName)
+                                                com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_OPENED,
+                                                mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to "summary_bar")
                                             )
-                                        }
-                                    }
-
-                                    // Same as the top-level collector above: only
-                                    // screen navigation is handled here now.
-                                    LaunchedEffect(tutorialViewModel, pagerState) {
-                                        tutorialViewModel.effects.collect { effect ->
-                                            when (effect) {
-                                                is com.timeline.tutorial.TutorialEffect.NavigateToScreen -> {
-                                                    when (effect.screen) {
-                                                        TIMELINE -> {
-                                                            pagerState.animateScrollToPage(1)
-                                                        }
-                                                        HIGHLIGHT -> {
-                                                            pagerState.animateScrollToPage(0)
-                                                        }
-                                                        SETTINGS -> {
-                                                            pagerState.animateScrollToPage(2)
-                                                        }
-                                                        PAYWALL -> {
-                                                            if (backStack.lastOrNull() !is Route.Paywall) {
-                                                                backStack.add(Route.Paywall(source = "onboarding"))
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                            backStack.add(Route.Highlight)
+                                        },
+                                        subscriptionBanner = subscriptionBanner,
+                                        onNavigateToPaywall = {
+                                            if (backStack.lastOrNull() !is Route.Paywall) {
+                                                backStack.add(Route.Paywall(source = "locked_feature"))
                                             }
                                         }
-                                    }
-
-                                    androidx.compose.foundation.pager.HorizontalPager(
-                                        state = pagerState,
-                                        modifier = Modifier.fillMaxSize()
-                                    ) { page ->
-                                        when (page) {
-                                            0 -> {
-                                                com.timeline.ui.SimplifiedHighlightScreen(
-                                                    viewModel = simplifiedHighlightViewModel,
-                                                    tutorialViewModel = tutorialViewModel,
-                                                    onNavigateBack = {
-                                                        coroutineScope.launch {
-                                                            pagerState.animateScrollToPage(1)
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                            1 -> {
-                                                AppRootContainer(
-                                                    timelineViewModel = timelineViewModel,
-                                                    tutorialViewModel = tutorialViewModel,
-                                                    onNavigateToSettings = {
-                                                        if (tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_SETTINGS_ICON) {
-                                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                                        } else {
-                                                            coroutineScope.launch {
-                                                                pagerState.animateScrollToPage(2)
-                                                            }
-                                                        }
-                                                    },
-                                                    onNavigateToHighlight = {
-                                                        analytics.log(
-                                                            com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_OPENED,
-                                                            mapOf(com.timeline.analytics.AnalyticsParams.SOURCE to "summary_bar")
-                                                        )
-                                                        coroutineScope.launch {
-                                                            pagerState.animateScrollToPage(0)
-                                                        }
-                                                    },
-                                                    subscriptionBanner = subscriptionBanner,
-                                                    onNavigateToPaywall = {
-                                                        if (backStack.lastOrNull() !is Route.Paywall) {
-                                                            backStack.add(Route.Paywall(source = "locked_feature"))
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                            2 -> {
-                                                SettingsScreen(
-                                                    viewModel = settingsViewModel,
-                                                    tutorialViewModel = tutorialViewModel,
-                                                    onNavigateToPaywall = { isDeals ->
-                                                        backStack.add(Route.Paywall(isDealsVariant = isDeals, source = "settings"))
-                                                    },
-                                                    onNavigateToCustomerCenter = {
-                                                        backStack.add(Route.CustomerCenter)
-                                                    },
-                                                    onNavigateToAuth = {
-                                                        backStack.add(Route.Auth)
-                                                    },
-                                                    onBack = {
-                                                        coroutineScope.launch {
-                                                            pagerState.animateScrollToPage(1)
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
+                                    )
                                 }
 
                                  is Route.HighlightLoading -> {

@@ -4,6 +4,7 @@ interface AppInfoProvider {
     suspend fun getAppName(packageName: String): String
     suspend fun getAppIcon(packageName: String): Any? // Platform specific icon
     suspend fun getInstalledApps(): List<AppMetadata>
+    fun getAppVersionName(): String = "1.0.0"
 }
 
 data class AppMetadata(
