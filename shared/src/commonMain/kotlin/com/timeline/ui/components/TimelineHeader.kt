@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -139,7 +140,7 @@ fun TimelineHeader(
                 )
             ) {
                 Icon(
-                    imageVector = if (isSettingsActive) Icons.Filled.Settings else Icons.Outlined.Settings,
+                    imageVector = if (isSettingsActive) Icons.Filled.Settings else Icons.Outlined.Tune,
                     contentDescription = "Settings"
                 )
             }
@@ -189,6 +190,7 @@ fun TimelineFilterSection(
                 selected = selectedFilter == filter,
                 onClick = { onFilterSelected(filter) },
                 label = { Text(filter.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                shape = com.timeline.ui.theme.AppShapes.Pill,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer

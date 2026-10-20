@@ -170,10 +170,10 @@ object AppStrings {
 
     // Settings
     const val SettingsTitle = "Settings"
-    const val SettingsCategoryPreference = "PREFERENCE"
-    const val SettingsCategoryTracking = "TRACKING"
-    const val SettingsCategoryData = "DATA"
-    const val SettingsCategorySupport = "SUPPORT"
+    const val SettingsCategoryPreference = "Preference"
+    const val SettingsCategoryTracking = "Tracking"
+    const val SettingsCategoryData = "Data"
+    const val SettingsCategorySupport = "Support"
     const val SettingsHighlightsReasoning = "Highlights & Reasoning"
     const val SettingsManageSubscription = "Manage Subscription"
     const val SettingsUsageTrackingTitle = "Track app usage"

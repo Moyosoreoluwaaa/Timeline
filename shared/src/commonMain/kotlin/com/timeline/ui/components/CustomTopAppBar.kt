@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -43,7 +44,8 @@ fun CustomTopAppBar(
     expandableContent: (@Composable () -> Unit)? = null
 ) {
     val containerColor = colors.containerColor
-    val bannerState by if (showNetworkBanner) rememberNetworkBannerState(subscriptionBanner)
+    var isProBannerDismissed by remember { mutableStateOf(false) }
+    val bannerState by if (showNetworkBanner) rememberNetworkBannerState(subscriptionBanner, isProBannerDismissed)
     else remember { mutableStateOf(BannerState.Hidden) }
 
     // Banner already consumed the status bar inset, so don't apply it twice
@@ -71,7 +73,8 @@ fun CustomTopAppBar(
             NetworkStatusBanner(
                 state = bannerState,
                 cutoutRadius = cutoutRadius,
-                onProPlanClick = onProPlanClick
+                onProPlanClick = onProPlanClick,
+                onDismissProPlan = { isProBannerDismissed = true }
             )
 
             TopAppBar(

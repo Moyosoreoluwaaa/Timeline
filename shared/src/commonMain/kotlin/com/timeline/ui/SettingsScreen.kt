@@ -43,6 +43,7 @@ fun SettingsScreen(
     var showExclusionsSheet by remember { mutableStateOf(false) }
     var showRetentionSheet by remember { mutableStateOf(false) }
     var showBugReportSheet by remember { mutableStateOf(false) }
+    var showAboutSheet by remember { mutableStateOf(false) }
 
     val launchEmail = rememberEmailLauncher()
 
@@ -106,9 +107,11 @@ fun SettingsScreen(
         topBar = {
             SettingsTopBar(
                 isLoggedIn = state.isLoggedIn,
+                isPro = state.isPro,
                 onBack = onBack,
                 onNavigateToAuth = onNavigateToAuth,
                 onLogout = { viewModel.onEvent(SettingsEvent.Logout) },
+                onOpenAbout = { showAboutSheet = true },
                 scrollBehavior = scrollBehavior
             )
         }
@@ -134,6 +137,14 @@ fun SettingsScreen(
 
         // --- Bottom Sheets ---
 
+        if (showAboutSheet) {
+            com.timeline.ui.settings.AboutSheet(
+                version = state.appVersion,
+                onDismiss = { showAboutSheet = false },
+                onContactSupport = { launchEmail("moyokamaal@gmail.com", "Timeline App Support", "") }
+            )
+        }
+
         if (showBugReportSheet) {
             com.timeline.ui.settings.BugReportSheet(
                 onDismiss = { showBugReportSheet = false },
@@ -151,11 +162,14 @@ fun SettingsScreen(
             com.timeline.ui.settings.ReasoningModeSheet(
                 selectedMode = state.highlightReasoningMode,
                 digestFrequency = state.digestFrequency,
+                isPro = state.isPro,
+                isTrialActive = state.trialStatus == com.timeline.domain.model.TrialStatus.ACTIVE,
                 tutorialStep = tutorialState.currentStep,
                 tutorialViewModel = tutorialViewModel,
                 onDismiss = { showReasoningSheet = false },
                 onSelectMode = { mode -> viewModel.onEvent(SettingsEvent.SetReasoningMode(mode)) },
-                onFrequencyChange = { freq -> viewModel.onEvent(SettingsEvent.SetDigestFrequency(freq)) }
+                onFrequencyChange = { freq -> viewModel.onEvent(SettingsEvent.SetDigestFrequency(freq)) },
+                onNavigateToPaywall = { onNavigateToPaywall(false) }
             )
         }
 

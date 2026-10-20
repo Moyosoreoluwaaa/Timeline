@@ -81,7 +81,7 @@ actual fun AppNavigation(
                 viewModel = paywallViewModel,
                 style = if ((currentRoute as Route.Paywall).isDealsVariant) NewPaywallStyle.LimitedOffer else NewPaywallStyle.Classic,
                 onDismiss = { currentRoute = Route.Timeline },
-                onPurchaseSuccess = { currentRoute = Route.Timeline }
+                onPurchaseSuccess = { _ -> currentRoute = Route.Timeline }
             )
         }
         else -> {}

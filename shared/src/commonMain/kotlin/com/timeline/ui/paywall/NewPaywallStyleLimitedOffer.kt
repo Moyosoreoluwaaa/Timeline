@@ -47,7 +47,7 @@ fun NewPaywallStyleLimitedOffer(
                 .padding(Dimensions.PaddingLarge),
             horizontalAlignment = Alignment.Start
         ) {
-            NewPaywallTopBar(onClose = onDismiss, contentColor = Color(0xFF1A1208))
+            NewPaywallTopBar(onClose = onDismiss, onRestore = { onEvent(com.timeline.presentation.PaywallEvent.RestorePurchases) }, contentColor = Color(0xFF1A1208))
             Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
             ProBadge()
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))

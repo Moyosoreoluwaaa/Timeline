@@ -13,7 +13,7 @@ data class SettingsState(
     val isPro: Boolean = false,
     val trialStatus: TrialStatus = TrialStatus.NOT_STARTED,
     val highlightReasoningMode: HighlightReasoningMode = HighlightReasoningMode.BALANCED,
-    val digestFrequency: Int = 3,
+    val digestFrequency: Int = 1,
     val digestHours: List<Int> = listOf(12, 17, 21),
     val appVersion: String = ""
 )

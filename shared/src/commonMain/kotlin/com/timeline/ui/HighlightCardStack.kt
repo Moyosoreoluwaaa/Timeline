@@ -22,6 +22,7 @@ internal fun HighlightCardStack(
     segments: List<HighlightSegment>,
     activeFilter: TimeOfDayFilter,
     onSelectFilter: (TimeOfDayFilter) -> Unit,
+    digestFrequency: Int = 3,
     tutorialStep: TutorialStep? = null,
     onBoundsCalculated: (TutorialStep, Rect) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
@@ -30,11 +31,24 @@ internal fun HighlightCardStack(
         listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.AFTERNOON, TimeOfDayFilter.EVENING)
     }
 
-    val sortedSegments = remember(segments, activeFilter) {
+    // Cap visible cards based on digestFrequency: 1=Evening only, 2=Morning+Evening, 3=All
+    val allowedFilters = remember(digestFrequency) {
+        when (digestFrequency.coerceIn(1, 3)) {
+            1 -> listOf(TimeOfDayFilter.EVENING)
+            2 -> listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.EVENING)
+            else -> listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.AFTERNOON, TimeOfDayFilter.EVENING)
+        }
+    }
+
+    val filteredSegments = remember(segments, allowedFilters) {
+        segments.filter { it.filter in allowedFilters }
+    }
+
+    val sortedSegments = remember(filteredSegments, activeFilter) {
         val active = if (activeFilter == TimeOfDayFilter.ALL) TimeOfDayFilter.EVENING else activeFilter
-        val back = defaultOrder.filter { it != active }
+        val back = defaultOrder.filter { it != active && it in allowedFilters }
         val orderedFilters = back + active
-        orderedFilters.mapNotNull { filter -> segments.find { it.filter == filter } }
+        orderedFilters.mapNotNull { filter -> filteredSegments.find { it.filter == filter } }
     }
 
     Box(

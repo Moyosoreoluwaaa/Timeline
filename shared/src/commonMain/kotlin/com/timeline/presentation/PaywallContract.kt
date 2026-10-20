@@ -23,5 +23,6 @@ sealed interface PaywallEvent {
 
 sealed interface PaywallEffect {
     data object PurchaseSuccess : PaywallEffect
+    data object RestoreSuccess : PaywallEffect
     data class PurchaseError(val error: String) : PaywallEffect
 }

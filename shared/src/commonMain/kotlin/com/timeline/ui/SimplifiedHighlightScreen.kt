@@ -5,13 +5,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +41,8 @@ import com.timeline.tutorial.TutorialViewModel
 import com.timeline.ui.components.CustomTopAppBar
 import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.theme.Dimensions
+import com.timeline.domain.UserPreferences
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -51,10 +56,14 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SimplifiedHighlightScreen(
     viewModel: SimplifiedHighlightViewModel = koinViewModel(),
     tutorialViewModel: TutorialViewModel = koinViewModel(),
+    isPro: Boolean = false,
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
+    val userPreferences: UserPreferences = koinInject()
+    val prefsState by userPreferences.state.collectAsStateWithLifecycle(initialValue = null)
+    val digestFrequency = prefsState?.digestFrequency ?: 1
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -64,15 +73,20 @@ fun SimplifiedHighlightScreen(
         topBar = {
             CustomTopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
+                    val yellowAccent = Color(0xFFFFD54F)
+                    Column {
                         Text(
                             text = "Highlights",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
+                        if (!isPro) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Free Plan",
+                                style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent, fontWeight = FontWeight.Medium)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -115,6 +129,7 @@ fun SimplifiedHighlightScreen(
                         HighlightCardStack(
                             segments = state.segments,
                             activeFilter = state.timeOfDayFilter,
+                            digestFrequency = digestFrequency,
                             onSelectFilter = { filter ->
                                 if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
                                     tutorialViewModel.onEvent(TutorialEvent.NextStep)

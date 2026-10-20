@@ -54,15 +54,7 @@ class SettingsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState(appVersion = appInfoProvider.getAppVersionName()))
 
     private fun calculateTrialStatus(startedAt: Long?): TrialStatus {
-        if (startedAt == null) return TrialStatus.NOT_STARTED
-        val now = Clock.System.now().toEpochMilliseconds()
-        val elapsed = now - startedAt
-        val trialDurationMs = 15L * 60L * 1000L
-        return if (elapsed > trialDurationMs) {
-            TrialStatus.EXPIRED
-        } else {
-            TrialStatus.ACTIVE
-        }
+        return MetricsAggregator.calculateTrialStatus(startedAt)
     }
 
     fun onEvent(event: SettingsEvent) {

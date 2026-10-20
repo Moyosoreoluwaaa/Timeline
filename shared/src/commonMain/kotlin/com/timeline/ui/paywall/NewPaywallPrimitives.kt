@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +74,7 @@ fun NewPaywallGradientBackdrop(
 }
 
 @Composable
-fun NewPaywallTopBar(onClose: () -> Unit, contentColor: Color? = null) {
+fun NewPaywallTopBar(onClose: () -> Unit, onRestore: (() -> Unit)? = null, contentColor: Color? = null) {
     val colors = NewPaywallPalette.colors
     val tint = contentColor ?: colors.onBackground
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -84,12 +85,23 @@ fun NewPaywallTopBar(onClose: () -> Unit, contentColor: Color? = null) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterStart)
         )
-        IconButton(onClick = onClose, modifier = Modifier.align(Alignment.CenterEnd)) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = AppStrings.ContentDescClose,
-                tint = tint
-            )
+        Row(modifier = Modifier.align(Alignment.CenterEnd), verticalAlignment = Alignment.CenterVertically) {
+            if (onRestore != null) {
+                TextButton(onClick = onRestore) {
+                    Text(
+                        text = AppStrings.PaywallRestorePurchases,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tint.copy(alpha = 0.7f)
+                    )
+                }
+            }
+            IconButton(onClick = onClose) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = AppStrings.ContentDescClose,
+                    tint = tint
+                )
+            }
         }
     }
 }
