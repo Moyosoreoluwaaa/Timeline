@@ -41,6 +41,8 @@ import com.timeline.tutorial.TutorialViewModel
 import com.timeline.ui.components.CustomTopAppBar
 import com.timeline.ui.components.TopAppBarCutoutRadius
 import com.timeline.ui.theme.Dimensions
+import com.timeline.domain.UserPreferences
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -54,10 +56,14 @@ import org.koin.compose.viewmodel.koinViewModel
 fun SimplifiedHighlightScreen(
     viewModel: SimplifiedHighlightViewModel = koinViewModel(),
     tutorialViewModel: TutorialViewModel = koinViewModel(),
+    isPro: Boolean = false,
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tutorialState by tutorialViewModel.state.collectAsStateWithLifecycle()
+    val userPreferences: UserPreferences = koinInject()
+    val prefsState by userPreferences.state.collectAsStateWithLifecycle(initialValue = null)
+    val digestFrequency = prefsState?.digestFrequency ?: 1
 
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -74,11 +80,13 @@ fun SimplifiedHighlightScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Free Plan",
-                            style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent, fontWeight = FontWeight.Medium)
-                        )
+                        if (!isPro) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Free Plan",
+                                style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent, fontWeight = FontWeight.Medium)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -121,6 +129,7 @@ fun SimplifiedHighlightScreen(
                         HighlightCardStack(
                             segments = state.segments,
                             activeFilter = state.timeOfDayFilter,
+                            digestFrequency = digestFrequency,
                             onSelectFilter = { filter ->
                                 if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
                                     tutorialViewModel.onEvent(TutorialEvent.NextStep)

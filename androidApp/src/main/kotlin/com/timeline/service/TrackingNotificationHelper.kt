@@ -67,6 +67,31 @@ class TrackingNotificationHelper(private val context: Context) {
         NotificationManagerCompat.from(context).notify(Constants.DIGEST_NOTIFICATION_ID, notification)
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    fun showTrialEndingNotification(daysLeft: Int) {
+        val intent = Intent(context, Class.forName("com.timeline.MainActivity")).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to_paywall", true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 4, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val title = when (daysLeft) {
+            1 -> "Trial ends tomorrow • Last chance to subscribe"
+            else -> "Timeline Pro trial ending in $daysLeft days"
+        }
+        val text = "Your 7-day free trial is almost up. Subscribe to keep full AI insights."
+        val notification = NotificationCompat.Builder(context, Constants.DIGEST_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(R.mipmap.ic_launcher_notification_foreground)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(Constants.TRIAL_ENDING_NOTIFICATION_ID, notification)
+    }
+
     private fun createNotificationChannel() {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         

@@ -107,6 +107,7 @@ fun SettingsScreen(
         topBar = {
             SettingsTopBar(
                 isLoggedIn = state.isLoggedIn,
+                isPro = state.isPro,
                 onBack = onBack,
                 onNavigateToAuth = onNavigateToAuth,
                 onLogout = { viewModel.onEvent(SettingsEvent.Logout) },
@@ -161,11 +162,14 @@ fun SettingsScreen(
             com.timeline.ui.settings.ReasoningModeSheet(
                 selectedMode = state.highlightReasoningMode,
                 digestFrequency = state.digestFrequency,
+                isPro = state.isPro,
+                isTrialActive = state.trialStatus == com.timeline.domain.model.TrialStatus.ACTIVE,
                 tutorialStep = tutorialState.currentStep,
                 tutorialViewModel = tutorialViewModel,
                 onDismiss = { showReasoningSheet = false },
                 onSelectMode = { mode -> viewModel.onEvent(SettingsEvent.SetReasoningMode(mode)) },
-                onFrequencyChange = { freq -> viewModel.onEvent(SettingsEvent.SetDigestFrequency(freq)) }
+                onFrequencyChange = { freq -> viewModel.onEvent(SettingsEvent.SetDigestFrequency(freq)) },
+                onNavigateToPaywall = { onNavigateToPaywall(false) }
             )
         }
 

@@ -35,7 +35,7 @@ data class PreferencesState(
     val isScreenshotCaptureEnabled: Boolean,
     val isAgentReasoningEnabled: Boolean,
     val highlightReasoningMode: HighlightReasoningMode = HighlightReasoningMode.BALANCED,
-    val digestFrequency: Int = 3,
+    val digestFrequency: Int = 1,
     val digestHours: List<Int> = listOf(12, 17, 21),
     val dataRetentionDays: Int,
     val isLoggedIn: Boolean,

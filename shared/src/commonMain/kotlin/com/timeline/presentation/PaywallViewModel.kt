@@ -1,5 +1,7 @@
 package com.timeline.presentation
 
+import com.timeline.domain.revenueCatEntitlementId
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.revenuecat.purchases.kmp.models.Package
@@ -59,16 +61,21 @@ class PaywallViewModel(
         viewModelScope.launch {
             analytics.log(AnalyticsEvents.PURCHASE_STARTED)
             _state.update { it.copy(isLoading = true) }
-            
-            // Simulation: Start trial
-            userPreferences.startTrial(Clock.System.now().toEpochMilliseconds())
-            
             val result = subscriptionManager.purchase(rcPackage)
             _state.update { it.copy(isLoading = false) }
-            result.onSuccess {
-                _effects.send(PaywallEffect.PurchaseSuccess)
+            result.onSuccess { customerInfo ->
+                val hasActiveEntitlements =
+                    customerInfo.entitlements.active.containsKey(com.timeline.domain.revenueCatEntitlementId) ||
+                    customerInfo.entitlements.active.isNotEmpty()
+                if (hasActiveEntitlements) {
+                    // Only mark trial start after a confirmed active entitlement
+                    userPreferences.startTrial(Clock.System.now().toEpochMilliseconds())
+                    _effects.send(PaywallEffect.PurchaseSuccess)
+                } else {
+                    _effects.send(PaywallEffect.PurchaseError("No active subscription detected after purchase."))
+                }
             }.onFailure {
-                _effects.send(PaywallEffect.PurchaseSuccess) // Simulate success for testing
+                _effects.send(PaywallEffect.PurchaseError(it.message ?: "Purchase failed"))
             }
         }
     }
@@ -85,7 +92,11 @@ class PaywallViewModel(
                     AnalyticsEvents.RESTORE_TAPPED,
                     mapOf(AnalyticsParams.RESULT to status)
                 )
-                _effects.send(PaywallEffect.PurchaseSuccess)
+                if (hasActiveEntitlements) {
+                    _effects.send(PaywallEffect.RestoreSuccess)
+                } else {
+                    _effects.send(PaywallEffect.PurchaseError("No active subscription found to restore."))
+                }
             }.onFailure {
                 analytics.log(
                     AnalyticsEvents.RESTORE_TAPPED,

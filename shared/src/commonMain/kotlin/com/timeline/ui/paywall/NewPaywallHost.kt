@@ -23,7 +23,7 @@ fun NewPaywallScreen(
     viewModel: PaywallViewModel,
     style: NewPaywallStyle,
     onDismiss: () -> Unit,
-    onPurchaseSuccess: () -> Unit,
+    onPurchaseSuccess: (isRestored: Boolean) -> Unit,
     darkTheme: Boolean = isSystemInDarkTheme()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -31,7 +31,8 @@ fun NewPaywallScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is PaywallEffect.PurchaseSuccess -> onPurchaseSuccess()
+                is PaywallEffect.PurchaseSuccess -> onPurchaseSuccess(false)
+                is PaywallEffect.RestoreSuccess -> onPurchaseSuccess(true)
                 is PaywallEffect.PurchaseError -> {
                     // Show error
                 }

@@ -37,18 +37,21 @@ internal fun BannerRow(
     onlineMessage: String,
     proPlanMessage: String,
     thankYouMessage: String,
+    trialEndingMessage: String = "Trial ending soon • Manage anytime",
     onDismissProPlan: () -> Unit = {}
 ) {
     val icon = when (state) {
         BannerState.Online -> Icons.Rounded.Wifi
         BannerState.ProPlan -> Icons.Rounded.WorkspacePremium
         BannerState.ThankYou -> Icons.Rounded.Favorite
+        BannerState.TrialEnding -> Icons.Rounded.WorkspacePremium
         else -> Icons.Rounded.CloudOff
     }
     val message = when (state) {
         BannerState.Online -> onlineMessage
         BannerState.ProPlan -> proPlanMessage
         BannerState.ThankYou -> thankYouMessage
+        BannerState.TrialEnding -> trialEndingMessage
         else -> offlineMessage
     }
 
