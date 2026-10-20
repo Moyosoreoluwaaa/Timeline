@@ -33,6 +33,18 @@ class DigestWorker(
         }
 
         val prefs = userPreferences.state.firstOrNull()
+
+        // Fire trial-ending notification if 1-3 days remain
+        val daysLeft = com.timeline.presentation.MetricsAggregator.calculateDaysRemaining(prefs?.trialStartedAt)
+        if (daysLeft in 1..3) {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    applicationContext, android.Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                TrackingNotificationHelper(applicationContext).showTrialEndingNotification(daysLeft)
+            }
+        }
+
         if (prefs?.isAgentReasoningEnabled == false) {
             analytics.log(
                 com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_BATCH_FAILED,

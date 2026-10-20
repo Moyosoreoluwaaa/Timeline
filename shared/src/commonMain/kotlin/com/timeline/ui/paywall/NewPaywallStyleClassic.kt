@@ -40,7 +40,7 @@ fun NewPaywallStyleClassic(
                 .padding(Dimensions.PaddingLarge),
             horizontalAlignment = Alignment.Start
         ) {
-            NewPaywallTopBar(onClose = onDismiss)
+            NewPaywallTopBar(onClose = onDismiss, onRestore = { onEvent(com.timeline.presentation.PaywallEvent.RestorePurchases) })
             Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
             ProBadge()
             Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))

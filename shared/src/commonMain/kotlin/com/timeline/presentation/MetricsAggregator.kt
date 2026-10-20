@@ -15,7 +15,7 @@ import kotlin.time.Instant
 /**
  * Pure aggregation and statistics calculator for device usage sessions.
  */
-internal object MetricsAggregator {
+object MetricsAggregator {
 
     fun filterSessionsByPeriod(sessions: List<Session>, period: MetricsPeriod, offset: Int): List<Session> {
         val now = Clock.System.now()
@@ -102,25 +102,36 @@ internal object MetricsAggregator {
 
     fun String.capitalizeName(): String = this.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 
+    const val TRIAL_DURATION_MS = 7L * 24L * 60L * 60L * 1000L
+
     fun calculateTrialStatus(startedAt: Long?): TrialStatus {
         if (startedAt == null) return TrialStatus.NOT_STARTED
         val now = Clock.System.now().toEpochMilliseconds()
         val elapsed = now - startedAt
-        val trialDurationMs = 4L * 60L * 60L * 1000L
-        return if (elapsed > trialDurationMs) TrialStatus.EXPIRED else TrialStatus.ACTIVE
+        return if (elapsed > TRIAL_DURATION_MS) TrialStatus.EXPIRED else TrialStatus.ACTIVE
+    }
+
+    fun calculateDaysRemaining(startedAt: Long?): Int {
+        if (startedAt == null) return 0
+        val now = Clock.System.now().toEpochMilliseconds()
+        val elapsed = now - startedAt
+        val remainingMs = TRIAL_DURATION_MS - elapsed
+        if (remainingMs <= 0) return 0
+        return ((remainingMs + 86400000L - 1) / 86400000L).toInt()
     }
 
     fun calculateRemainingTime(startedAt: Long?): String {
         if (startedAt == null) return ""
         val now = Clock.System.now().toEpochMilliseconds()
         val elapsed = now - startedAt
-        val total = 4L * 60L * 60L * 1000L
-        val remaining = total - elapsed
+        val remaining = TRIAL_DURATION_MS - elapsed
         if (remaining <= 0) return "0:00"
         val totalSeconds = remaining / 1000L
-        val hoursPart = totalSeconds / 3600L
+        val daysPart = totalSeconds / 86400L
+        val hoursPart = (totalSeconds % 86400L) / 3600L
         val minutesPart = (totalSeconds % 3600L) / 60L
         val secondsPart = totalSeconds % 60L
+        if (daysPart > 0) return "${daysPart}d ${hoursPart}h"
         if (hoursPart > 0) return "${hoursPart}h ${minutesPart}m"
         return "${minutesPart}:${secondsPart.toString().padStart(2, '0')}"
     }

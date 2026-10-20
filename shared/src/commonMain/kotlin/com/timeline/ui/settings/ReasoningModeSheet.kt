@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -13,6 +14,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.timeline.domain.reasoning.HighlightReasoningMode
 import com.timeline.tutorial.TutorialEvent
@@ -28,11 +30,14 @@ import com.timeline.util.AppStrings
 internal fun ReasoningModeSheet(
     selectedMode: HighlightReasoningMode,
     digestFrequency: Int,
+    isPro: Boolean = false,
+    isTrialActive: Boolean = false,
     tutorialStep: TutorialStep,
     tutorialViewModel: TutorialViewModel,
     onDismiss: () -> Unit,
     onSelectMode: (HighlightReasoningMode) -> Unit,
-    onFrequencyChange: (Int) -> Unit
+    onFrequencyChange: (Int) -> Unit,
+    onNavigateToPaywall: (() -> Unit)? = null
 ) {
     ModalBottomSheet(
         onDismissRequest = {
@@ -53,7 +58,18 @@ internal fun ReasoningModeSheet(
                     }
                 )
         ) {
+            val isLocked = !isPro && !isTrialActive
             Text(AppStrings.SettingsReasoningMode, style = MaterialTheme.typography.titleLarge)
+            if (isLocked && onNavigateToPaywall != null) {
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+                Button(
+                    onClick = onNavigateToPaywall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(AppStrings.SettingsUnlockPro)
+                }
+                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
+            }
             HighlightReasoningMode.entries.forEach { mode ->
                 ListItem(
                     headlineContent = { Text(mode.displayName) },
@@ -64,7 +80,7 @@ internal fun ReasoningModeSheet(
                         )
                     },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.clickable(enabled = !isLocked) {
                         onSelectMode(mode)
                         if (tutorialStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
                             tutorialViewModel.onEvent(TutorialEvent.NextStep)
@@ -79,10 +95,10 @@ internal fun ReasoningModeSheet(
                     style = MaterialTheme.typography.titleLarge
                 )
                 ValueSlider(
-                    value = digestFrequency.toFloat(),
-                    onValueChange = { onFrequencyChange(it.toInt()) },
-                    valueRange = 1f..6f,
-                    steps = 5,
+                    value = digestFrequency.coerceIn(1, 3).toFloat(),
+                    onValueChange = { if (!isLocked) onFrequencyChange(it.toInt()) },
+                    valueRange = 1f..3f,
+                    steps = 1,
                     label = { "" }
                 )
             }

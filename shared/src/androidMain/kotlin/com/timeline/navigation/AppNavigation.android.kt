@@ -44,7 +44,9 @@ import com.timeline.ui.LocalSharedTransitionScope
 import com.timeline.ui.PermissionScreen
 import com.timeline.ui.SettingsScreen
 import com.timeline.ui.components.SubscriptionBanner
+import com.timeline.presentation.MetricsAggregator
 import com.timeline.ui.paywall.NewPaywallScreen
+import com.timeline.ui.paywall.SubscriptionSuccessDialog
 import com.timeline.ui.paywall.NewPaywallStyle
 import kotlinx.coroutines.flow.firstOrNull
 import org.koin.compose.koinInject
@@ -121,6 +123,8 @@ actual fun AppNavigation(
     // changes: after a purchase the paywall pops and Timeline is composed from scratch,
     // which would otherwise lose the "just subscribed" moment.
     var showThankYou by remember { mutableStateOf(false) }
+    var showSubscriptionSuccessModal by remember { mutableStateOf(false) }
+    var isSubscriptionRestoredModal by remember { mutableStateOf(false) }
     LaunchedEffect(isPro, customerInfo != null) {
         if (isPro && customerInfo != null) {
             showThankYou = true
@@ -128,9 +132,15 @@ actual fun AppNavigation(
             showThankYou = false
         }
     }
+    val trialDaysRemaining = remember(prefsState?.trialStartedAt) {
+        MetricsAggregator.calculateDaysRemaining(prefsState?.trialStartedAt)
+    }
     val subscriptionBanner = when {
         customerInfo == null -> SubscriptionBanner.None // RevenueCat hasn't answered yet
         isPro -> if (showThankYou) SubscriptionBanner.ThankYou else SubscriptionBanner.None
+        trialDaysRemaining == 1 -> SubscriptionBanner.TrialEnding1
+        trialDaysRemaining == 2 -> SubscriptionBanner.TrialEnding2
+        trialDaysRemaining == 3 -> SubscriptionBanner.TrialEnding3
         else -> SubscriptionBanner.Upgrade
     }
 
@@ -379,6 +389,7 @@ actual fun AppNavigation(
                                     com.timeline.ui.SimplifiedHighlightScreen(
                                         viewModel = simplifiedHighlightViewModel,
                                         tutorialViewModel = tutorialViewModel,
+                                        isPro = isPro,
                                         onNavigateBack = {
                                             if (backStack.size > 1) {
                                                 backStack.removeAt(backStack.size - 1)
@@ -433,6 +444,7 @@ actual fun AppNavigation(
                                                 com.timeline.ui.SimplifiedHighlightScreen(
                                                     viewModel = simplifiedHighlightViewModel,
                                                     tutorialViewModel = tutorialViewModel,
+                                                    isPro = isPro,
                                                     onNavigateBack = {
                                                         if (backStack.size > 1) {
                                                             backStack.removeAt(backStack.size - 1)
@@ -511,13 +523,9 @@ actual fun AppNavigation(
                                                 backStack.removeAt(backStack.size - 1)
                                             }
                                         },
-                                        onPurchaseSuccess = {
-                                            // Advance tutorial from PRO_PAYWALL_STEP (triggers 1s COMPLETED delay + navigate to Timeline)
-                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                            // Navigate back to Timeline
-                                            while (backStack.size > 1 && backStack.last() != Route.Timeline) {
-                                                backStack.removeAt(backStack.size - 1)
-                                            }
+                                        onPurchaseSuccess = { isRestored ->
+                                            isSubscriptionRestoredModal = isRestored
+                                            showSubscriptionSuccessModal = true
                                         }
                                     )
                                 }
@@ -526,6 +534,22 @@ actual fun AppNavigation(
                                 is Route.FullScreenImage -> {}
                             }
                         }
+                    }
+
+                    if (showSubscriptionSuccessModal) {
+                        SubscriptionSuccessDialog(
+                            isRestored = isSubscriptionRestoredModal,
+                            onDismiss = {
+                                showSubscriptionSuccessModal = false
+                                if (tutorialState.isActive) {
+                                    // Advance tutorial from PRO_PAYWALL_STEP -> COMPLETED -> Timeline
+                                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                }
+                                while (backStack.size > 1 && backStack.last() != Route.Timeline) {
+                                    backStack.removeAt(backStack.size - 1)
+                                }
+                            }
+                        )
                     }
 
                     com.timeline.tutorial.TutorialShowcaseOverlay(

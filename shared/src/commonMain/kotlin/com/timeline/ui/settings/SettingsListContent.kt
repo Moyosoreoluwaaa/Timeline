@@ -65,9 +65,10 @@ internal fun SettingsListContent(
             bottom = navBarPadding + Dimensions.PaddingExtraLarge
         )
     ) {
-        item { UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) }) }
-
-        item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
+        if (!state.isPro) {
+            item { UpgradeCard(onUpgradeClick = { onNavigateToPaywall(false) }) }
+            item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
+        }
 
         item { SettingCategory(AppStrings.SettingsCategoryPreference) }
         item {

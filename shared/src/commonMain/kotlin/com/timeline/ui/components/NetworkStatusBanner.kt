@@ -63,12 +63,15 @@ private const val ONLINE_BANNER_MS = 3000L
 /** Subscription-related banner requested by the caller (decided above the nav host). */
 enum class SubscriptionBanner {
     None,
-    Upgrade,  // not subscribed: persistent "Go Pro" banner that opens the paywall
-    ThankYou  // just subscribed / subscriber: transient thank-you, never persists
+    Upgrade,       // not subscribed: persistent "Go Pro" banner that opens the paywall
+    ThankYou,      // just subscribed / subscriber: transient thank-you, never persists
+    TrialEnding1,  // 1 day remaining in trial
+    TrialEnding2,  // 2 days remaining in trial
+    TrialEnding3   // 3 days remaining in trial
 }
 
 /** What the banner is actually showing right now. */
-enum class BannerState { Hidden, Offline, Online, ProPlan, ThankYou }
+enum class BannerState { Hidden, Offline, Online, ProPlan, ThankYou, TrialEnding }
 
 /**
  * Drives the banner. Priority: network states (Offline / Online) > ThankYou > Pro plan.
@@ -112,6 +115,11 @@ fun rememberNetworkBannerState(
             when {
                 transient != BannerState.Hidden -> transient
                 subscriptionBanner == SubscriptionBanner.ThankYou -> BannerState.ThankYou
+                subscriptionBanner in listOf(
+                    SubscriptionBanner.TrialEnding1,
+                    SubscriptionBanner.TrialEnding2,
+                    SubscriptionBanner.TrialEnding3
+                ) -> BannerState.TrialEnding
                 subscriptionBanner == SubscriptionBanner.Upgrade && !isProBannerDismissed -> BannerState.ProPlan
                 else -> BannerState.Hidden
             }
@@ -147,6 +155,7 @@ fun NetworkStatusBanner(
             BannerState.Online -> Color(0xFF81C784)
             BannerState.ProPlan -> Color(0xFFFFD54F)
             BannerState.ThankYou -> MaterialTheme.colorScheme.primaryContainer
+            BannerState.TrialEnding -> Color(0xFFFF8F00)
             else -> MaterialTheme.colorScheme.errorContainer
         },
         animationSpec = tween(300),
@@ -157,6 +166,7 @@ fun NetworkStatusBanner(
             BannerState.Online -> Color(0xFF1B5E20)
             BannerState.ProPlan -> Color(0xFF3E2723)
             BannerState.ThankYou -> MaterialTheme.colorScheme.onPrimaryContainer
+            BannerState.TrialEnding -> Color(0xFF1A0A00)
             else -> MaterialTheme.colorScheme.onErrorContainer
         },
         animationSpec = tween(300),
@@ -185,7 +195,7 @@ fun NetworkStatusBanner(
                 label = "BannerContent",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = current == BannerState.ProPlan, onClick = onProPlanClick)
+                    .clickable(enabled = current == BannerState.ProPlan || current == BannerState.TrialEnding, onClick = onProPlanClick)
             ) { content ->
                 BannerRow(
                     state = content,

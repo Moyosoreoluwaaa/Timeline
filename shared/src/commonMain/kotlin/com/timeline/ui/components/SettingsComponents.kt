@@ -56,6 +56,7 @@ import com.timeline.util.AppStrings
 @Composable
 fun SettingsTopBar(
     isLoggedIn: Boolean,
+    isPro: Boolean = false,
     onBack: () -> Unit,
     onNavigateToAuth: () -> Unit,
     onLogout: () -> Unit,
@@ -76,11 +77,13 @@ fun SettingsTopBar(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Free Plan",
-                    style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent, fontWeight = FontWeight.Medium)
-                )
+                if (!isPro) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Free Plan",
+                        style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent, fontWeight = FontWeight.Medium)
+                    )
+                }
             }
         },
         navigationIcon = {
