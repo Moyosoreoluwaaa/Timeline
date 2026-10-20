@@ -43,6 +43,7 @@ fun SettingsScreen(
     var showExclusionsSheet by remember { mutableStateOf(false) }
     var showRetentionSheet by remember { mutableStateOf(false) }
     var showBugReportSheet by remember { mutableStateOf(false) }
+    var showAboutSheet by remember { mutableStateOf(false) }
 
     val launchEmail = rememberEmailLauncher()
 
@@ -109,6 +110,7 @@ fun SettingsScreen(
                 onBack = onBack,
                 onNavigateToAuth = onNavigateToAuth,
                 onLogout = { viewModel.onEvent(SettingsEvent.Logout) },
+                onOpenAbout = { showAboutSheet = true },
                 scrollBehavior = scrollBehavior
             )
         }
@@ -133,6 +135,14 @@ fun SettingsScreen(
 
 
         // --- Bottom Sheets ---
+
+        if (showAboutSheet) {
+            com.timeline.ui.settings.AboutSheet(
+                version = state.appVersion,
+                onDismiss = { showAboutSheet = false },
+                onContactSupport = { launchEmail("moyokamaal@gmail.com", "Timeline App Support", "") }
+            )
+        }
 
         if (showBugReportSheet) {
             com.timeline.ui.settings.BugReportSheet(

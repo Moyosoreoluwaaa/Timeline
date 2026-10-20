@@ -2,21 +2,48 @@ package com.timeline.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.PrivacyTip
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,16 +59,29 @@ fun SettingsTopBar(
     onBack: () -> Unit,
     onNavigateToAuth: () -> Unit,
     onLogout: () -> Unit,
+    onOpenAbout: () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+    val privacyUrl = "https://v0-timeline-app.vercel.app/privacy"
+    val termsUrl = "https://v0-timeline-app.vercel.app/terms"
+    val yellowAccent = Color(0xFFFFD54F)
 
     CustomTopAppBar(
         title = {
-            Text(
-                AppStrings.SettingsTitle, style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            Column {
+                Text(
+                    AppStrings.SettingsTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Free Plan",
+                    style = MaterialTheme.typography.labelMedium.copy(color = yellowAccent, fontWeight = FontWeight.Medium)
+                )
+            }
         },
         navigationIcon = {
             IconButton(
@@ -58,8 +98,8 @@ fun SettingsTopBar(
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = AppStrings.SettingsAccountOptions,
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = "Options",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -67,6 +107,46 @@ fun SettingsTopBar(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false }
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("About") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.Info,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            onOpenAbout()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Terms of Service") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.Description,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            uriHandler.openUri(termsUrl)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Privacy Policy") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Outlined.PrivacyTip,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            showMenu = false
+                            uriHandler.openUri(privacyUrl)
+                        }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     if (isLoggedIn) {
                         DropdownMenuItem(
                             text = { Text(AppStrings.SettingsSignOut) },

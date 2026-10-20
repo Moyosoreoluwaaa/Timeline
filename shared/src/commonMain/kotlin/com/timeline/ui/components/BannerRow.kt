@@ -26,6 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.IconButton
+
 @Composable
 internal fun BannerRow(
     state: BannerState,
@@ -33,7 +36,8 @@ internal fun BannerRow(
     offlineMessage: String,
     onlineMessage: String,
     proPlanMessage: String,
-    thankYouMessage: String
+    thankYouMessage: String,
+    onDismissProPlan: () -> Unit = {}
 ) {
     val icon = when (state) {
         BannerState.Online -> Icons.Rounded.Wifi
@@ -78,6 +82,17 @@ internal fun BannerRow(
                 contentDescription = null,
                 modifier = Modifier.size(16.dp)
             )
+            Spacer(Modifier.width(6.dp))
+            IconButton(
+                onClick = onDismissProPlan,
+                modifier = Modifier.size(20.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Dismiss",
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }

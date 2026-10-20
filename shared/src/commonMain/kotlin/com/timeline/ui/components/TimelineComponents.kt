@@ -197,7 +197,10 @@ fun BottomSummary(
                 .height(IntrinsicSize.Max)
                 .clip(MaterialTheme.shapes.medium)
                 .clickable {
-                    tutorialViewModel?.onEvent(com.timeline.tutorial.TutorialEvent.NextStep)
+                    val tutState = tutorialViewModel?.state?.value
+                    if (tutState?.isActive == true && tutState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_SUMMARY_BAR) {
+                        tutorialViewModel.onEvent(com.timeline.tutorial.TutorialEvent.NextStep)
+                    }
                     onSummaryClick()
                 }
                 .padding(horizontal = Dimensions.PaddingLarge, vertical = Dimensions.PaddingSmall),

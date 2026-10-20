@@ -77,6 +77,7 @@ enum class BannerState { Hidden, Offline, Online, ProPlan, ThankYou }
 @Composable
 fun rememberNetworkBannerState(
     subscriptionBanner: SubscriptionBanner,
+    isProBannerDismissed: Boolean = false,
     networkMonitor: NetworkMonitor = koinInject()
 ): State<BannerState> {
     val status by networkMonitor.status.collectAsStateWithLifecycle()
@@ -106,12 +107,12 @@ fun rememberNetworkBannerState(
         }
     }
 
-    return remember(subscriptionBanner) {
+    return remember(subscriptionBanner, isProBannerDismissed) {
         derivedStateOf {
             when {
                 transient != BannerState.Hidden -> transient
                 subscriptionBanner == SubscriptionBanner.ThankYou -> BannerState.ThankYou
-                subscriptionBanner == SubscriptionBanner.Upgrade -> BannerState.ProPlan
+                subscriptionBanner == SubscriptionBanner.Upgrade && !isProBannerDismissed -> BannerState.ProPlan
                 else -> BannerState.Hidden
             }
         }
@@ -128,6 +129,7 @@ fun NetworkStatusBanner(
     modifier: Modifier = Modifier,
     cutoutRadius: Dp = TopAppBarCutoutRadius,
     onProPlanClick: () -> Unit = {},
+    onDismissProPlan: () -> Unit = {},
     offlineMessage: String = "Offline • Highlights require an active network",
     onlineMessage: String = "Back online",
     proPlanMessage: String = "Go Pro • Unlock more features",
@@ -191,7 +193,8 @@ fun NetworkStatusBanner(
                     offlineMessage = offlineMessage,
                     onlineMessage = onlineMessage,
                     proPlanMessage = proPlanMessage,
-                    thankYouMessage = thankYouMessage
+                    thankYouMessage = thankYouMessage,
+                    onDismissProPlan = onDismissProPlan
                 )
             }
         }
