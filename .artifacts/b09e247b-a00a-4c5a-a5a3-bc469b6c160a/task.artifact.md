@@ -1,0 +1,4 @@
+- [ ] Format session durations in `TimelineComponents.kt` and `HighlightSegmentBuilder.kt`
+- [ ] Update `TimelineScreen.kt` and `TimelineSessionList.kt` to allow full-screen sheet expansion
+- [ ] Add "Unlock with Pro" button to `DataRetentionSheet` and center it in all sheets
+- [ ] Update `SettingsScreen.kt` to pass callback to `DataRetentionSheet`

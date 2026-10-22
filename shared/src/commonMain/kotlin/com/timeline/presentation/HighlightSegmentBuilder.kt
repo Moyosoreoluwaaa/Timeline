@@ -133,6 +133,14 @@ object HighlightSegmentBuilder {
     }
 
     fun formatDuration(minutes: Long): String {
-        return "${minutes}m"
+        return when {
+            minutes < 1 -> "0m" // Or "secs" if we had seconds here
+            minutes < 60 -> "${minutes}m"
+            else -> {
+                val hours = minutes / 60
+                val minRem = minutes % 60
+                "${hours}h ${minRem}m"
+            }
+        }
     }
 }

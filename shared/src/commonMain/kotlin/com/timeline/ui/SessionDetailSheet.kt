@@ -1,29 +1,50 @@
 package com.timeline.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.timeline.domain.Session
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineState
 import com.timeline.tutorial.TutorialStep
 import com.timeline.tutorial.spotlightTarget
-import com.timeline.ui.components.*
-import com.timeline.ui.theme.AppAlpha
+import com.timeline.ui.components.ExpandedSessionContent
+import com.timeline.ui.components.SessionDetailFooter
+import com.timeline.ui.components.SessionDetailHeader
+import com.timeline.ui.components.StatRow
+import com.timeline.ui.components.clickableWithBounds
+import com.timeline.ui.components.formatTime
 import com.timeline.ui.theme.Dimensions
 import com.timeline.util.AppStrings
+
 
 @Composable
 fun SessionDetailSheet(
@@ -32,20 +53,23 @@ fun SessionDetailSheet(
     prevSession: Session?,
     nextSession: Session?,
     onEvent: (TimelineEvent) -> Unit,
-    onShowFullScreenImage: (String) -> Unit,
+    onShowFullScreenImage: (String, Rect) -> Unit,
     onBoundsCalculated: ((TutorialStep, Rect) -> Unit)? = null,
     // True only when the collapsed thumbnail row is actually the visible,
-    // opaque target -- i.e. sheet is collapsed, not mid-expansion. Prevents
-    // the tutorial from spotlighting stale bounds captured right as this
-    // row fades out (alpha = Full - expansionProgress, below).
+    // opaque target -- i.e. sheet is collapsed, not mid-expansion.
     isThumbnailRowVisible: () -> Boolean = { true },
-    // Overrides state.isSheetExpanded for layout purposes (header's "isExpanded"
-    // label). Defaults to the raw view-model value; TimelineScreen passes the
-    // tutorial's effective value while a tutorial step is controlling the sheet.
-    isSheetExpandedOverride: Boolean? = null
 ) {
     val session = state.selectedSession ?: return
-    val isSheetExpanded = isSheetExpandedOverride ?: state.isSheetExpanded
+
+    LaunchedEffect(session.id, state.relatedSessions) {
+        prefetchScreenshots(
+            state.relatedSessions.ifEmpty { listOf(session) }
+                .flatMap { it.segments }
+                .mapNotNull { it.screenshotPath }
+                .distinct()
+                .take(60)
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -54,7 +78,7 @@ fun SessionDetailSheet(
     ) {
         SessionDetailHeader(
             session = session,
-            isExpanded = isSheetExpanded,
+            expansionProgress = expansionProgress,
             relatedSessions = state.relatedSessions.ifEmpty { listOf(session) }
         )
 
@@ -66,8 +90,13 @@ fun SessionDetailSheet(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
 
+                // Compose the expanded layer only once the drag has begun, so it
+                // never sits invisibly on top of the collapsed thumbnails and
+                // swallows their taps.
+                val expandedVisible by remember { derivedStateOf { expansionProgress() > 0.01f } }
+                val collapsedInteractive by remember { derivedStateOf { expansionProgress() < 0.5f } }
+
                 // ── Collapsed view: stat row + scrollable images ───────────
-                // Fades out and slides up as the sheet expands
                 val allSegments = remember(state.relatedSessions, session) {
                     val targetSessions = state.relatedSessions.ifEmpty { listOf(session) }
                     targetSessions
@@ -82,9 +111,11 @@ fun SessionDetailSheet(
                         .padding(horizontal = Dimensions.PaddingMedium)
                         .padding(top = Dimensions.PaddingMedium)
                         .graphicsLayer {
-                            val progress = expansionProgress()
-                            alpha = AppAlpha.Full - progress
-                            translationY = -progress * Dimensions.SpacingHuge.value
+                            val p = expansionProgress()
+                            // Fades out over the first 70% of the drag, drifting down
+                            // toward where the first expanded card appears
+                            alpha = (1f - p / 0.7f).coerceIn(0f, 1f)
+                            translationY = p * Dimensions.PaddingSmall.toPx()
                         }
                 ) {
                     StatRow(session)
@@ -94,7 +125,7 @@ fun SessionDetailSheet(
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
-                            contentPadding = PaddingValues(end = Dimensions.PaddingMedium)
+//                            contentPadding = PaddingValues(end = Dimensions.PaddingMedium)
                         ) {
                             itemsIndexed(allSegments) { index, segment ->
                                 val path = segment.screenshotPath!!
@@ -104,7 +135,12 @@ fun SessionDetailSheet(
                                         .width(Dimensions.SpacingMega)
                                         .height(Dimensions.SpacingUltra)
                                         .clip(MaterialTheme.shapes.small)
-                                        .clickable { onShowFullScreenImage(path) }
+                                        .clickableWithBounds(enabled = collapsedInteractive) {
+                                            onShowFullScreenImage(
+                                                path,
+                                                it
+                                            )
+                                        }
                                         .then(
                                             if (index == 0 && onBoundsCalculated != null) {
                                                 Modifier.spotlightTarget(
@@ -124,40 +160,39 @@ fun SessionDetailSheet(
                                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                     )
 
-                                    // Overlay label: capture time only
-                                    Surface(
-                                        modifier = Modifier
-                                            .align(Alignment.BottomStart)
-                                            .fillMaxWidth(),
-                                        color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.65f)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = segment.timestamp.formatTime(),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = com.timeline.ui.theme.AppColors.BrandYellow
-                                            )
-                                        }
-                                    }
+//                                    // Overlay label: capture time only
+//                                    Surface(
+//                                        modifier = Modifier
+//                                            .align(Alignment.BottomStart)
+//                                            .fillMaxWidth(),
+//                                        color = Color.Transparent
+//                                    ) {
+//                                        Box(
+//                                            modifier = Modifier
+//                                                .fillMaxWidth()
+//                                                .padding(horizontal = 6.dp, vertical = 3.dp),
+//                                            contentAlignment = Alignment.BottomStart
+//                                        ) {
+//                                            Text(
+//                                                text = segment.timestamp.formatTime(),
+//                                                style = MaterialTheme.typography.labelSmall,
+//                                                fontWeight = FontWeight.Bold,
+//                                                color = com.timeline.ui.theme.AppColors.BrandYellow
+//                                            )
+//                                        }
+//                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // ── Expanded view: full session detail fills screen height ─
-                // Fades in and slides up from below as the sheet expands
+                // ── Expanded view (composed only when visible) ─────────────
                 ExpandedSessionContent(
                     appSessions = state.relatedSessions.ifEmpty { listOf(session) },
                     progress = expansionProgress,
-                    onImageClick = { path ->
-                        if (path != null) onShowFullScreenImage(path)
-                    }
+                    interactive = expandedVisible,      // not expansionProgress() > 0.01f
+                    onImageClick = onShowFullScreenImage
                 )
 
                 // ── Bottom footer: prev / next navigation ──────────────────
@@ -172,7 +207,10 @@ fun SessionDetailSheet(
                         onPrevClick = { onEvent(TimelineEvent.SelectPreviousSession) },
                         onNextClick = { onEvent(TimelineEvent.SelectNextSession) },
                         onBoundsCalculated = { rect ->
-                            onBoundsCalculated?.invoke(TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR, rect)
+                            onBoundsCalculated?.invoke(
+                                TutorialStep.SPOTLIGHT_SESSION_NAVIGATOR,
+                                rect
+                            )
                         }
                     )
                 }

@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -54,16 +55,12 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun SessionDetailHeader(
     session: Session,
-    isExpanded: Boolean,
+    expansionProgress: () -> Float,
     relatedSessions: List<Session>
 ) {
     val totalSessions = relatedSessions.size
     val totalSeconds = relatedSessions.sumOf { it.durationMinutes * 60 + it.durationSeconds }
-    val totalDurationFormatted = if (totalSeconds < 60) {
-        "${totalSeconds}s"
-    } else {
-        "${totalSeconds / 60}m"
-    }
+    val totalDurationFormatted = formatDuration(totalSeconds / 60, totalSeconds % 60)
 
     Row(
         modifier = Modifier
@@ -71,12 +68,14 @@ fun SessionDetailHeader(
             .zIndex(1f)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clip(MaterialTheme.shapes.medium)
-            .padding(vertical = Dimensions.PaddingSmall)
             .padding(horizontal = Dimensions.PaddingMedium),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.weight(1f, fill = false),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Surface(
                 modifier = Modifier.size(Dimensions.IconLarge),
                 shape = CircleShape,
@@ -99,22 +98,21 @@ fun SessionDetailHeader(
                 Text(
                     text = totalDurationFormatted,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }
 
-        if (isExpanded) {
-            Text(
-                text = "$totalSessions ${if (totalSessions == 1) "session" else "sessions"}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        Text(
+            text = "$totalSessions ${if (totalSessions == 1) "session" else "sessions"}",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.graphicsLayer { alpha = expansionProgress() }
+        )
     }
 }
 
-// Updated SessionDetailFooter with bounds calculation for SPOTLIGHT_SESSION_NAVIGATOR
 @Composable
 fun SessionDetailFooter(
     prevSession: Session?,
@@ -143,7 +141,12 @@ fun SessionDetailFooter(
                     .clickable { onPrevClick() }
                     .padding(Dimensions.PaddingSmall)
             ) {
-                Text(AppStrings.SessionPrev, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    AppStrings.SessionPrev,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
                 Spacer(modifier = Modifier.height(Dimensions.Half))
                 AppIcon(
                     icon = prevSession.icon,
@@ -163,7 +166,12 @@ fun SessionDetailFooter(
                     .clickable { onNextClick() }
                     .padding(Dimensions.PaddingSmall)
             ) {
-                Text(AppStrings.SessionNext, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    AppStrings.SessionNext,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.secondary
+                )
                 Spacer(modifier = Modifier.height(Dimensions.Half))
                 AppIcon(
                     icon = nextSession.icon,
@@ -181,30 +189,41 @@ fun SessionDetailFooter(
 fun ExpandedSessionContent(
     appSessions: List<Session>,
     progress: () -> Float,
-    onImageClick: (String?) -> Unit
+    interactive: Boolean,
+    onImageClick: (String, Rect) -> Unit
 ) {
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     LazyColumn(
+        userScrollEnabled = interactive,
         modifier = Modifier
             .fillMaxSize()
             .graphicsLayer {
-                val currentProgress = progress()
-                alpha = currentProgress
-                translationY = (AppAlpha.Full - currentProgress) * Dimensions.SpacingColossal.value
-            },
+                val p = progress()
+                // Fades in over the last 70% of the drag (overlapping the collapsed
+                // row's fade-out) while settling up into place
+                alpha = ((p - 0.3f) / 0.7f).coerceIn(0f, 1f)
+                translationY = (1f - p) * -Dimensions.PaddingSmall.toPx()
+            }
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest),
         verticalArrangement = Arrangement.spacedBy(Dimensions.PaddingMedium),
         contentPadding = PaddingValues(
             start = Dimensions.PaddingMedium,
             end = Dimensions.PaddingMedium,
+            // The sheet header already sits below the drag handle (which carries the
+            // status-bar inset), so no extra status-bar padding here.
             top = Dimensions.PaddingSmall,
             bottom = navBarPadding + (Dimensions.SpacingGiant * 2)
         )
     ) {
-        items(appSessions) { session ->
+        items(appSessions, key = { it.id }) { session ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = AppAlpha.SurfaceVariant)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                        alpha = AppAlpha.SurfaceVariant
+                    )
+                ),
                 shape = MaterialTheme.shapes.medium
             ) {
                 Column(modifier = Modifier.padding(Dimensions.PaddingMedium)) {
@@ -221,14 +240,19 @@ fun ExpandedSessionContent(
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(Dimensions.PaddingSmall),
-                            contentPadding = PaddingValues(vertical = Dimensions.Half)
+//                            contentPadding = PaddingValues(vertical = Dimensions.Half)
                         ) {
-                            items(uniqueSegments) { segment ->
+                            items(uniqueSegments, key = { it.screenshotPath!! }) { segment ->
                                 val path = segment.screenshotPath!!
                                 Column(
                                     modifier = Modifier
                                         .width(Dimensions.SpacingMega)
-                                        .clickable { onImageClick(path) }
+                                        .clickableWithBounds(enabled = interactive) {
+                                            onImageClick(
+                                                path,
+                                                it
+                                            )
+                                        }
                                 ) {
                                     Box(
                                         modifier = Modifier
@@ -241,30 +265,31 @@ fun ExpandedSessionContent(
                                             contentDescription = null,
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .fillMaxHeight(1.35f), // Keyboard crop: zoom top 74% of screenshot
+                                                .fillMaxHeight(1.35f), // Keyboard crop
                                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                         )
 
-                                        // Overlay label: capture time only
-                                        Surface(
-                                            modifier = Modifier
-                                                .align(Alignment.BottomStart)
-                                                .fillMaxWidth(),
-                                            color = Color.Black.copy(alpha = 0.65f)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 6.dp, vertical = 3.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = segment.timestamp.formatTime(),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = AppColors.BrandYellow
-                                                )
-                                            }
-                                        }
+//                                        // Overlay label: capture time only
+//                                        Surface(
+//                                            modifier = Modifier
+//                                                .align(Alignment.BottomStart)
+//                                                .fillMaxWidth(),
+//                                            color = Color.Transparent
+//                                        ) {
+//                                            Box(
+//                                                modifier = Modifier
+//                                                    .fillMaxWidth()
+//                                                    .padding(horizontal = 6.dp, vertical = 3.dp),
+//                                                contentAlignment = Alignment.BottomStart
+//                                            ) {
+//                                                Text(
+//                                                    text = segment.timestamp.formatTime(),
+//                                                    style = MaterialTheme.typography.labelSmall,
+//                                                    fontWeight = FontWeight.Bold,
+//                                                    color = AppColors.BrandYellow
+//                                                )
+//                                            }
+//                                        }
                                     }
                                 }
                             }
@@ -291,7 +316,10 @@ fun StatRow(session: Session) {
     ) {
         StatItem(AppStrings.SessionStarted, session.startTime.formatTime())
         StatItem(AppStrings.SessionEnded, session.endTime?.formatTime() ?: "--:--")
-        StatItem(AppStrings.SessionDuration, formatDuration(session.durationMinutes, session.durationSeconds))
+        StatItem(
+            AppStrings.SessionDuration,
+            formatDuration(session.durationMinutes, session.durationSeconds)
+        )
     }
 }
 
@@ -299,7 +327,11 @@ fun StatRow(session: Session) {
 fun StatItem(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.titleMedium)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline
+        )
     }
 }
 

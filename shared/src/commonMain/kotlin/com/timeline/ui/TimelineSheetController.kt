@@ -1,6 +1,5 @@
 package com.timeline.ui
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetValue
@@ -9,7 +8,8 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import com.timeline.presentation.TimelineEvent
 import com.timeline.presentation.TimelineViewModel
@@ -31,7 +31,9 @@ internal fun rememberTimelineSheetController(
     activeSheetLock: SheetLock?,
     isStateSheetExpanded: Boolean,
     viewModel: TimelineViewModel,
-    tutorialViewModel: TutorialViewModel
+    tutorialViewModel: TutorialViewModel,
+    containerHeightPx: Float,
+    peekHeightPx: Float
 ): TimelineSheetController {
     val lockState = rememberUpdatedState(activeSheetLock)
     val hasSessionState = rememberUpdatedState(hasSession)
@@ -53,11 +55,20 @@ internal fun rememberTimelineSheetController(
     )
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
 
-    val isSheetActuallyExpanded = sheetState.currentValue == SheetValue.Expanded
-    val expansionProgress = animateFloatAsState(
-        targetValue = if (isSheetActuallyExpanded) 1f else 0f,
-        label = "ExpansionProgress"
-    )
+    // 0f = peeked, 1f = fully expanded. Derived from the live sheet offset so the morph
+    // follows the finger instead of firing after the sheet settles.
+    // Assumes the expanded anchor is at offset 0 (the sheet fills the screen).
+    val expansionProgress = remember(sheetState, containerHeightPx, peekHeightPx) {
+        derivedStateOf {
+            val offset = runCatching { sheetState.requireOffset() }.getOrNull()
+            val peekOffset = containerHeightPx - peekHeightPx
+            if (offset == null || peekOffset <= 0f) {
+                if (sheetState.currentValue == SheetValue.Expanded) 1f else 0f
+            } else {
+                ((peekOffset - offset) / peekOffset).coerceIn(0f, 1f)
+            }
+        }
+    }
 
     val targetSheetValue = when {
         !hasSession -> SheetValue.Hidden

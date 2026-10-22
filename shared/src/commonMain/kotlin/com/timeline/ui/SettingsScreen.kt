@@ -191,8 +191,9 @@ fun SettingsScreen(
                 tutorialStep = tutorialState.currentStep,
                 tutorialViewModel = tutorialViewModel,
                 onDismiss = { showRetentionSheet = false },
-                onRetentionChange = { days -> viewModel.onEvent(SettingsEvent.SetDataRetention(days)) }
+                onRetentionChange = { days -> viewModel.onEvent(SettingsEvent.SetDataRetention(days)) },
+                onNavigateToPaywall = { onNavigateToPaywall(false) }
             )
         }
     }
-}
+}

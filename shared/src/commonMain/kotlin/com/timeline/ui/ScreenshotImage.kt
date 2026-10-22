@@ -10,5 +10,8 @@ expect fun ScreenshotImage(
     path: String?,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    contentScale: ContentScale = ContentScale.Crop
+    contentScale: ContentScale = ContentScale.Crop,
+    fullResolution: Boolean = false
 )
+
+expect fun prefetchScreenshots(paths: List<String>)

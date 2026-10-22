@@ -137,39 +137,13 @@ fun TimelineEntry(
 
 fun formatDuration(minutes: Long, seconds: Long): String {
     val totalSeconds = minutes * 60 + seconds
-    return if (totalSeconds < 60) {
-        "${totalSeconds}s"
-    } else {
-        val totalMinutes = totalSeconds / 60
-        "${totalMinutes}m"
-    }
-}
-
-@Composable
-fun FullScreenImageOverlay(
-    path: String?,
-    onDismiss: () -> Unit
-) {
-    AnimatedVisibility(
-        visible = path != null,
-        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-        exit = fadeOut() + scaleOut(targetScale = 0.8f),
-        modifier = Modifier.fillMaxSize().zIndex(100f)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.9f))
-                .clickable { onDismiss() },
-            contentAlignment = Alignment.Center
-        ) {
-            ScreenshotImage(
-                path = path,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize(0.95f)
-                    .clip(MaterialTheme.shapes.large)
-            )
+    return when {
+        totalSeconds < 60 -> "${totalSeconds}s"
+        totalSeconds < 3600 -> "${totalSeconds / 60}m"
+        else -> {
+            val hours = totalSeconds / 3600
+            val minutesRemaining = (totalSeconds % 3600) / 60
+            "${hours}h ${minutesRemaining}m"
         }
     }
 }
@@ -220,7 +194,7 @@ fun BottomSummary(
                 )
                 val totalMins = summary.totalHours * 60 + summary.totalMinutes
                 Text(
-                    text = "${totalMins}m",
+                    text = formatDuration(totalMins, 0),
                     style = MaterialTheme.typography.titleMedium
                 )
             }

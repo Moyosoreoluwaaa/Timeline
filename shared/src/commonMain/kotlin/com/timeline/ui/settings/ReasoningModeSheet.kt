@@ -2,7 +2,10 @@ package com.timeline.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -16,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.timeline.domain.reasoning.HighlightReasoningMode
 import com.timeline.tutorial.TutorialEvent
 import com.timeline.tutorial.TutorialStep
@@ -37,7 +41,7 @@ internal fun ReasoningModeSheet(
     onDismiss: () -> Unit,
     onSelectMode: (HighlightReasoningMode) -> Unit,
     onFrequencyChange: (Int) -> Unit,
-    onNavigateToPaywall: (() -> Unit)? = null
+    onNavigateToPaywall: (Boolean) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = {
@@ -49,7 +53,7 @@ internal fun ReasoningModeSheet(
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
-            modifier = Modifier
+            modifier = Modifier.height(100.dp).fillMaxWidth()
                 .padding(Dimensions.PaddingMedium)
                 .spotlightTarget(
                     TutorialStep.SPOTLIGHT_REASONING_SHEET,
@@ -60,49 +64,55 @@ internal fun ReasoningModeSheet(
         ) {
             val isLocked = !isPro && !isTrialActive
             Text(AppStrings.SettingsReasoningMode, style = MaterialTheme.typography.titleLarge)
-            if (isLocked && onNavigateToPaywall != null) {
-                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-                Button(
-                    onClick = onNavigateToPaywall,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+            if (isLocked) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
                 ) {
-                    Text(AppStrings.SettingsUnlockPro)
-                }
-                Spacer(modifier = Modifier.height(Dimensions.PaddingSmall))
-            }
-            HighlightReasoningMode.entries.forEach { mode ->
-                ListItem(
-                    headlineContent = { Text(mode.displayName) },
-                    trailingContent = {
-                        RadioButton(
-                            selected = selectedMode == mode,
-                            onClick = null
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.clickable(enabled = !isLocked) {
-                        onSelectMode(mode)
-                        if (tutorialStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
-                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                        }
+                    Button(
+                        onClick = { onNavigateToPaywall(false) },
+                        modifier = Modifier
+                            .padding(top = Dimensions.PaddingSmall)
+                    ) {
+                        Text(AppStrings.SettingsUnlockPro)
                     }
-                )
+                }
+            } else {
+                HighlightReasoningMode.entries.forEach { mode ->
+                    ListItem(
+                        headlineContent = { Text(mode.displayName) },
+                        trailingContent = {
+                            RadioButton(
+                                selected = selectedMode == mode,
+                                onClick = null
+                            )
+                        },
+                        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.clickable(enabled = !isLocked) {
+                            onSelectMode(mode)
+                            if (tutorialStep == TutorialStep.SPOTLIGHT_REASONING_SHEET) {
+                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                            }
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
+                Column {
+                    Text(
+                        AppStrings.SettingsFrequencyLabel.replace("%d", digestFrequency.toString()),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    ValueSlider(
+                        value = digestFrequency.coerceIn(1, 3).toFloat(),
+                        onValueChange = { if (!isLocked) onFrequencyChange(it.toInt()) },
+                        valueRange = 1f..3f,
+                        steps = 1,
+                        label = { "" }
+                    )
+                }
+                Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
             }
-            Spacer(modifier = Modifier.height(Dimensions.PaddingMedium))
-            Column {
-                Text(
-                    AppStrings.SettingsFrequencyLabel.replace("%d", digestFrequency.toString()),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                ValueSlider(
-                    value = digestFrequency.coerceIn(1, 3).toFloat(),
-                    onValueChange = { if (!isLocked) onFrequencyChange(it.toInt()) },
-                    valueRange = 1f..3f,
-                    steps = 1,
-                    label = { "" }
-                )
-            }
-            Spacer(modifier = Modifier.height(Dimensions.PaddingLarge))
+
         }
     }
 }

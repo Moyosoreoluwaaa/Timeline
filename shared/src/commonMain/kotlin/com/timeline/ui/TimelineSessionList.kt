@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
@@ -32,6 +33,7 @@ internal fun TimelineSessionList(
     summary: TimelineSummary?,
     isShowingShimmer: Boolean,
     navBarPadding: Dp,
+    topPadding: Dp,
     onSessionClick: (Session) -> Unit,
     onSummaryClick: () -> Unit,
     tutorialViewModel: TutorialViewModel,
@@ -56,7 +58,8 @@ internal fun TimelineSessionList(
                 LazyColumn(
                     modifier = Modifier
                         .weight(AppWeights.Full)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(top = topPadding),
                     contentPadding = PaddingValues(
                         top = Dimensions.PaddingSmall,
                         bottom = navBarPadding + (Dimensions.PaddingLarge * 2)
