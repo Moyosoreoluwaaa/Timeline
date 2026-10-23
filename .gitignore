@@ -1,4 +1,5 @@
 *.aab
+*.apk
 google-services.json
 **/SecretConstants.kt
 **/sample_app/
