@@ -4,13 +4,13 @@ import android.app.Application
 import androidx.work.Configuration
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.koin.KermitKoinLogger
+import com.revenuecat.purchases.Purchases
 import com.timeline.di.initKoin
 import com.timeline.domain.NotificationManager
 import com.timeline.domain.SecretConstants
 import com.timeline.domain.SubscriptionManager
 import com.timeline.domain.UserPreferences
 import com.timeline.domain.configureRevenueCat
-import com.revenuecat.purchases.Purchases
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +30,7 @@ class TimelineApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        registerActivityLifecycleCallbacks(com.timeline.util.ActivityTracker)
 
         initKoin {
             androidLogger()
@@ -72,13 +73,13 @@ class TimelineApp : Application(), Configuration.Provider {
         notificationManager.initialize(SecretConstants.ONESIGNAL_APP_ID)
 
         // Initialize RevenueCat (must run before subscriptionManager.initialize())
-        configureRevenueCat()
+        configureRevenueCat(this)
 
         // Sync Firebase App Instance ID to RevenueCat for server-to-server purchase integration
         com.google.firebase.analytics.FirebaseAnalytics.getInstance(this).appInstanceId.addOnSuccessListener { id ->
             if (id != null) {
                 try {
-                    Purchases.sharedInstance.setAttributes(mapOf("\$firebaseAppInstanceId" to id))
+                    Purchases.sharedInstance.setAttributes(mapOf($$"$firebaseAppInstanceId" to id))
                 } catch (e: Exception) {
                     Logger.e(e) { "Failed to set Firebase App Instance ID in RevenueCat" }
                 }
@@ -104,7 +105,7 @@ class TimelineApp : Application(), Configuration.Provider {
 
     private fun getAppProcessName(): String {
         return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            Application.getProcessName()
+            getProcessName()
         } else {
             // Fallback for older versions
             ""

@@ -3,8 +3,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidxRoom)
     alias(libs.plugins.googleGmsGoogleServices)
     alias(libs.plugins.googleFirebaseCrashlytics)
+    kotlin("plugin.serialization") version "2.4.10"
 }
 
 kotlin {
@@ -12,12 +15,42 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
     }
 }
+
 dependencies {
-    implementation(project(":shared"))
+    // Jetpack Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.uiToolingPreview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.materialIconsExtended)
+    debugImplementation(libs.compose.uiTooling)
+
+    // Activity & Lifecycle
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.viewmodelCompose)
+    implementation(libs.androidx.lifecycle.runtimeCompose)
+
+    // Navigation
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+
+    // Room & DataStore Persistence
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.sqlite.bundled)
+    implementation(libs.androidx.datastore.preferences)
+
+    // Ktor Networking
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.ktor.client.logging)
+
+    // Firebase & Auth
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
-    implementation(libs.compose.uiToolingPreview)
     implementation(libs.firebase.ai)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
@@ -25,40 +58,47 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.install.referrer)
     implementation(libs.googleid)
-    debugImplementation(libs.compose.uiTooling)
 
-    // foreground service / notification / overlay
+    // Foreground service / Notification / Overlay
     implementation(libs.androidx.media3.session)
     implementation(libs.accompanist.permissions)
     implementation(libs.accompanist.drawablepainter)
+    implementation(libs.onesignal)
 
-    // screenshot capture & caching
+    // Screenshot capture & caching
     implementation(libs.coil.compose)
-    implementation(libs.zoomimage.compose.coil) // optional — drop if no full-size viewer
-
-    // navigation
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.zoomimage.compose.coil)
     implementation(libs.androidx.work.runtime)
+
+    // Utilities
     implementation(libs.kotlinx.datetime)
-    // home-screen widget — optional
+    implementation(libs.kotlinx.serialization.json)
+
+    // ML Kit OCR & Image Labeling
+    implementation(libs.mlkit.text.recognition)
+    implementation(libs.mlkit.image.labeling)
+
+    // Home-screen widget (optional)
     implementation(libs.androidx.glance)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
 
-    // logging
+    // Logging
     implementation(libs.kermit)
     implementation(libs.kermit.koin)
 
-    // RevenueCat (Native Android components for Manifest)
-    implementation(libs.purchases.android.ui)
+    // RevenueCat Native Android
+    implementation(libs.purchases)
+    implementation(libs.purchases.ui)
 
-    // dependency injection
+    // Dependency Injection (Koin)
+    implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.compose.viewmodel)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.testJunit)
 }
 
@@ -77,6 +117,10 @@ android {
         
         versionCode = propVersionCode
         versionName = propVersionName
+    }
+
+    room {
+        schemaDirectory("$projectDir/schemas")
     }
 
     signingConfigs {
@@ -134,5 +178,3 @@ android {
         compose = true
     }
 }
-
-// Removed custom task hooks and file rename scripts for clean standard Gradle builds.
