@@ -41,7 +41,10 @@ import com.timeline.presentation.AuthViewModel
 import com.timeline.presentation.MetricsViewModel
 import com.timeline.presentation.PaywallViewModel
 import com.timeline.presentation.PermissionViewModel
+import com.timeline.data.repository.TimelineReelRepositoryImpl
+import com.timeline.domain.repository.ReelHighlightRepository
 import com.timeline.presentation.RawHighlightViewModel
+import com.timeline.presentation.ReelHighlightViewModel
 import com.timeline.presentation.SettingsViewModel
 import com.timeline.presentation.SimplifiedHighlightViewModel
 import com.timeline.presentation.TimelineViewModel
@@ -96,6 +99,7 @@ val platformModule: Module = module {
 val appModule = module {
     single { Logger(config = StaticConfig()) }
     singleOf(::TimelineRepositoryImpl) { bind<TimelineRepository>() }
+    singleOf(::TimelineReelRepositoryImpl) { bind<ReelHighlightRepository>() }
     singleOf(::TimelineExclusionPolicy) { bind<ExclusionPolicy>() }
     singleOf(::UserPreferences)
     singleOf(::RevenueCatSubscriptionManager) { bind<SubscriptionManager>() }
@@ -118,6 +122,7 @@ val appModule = module {
     viewModelOf(::PaywallViewModel)
     viewModelOf(::RawHighlightViewModel)
     viewModelOf(::SimplifiedHighlightViewModel)
+    viewModelOf(::ReelHighlightViewModel)
     viewModelOf(::TutorialViewModel)
 }
 

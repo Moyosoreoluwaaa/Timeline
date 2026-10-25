@@ -48,6 +48,7 @@ class SettingsViewModel(
             highlightReasoningMode = prefs.highlightReasoningMode,
             digestFrequency = prefs.digestFrequency,
             digestHours = prefs.digestHours,
+            highlightVariant = prefs.experiments.highlightVariant,
             appVersion = appInfoProvider.getAppVersionName()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsState(appVersion = appInfoProvider.getAppVersionName()))
@@ -116,6 +117,11 @@ class SettingsViewModel(
                 viewModelScope.launch {
                     val currentFreq = state.value.digestFrequency
                     userPreferences.setDigestSchedule(currentFreq, event.hours)
+                }
+            }
+            is SettingsEvent.SetHighlightVariant -> {
+                viewModelScope.launch {
+                    userPreferences.setExperimentHighlightVariant(event.variant)
                 }
             }
             SettingsEvent.Logout -> {

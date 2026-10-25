@@ -14,12 +14,14 @@ enum class HighlightLoadingStyle {
 
 /**
  * Highlight screen variant:
- * - [Simplified]: Polished user-facing executive highlights.
+ * - [Simplified]: Polished user-facing executive highlights (stacked card UI).
  * - [RawDiagnostic]: Developer-level OCR dumps, PII redaction inspector, and app breakdown.
+ * - [ReelHighlight]: Story reel experience — Instagram-style slides for each time window.
  */
 enum class HighlightVariant {
     Simplified,
-    RawDiagnostic
+    RawDiagnostic,
+    ReelHighlight
 }
 
 /**
@@ -28,6 +30,6 @@ enum class HighlightVariant {
 data class ExperimentFlags(
     val onboardingVariant: FanVariant = FanVariant.CenteredFan,
     val paywallStyle: NewPaywallStyle = NewPaywallStyle.Classic,
-    val highlightVariant: HighlightVariant = HighlightVariant.Simplified,
+    val highlightVariant: HighlightVariant = HighlightVariant.ReelHighlight,
     val highlightLoadingStyle: HighlightLoadingStyle = HighlightLoadingStyle.CardStack
 )

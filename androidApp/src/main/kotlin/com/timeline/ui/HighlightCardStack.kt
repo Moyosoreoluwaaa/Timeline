@@ -32,12 +32,27 @@ internal fun HighlightCardStack(
         listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.AFTERNOON, TimeOfDayFilter.EVENING)
     }
 
-    // Cap visible cards based on digestFrequency: 1=Evening only, 2=Morning+Evening, 3=All
-    val allowedFilters = remember(digestFrequency) {
-        when (digestFrequency.coerceIn(1, 3)) {
-            1 -> listOf(TimeOfDayFilter.EVENING)
+    // Cap visible cards based on digestFrequency: 1=Active/Evening, 2=Morning+Evening, 3=All
+    val allowedFilters = remember(digestFrequency, segments) {
+        val base = when (digestFrequency.coerceIn(1, 3)) {
+            1 -> {
+                val hasEvening = segments.any { it.filter == TimeOfDayFilter.EVENING && it.apps.isNotEmpty() }
+                val hasAfternoon = segments.any { it.filter == TimeOfDayFilter.AFTERNOON && it.apps.isNotEmpty() }
+                val hasMorning = segments.any { it.filter == TimeOfDayFilter.MORNING && it.apps.isNotEmpty() }
+                when {
+                    hasEvening -> listOf(TimeOfDayFilter.EVENING)
+                    hasAfternoon -> listOf(TimeOfDayFilter.AFTERNOON)
+                    hasMorning -> listOf(TimeOfDayFilter.MORNING)
+                    else -> listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.AFTERNOON, TimeOfDayFilter.EVENING)
+                }
+            }
             2 -> listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.EVENING)
             else -> listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.AFTERNOON, TimeOfDayFilter.EVENING)
+        }
+        if (segments.any { it.apps.isNotEmpty() } && segments.filter { it.filter in base && it.apps.isNotEmpty() }.isEmpty()) {
+            listOf(TimeOfDayFilter.MORNING, TimeOfDayFilter.AFTERNOON, TimeOfDayFilter.EVENING)
+        } else {
+            base
         }
     }
 

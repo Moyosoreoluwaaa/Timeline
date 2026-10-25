@@ -88,6 +88,28 @@ internal fun SettingsListContent(
                 }
             )
         }
+        item {
+            val isReel = state.highlightVariant == com.timeline.domain.model.HighlightVariant.ReelHighlight
+            SettingItem(
+                title = if (isReel) "Highlights: Reel Stories" else "Highlights: Simplified Cards",
+                icon = Icons.Outlined.AutoAwesome,
+                trailing = {
+                    Switch(
+                        checked = isReel,
+                        onCheckedChange = { checked ->
+                            val newVariant = if (checked) com.timeline.domain.model.HighlightVariant.ReelHighlight
+                            else com.timeline.domain.model.HighlightVariant.Simplified
+                            viewModel.onEvent(SettingsEvent.SetHighlightVariant(newVariant))
+                        }
+                    )
+                },
+                onClick = {
+                    val newVariant = if (isReel) com.timeline.domain.model.HighlightVariant.Simplified
+                    else com.timeline.domain.model.HighlightVariant.ReelHighlight
+                    viewModel.onEvent(SettingsEvent.SetHighlightVariant(newVariant))
+                }
+            )
+        }
 
         item { Spacer(modifier = Modifier.height(Dimensions.PaddingMedium)) }
 

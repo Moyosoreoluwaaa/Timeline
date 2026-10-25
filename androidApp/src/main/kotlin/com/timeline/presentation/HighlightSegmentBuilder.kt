@@ -21,7 +21,7 @@ object HighlightSegmentBuilder {
         appInfoProvider: AppInfoProvider
     ): HighlightSegment {
         if (sessions.isEmpty()) {
-            return buildEmptySegment(filter, title, timeRange)
+            return buildEmptySegment(filter, title, timeRange, savedReasoning)
         }
 
         val totalMinutes = sessions.sumOf { it.durationMinutes.coerceAtLeast(1) }
@@ -53,7 +53,8 @@ object HighlightSegmentBuilder {
     private fun buildEmptySegment(
         filter: TimeOfDayFilter,
         title: String,
-        timeRange: String
+        timeRange: String,
+        savedReasoning: AppDailyReasoning? = null
     ): HighlightSegment {
         val now = Clock.System.now()
         val currentHour = now.toLocalDateTime(TimeZone.currentSystemDefault()).hour
@@ -83,15 +84,18 @@ object HighlightSegmentBuilder {
             else -> Pair("Starts 12 PM", "Your highlight recap will appear here once activity is recorded.")
         }
 
+        val narrative = savedReasoning?.summary?.ifBlank { null } ?: emptyNarrative
+        val actionItems = savedReasoning?.actionItems ?: emptyList()
+
         return HighlightSegment(
             filter = filter,
             title = title,
             timeRange = timeRange,
-            narrative = emptyNarrative,
+            narrative = narrative,
             apps = emptyList(),
             duration = statusPill,
             screenshots = emptyList(),
-            actionItems = emptyList()
+            actionItems = actionItems
         )
     }
 

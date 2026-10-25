@@ -124,24 +124,33 @@ fun SimplifiedHighlightScreen(
                             .fillMaxWidth()
                             .fillMaxHeight()
                     ) {
-                        HighlightCardStack(
-                            segments = state.segments,
-                            activeFilter = state.timeOfDayFilter,
-                            digestFrequency = digestFrequency,
-                            onSelectFilter = { filter ->
-                                if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
-                                    tutorialViewModel.onEvent(TutorialEvent.NextStep)
-                                } else {
-                                    viewModel.onEvent(SimplifiedHighlightEvent.SetFilter(filter))
+                        if (state.isLoading && state.segments.isEmpty()) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .align(androidx.compose.ui.Alignment.Center),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            HighlightCardStack(
+                                segments = state.segments,
+                                activeFilter = state.timeOfDayFilter,
+                                digestFrequency = digestFrequency,
+                                onSelectFilter = { filter ->
+                                    if (tutorialState.currentStep == TutorialStep.SPOTLIGHT_HIGHLIGHT_CARD) {
+                                        tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                    } else {
+                                        viewModel.onEvent(SimplifiedHighlightEvent.SetFilter(filter))
+                                    }
+                                },
+                                tutorialStep = tutorialState.currentStep,
+                                onBoundsCalculated = { step, bounds ->
+                                    tutorialViewModel.onEvent(
+                                        TutorialEvent.UpdateTargetBounds(step, bounds)
+                                    )
                                 }
-                            },
-                            tutorialStep = tutorialState.currentStep,
-                            onBoundsCalculated = { step, bounds ->
-                                tutorialViewModel.onEvent(
-                                    TutorialEvent.UpdateTargetBounds(step, bounds)
-                                )
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }

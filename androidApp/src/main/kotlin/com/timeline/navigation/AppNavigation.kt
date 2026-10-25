@@ -242,7 +242,7 @@ fun AppNavigation(
                 is Route.Paywall -> "paywall"
                 is Route.CustomerCenter -> "customer_center"
                 is Route.Insights -> "insights"
-                is Route.Highlight, is Route.SimplifiedHighlight, is Route.RawHighlight -> "highlights"
+                is Route.Highlight, is Route.SimplifiedHighlight, is Route.RawHighlight, is Route.ReelHighlight -> "highlights"
                 is Route.Settings -> "settings"
                 is Route.HighlightLoading -> "highlight_loading"
                 is Route.FullScreenImage -> "full_screen_image"
@@ -398,60 +398,60 @@ fun AppNavigation(
                                     )
                                 }
 
-                                is Route.Highlight -> {
-                                    val variant = prefsState?.experiments?.highlightVariant ?: com.timeline.domain.model.HighlightVariant.Simplified
-                                    if (variant == com.timeline.domain.model.HighlightVariant.RawDiagnostic) {
-                                        val rawHighlightViewModel: com.timeline.presentation.RawHighlightViewModel = koinViewModel()
-                                        com.timeline.ui.RawHighlightScreen(
-                                            viewModel = rawHighlightViewModel,
-                                            onNavigateBack = {
-                                                if (backStack.size > 1) {
-                                                    backStack.removeAt(backStack.size - 1)
-                                                }
-                                            }
-                                        )
-                                    } else {
-                                        // Navigation-level loading state: show loading screen first,
-                                        // then transition to the highlight content.
-                                        var highlightShowLoading by remember(route) { mutableStateOf(true) }
-
-                                        LaunchedEffect(highlightShowLoading) {
-                                            if (!highlightShowLoading &&
-                                                tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_HIGHLIGHT_LOADING
-                                            ) {
-                                                tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                is Route.ReelHighlight -> {
+                                    val reelHighlightViewModel: com.timeline.presentation.ReelHighlightViewModel = koinViewModel()
+                                    com.timeline.ui.reel.ReelHighlightScreen(
+                                        viewModel = reelHighlightViewModel,
+                                        onNavigateBack = {
+                                            if (backStack.size > 1) {
+                                                backStack.removeAt(backStack.size - 1)
                                             }
                                         }
+                                    )
+                                }
 
-                                        androidx.compose.animation.AnimatedContent(
-                                            targetState = highlightShowLoading,
-                                            transitionSpec = {
-                                                androidx.compose.animation.fadeIn(
-                                                    animationSpec = androidx.compose.animation.core.tween(600)
-                                                ) togetherWith androidx.compose.animation.fadeOut(
-                                                    animationSpec = androidx.compose.animation.core.tween(400)
-                                                )
-                                            },
-                                            label = "HighlightLoadingTransition",
-                                            modifier = Modifier.fillMaxSize()
-                                        ) { loading ->
-                                            if (loading) {
-                                                com.timeline.ui.NewHighlightLoadingScreen(
-                                                    screenshots = simplifiedHighlightState.dynamicScreenshots,
-                                                    onFinished = { highlightShowLoading = false }
-                                                )
-                                            } else {
-                                                com.timeline.ui.SimplifiedHighlightScreen(
-                                                    viewModel = simplifiedHighlightViewModel,
-                                                    tutorialViewModel = tutorialViewModel,
-                                                    isPro = isPro,
-                                                    onNavigateBack = {
-                                                        if (backStack.size > 1) {
-                                                            backStack.removeAt(backStack.size - 1)
-                                                        }
+                                is Route.Highlight -> {
+                                    LaunchedEffect(Unit) {
+                                        if (tutorialState.currentStep == com.timeline.tutorial.TutorialStep.SPOTLIGHT_HIGHLIGHT_LOADING) {
+                                            tutorialViewModel.onEvent(TutorialEvent.NextStep)
+                                        }
+                                    }
+
+                                    val variant = prefsState?.experiments?.highlightVariant ?: com.timeline.domain.model.HighlightVariant.ReelHighlight
+                                    when (variant) {
+                                        com.timeline.domain.model.HighlightVariant.RawDiagnostic -> {
+                                            val rawHighlightViewModel: com.timeline.presentation.RawHighlightViewModel = koinViewModel()
+                                            com.timeline.ui.RawHighlightScreen(
+                                                viewModel = rawHighlightViewModel,
+                                                onNavigateBack = {
+                                                    if (backStack.size > 1) {
+                                                        backStack.removeAt(backStack.size - 1)
                                                     }
-                                                )
-                                            }
+                                                }
+                                            )
+                                        }
+                                        com.timeline.domain.model.HighlightVariant.Simplified -> {
+                                            com.timeline.ui.SimplifiedHighlightScreen(
+                                                viewModel = simplifiedHighlightViewModel,
+                                                tutorialViewModel = tutorialViewModel,
+                                                isPro = isPro,
+                                                onNavigateBack = {
+                                                    if (backStack.size > 1) {
+                                                        backStack.removeAt(backStack.size - 1)
+                                                    }
+                                                }
+                                            )
+                                        }
+                                        com.timeline.domain.model.HighlightVariant.ReelHighlight -> {
+                                            val reelHighlightViewModel: com.timeline.presentation.ReelHighlightViewModel = koinViewModel()
+                                            com.timeline.ui.reel.ReelHighlightScreen(
+                                                viewModel = reelHighlightViewModel,
+                                                onNavigateBack = {
+                                                    if (backStack.size > 1) {
+                                                        backStack.removeAt(backStack.size - 1)
+                                                    }
+                                                }
+                                            )
                                         }
                                     }
                                 }

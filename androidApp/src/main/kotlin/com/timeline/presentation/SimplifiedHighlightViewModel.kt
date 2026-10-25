@@ -31,7 +31,8 @@ class SimplifiedHighlightViewModel(
 
     private val _state = MutableStateFlow(
         SimplifiedHighlightState(
-            isUsagePermissionGranted = deviceUsageSyncer.hasPermission()
+            isUsagePermissionGranted = deviceUsageSyncer.hasPermission(),
+            isLoading = true
         )
     )
     val state: StateFlow<SimplifiedHighlightState> = _state.asStateFlow()
@@ -51,6 +52,7 @@ class SimplifiedHighlightViewModel(
 
     private fun loadTimelineData() {
         timelineJob?.cancel()
+        _state.update { it.copy(isLoading = true) }
         timelineJob = viewModelScope.launch {
             repository.getTimeline().collect { sessions ->
                 processSessionsIntoSegments(sessions)

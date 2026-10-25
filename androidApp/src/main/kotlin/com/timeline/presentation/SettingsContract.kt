@@ -15,6 +15,7 @@ data class SettingsState(
     val highlightReasoningMode: HighlightReasoningMode = HighlightReasoningMode.BALANCED,
     val digestFrequency: Int = 1,
     val digestHours: List<Int> = listOf(12, 17, 21),
+    val highlightVariant: com.timeline.domain.model.HighlightVariant = com.timeline.domain.model.HighlightVariant.ReelHighlight,
     val appVersion: String = ""
 )
 
@@ -34,5 +35,6 @@ sealed interface SettingsEvent {
     data class SetReasoningMode(val mode: HighlightReasoningMode) : SettingsEvent
     data class SetDigestFrequency(val frequency: Int) : SettingsEvent
     data class SetDigestHours(val hours: List<Int>) : SettingsEvent
+    data class SetHighlightVariant(val variant: com.timeline.domain.model.HighlightVariant) : SettingsEvent
     data object Logout : SettingsEvent
 }

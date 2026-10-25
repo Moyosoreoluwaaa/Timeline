@@ -131,8 +131,8 @@ class UserPreferences(
                         try { com.timeline.ui.paywall.NewPaywallStyle.valueOf(it) } catch (_: Exception) { com.timeline.ui.paywall.NewPaywallStyle.Classic }
                     } ?: com.timeline.ui.paywall.NewPaywallStyle.Classic,
                     highlightVariant = prefs[UserPreferenceKeys.EXPERIMENT_HIGHLIGHT_VARIANT]?.let {
-                        try { com.timeline.domain.model.HighlightVariant.valueOf(it) } catch (_: Exception) { com.timeline.domain.model.HighlightVariant.Simplified }
-                    } ?: com.timeline.domain.model.HighlightVariant.Simplified,
+                        try { com.timeline.domain.model.HighlightVariant.valueOf(it) } catch (_: Exception) { com.timeline.domain.model.HighlightVariant.ReelHighlight }
+                    } ?: com.timeline.domain.model.HighlightVariant.ReelHighlight,
                     highlightLoadingStyle = prefs[UserPreferenceKeys.EXPERIMENT_HIGHLIGHT_LOADING_STYLE]?.let {
                         try { com.timeline.domain.model.HighlightLoadingStyle.valueOf(it) } catch (_: Exception) { com.timeline.domain.model.HighlightLoadingStyle.CardStack }
                     } ?: com.timeline.domain.model.HighlightLoadingStyle.CardStack
