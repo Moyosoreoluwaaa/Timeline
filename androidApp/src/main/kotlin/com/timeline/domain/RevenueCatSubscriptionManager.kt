@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class RevenueCatSubscriptionManager : SubscriptionManager, UpdatedCustomerInfoListener {
-    
+
     private val logger = Logger.withTag("RevenueCatSubscriptionManager")
 
     companion object {
@@ -47,7 +47,7 @@ class RevenueCatSubscriptionManager : SubscriptionManager, UpdatedCustomerInfoLi
     override suspend fun initialize() {
         logger.d { "Initializing RevenueCat Subscription Manager" }
         logger.d { "Target Entitlement ID: $revenueCatEntitlementId" }
-        
+
         Purchases.sharedInstance.updatedCustomerInfoListener = this
         refreshCustomerInfo()
         fetchOfferings()
@@ -86,7 +86,7 @@ class RevenueCatSubscriptionManager : SubscriptionManager, UpdatedCustomerInfoLi
             _isPurchasing.value = true
             _error.value = null
             logger.d { "Starting purchase for package: ${rcPackage.identifier}" }
-            
+
             val purchaseParams = PurchaseParams.Builder(activity, rcPackage).build()
             val purchaseResult = Purchases.sharedInstance.awaitPurchase(purchaseParams)
             updateCustomerInfo(purchaseResult.customerInfo)
@@ -142,14 +142,28 @@ class RevenueCatSubscriptionManager : SubscriptionManager, UpdatedCustomerInfoLi
         }
     }
 
-    override fun checkEntitlement(entitlementId: String): Boolean =
-        isFreeAccessEnabled || _customerInfo.value?.entitlements?.active?.containsKey(entitlementId) == true
+    override fun checkEntitlement(entitlementId: String): Boolean {
+        if (isFreeAccessEnabled) return true
+        val info = _customerInfo.value ?: return false
+        return info.entitlements.active.containsKey(entitlementId)
+                || info.entitlements.active.isNotEmpty()
+                || info.activeSubscriptions.isNotEmpty()
+    }
 
     private fun updateCustomerInfo(info: CustomerInfo) {
         _customerInfo.value = info
-        val proActive = isFreeAccessEnabled || info.entitlements.active.containsKey(revenueCatEntitlementId)
+        // Primary check: entitlement is active in RevenueCat dashboard
+        val entitlementActive = info.entitlements.active.containsKey(revenueCatEntitlementId)
+                || info.entitlements.active.isNotEmpty()
+        // Fallback: RevenueCat confirmed an active subscription even if entitlement isn't
+        // wired up in the dashboard (e.g. product not yet attached to entitlement)
+        val activeSubFallback = info.activeSubscriptions.isNotEmpty()
+        val proActive = isFreeAccessEnabled || entitlementActive || activeSubFallback
         _isPro.value = proActive
-        logger.d { "Customer info updated. isFreeAccessEnabled: $isFreeAccessEnabled, isPro: $proActive" }
+        logger.d {
+            "Customer info updated. isFreeAccessEnabled: $isFreeAccessEnabled, " +
+                    "entitlementActive: $entitlementActive, activeSubFallback: $activeSubFallback, isPro: $proActive"
+        }
     }
 
     override fun onReceived(customerInfo: CustomerInfo) {
