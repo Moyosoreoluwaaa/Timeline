@@ -1,5 +1,6 @@
 package com.timeline.ui.reel
 
+import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -52,6 +54,7 @@ fun ReelHighlightTicketView(
     modifier: Modifier = Modifier
 ) {
     var isShared by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val ticketBg = Color(slide.bgColorHex)
     val ticketFg = Color(slide.fgColorHex)
@@ -192,7 +195,24 @@ fun ReelHighlightTicketView(
 
         // Share button
         Button(
-            onClick = { isShared = true },
+            onClick = {
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    val textToShare = buildString {
+                        appendLine("✨ Timeline Highlight: $periodTitle ($dateLabel)")
+                        appendLine(slide.headline)
+                        if (!slide.stat.isNullOrBlank()) {
+                            appendLine("${slide.stat} ${slide.sub ?: ""}".trim())
+                        }
+                        appendLine("\n#TimelineApp")
+                    }
+                    putExtra(Intent.EXTRA_TEXT, textToShare)
+                    type = "text/plain"
+                }
+                val chooser = Intent.createChooser(sendIntent, "Share Highlight Ticket")
+                context.startActivity(chooser)
+                isShared = true
+            },
             colors = ButtonDefaults.buttonColors(
                 containerColor = AppColors.BrandOrange,
                 contentColor = AppColors.OnOrangeDark

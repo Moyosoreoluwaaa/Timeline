@@ -76,30 +76,38 @@ class LocalHeuristicService : ReasoningService {
         }
 
         val cleanAppName = appName.replace(Regex("""\(\s*\)"""), "").trim().ifBlank { "your apps" }
-        val targetApp = if (cleanAppName.startsWith("Daily Summary", ignoreCase = true)) "your day" else cleanAppName
+        val isDailySummary = cleanAppName.startsWith("Daily Summary", ignoreCase = true) || packageName.startsWith("ALL_APPS")
 
-        val baseSummary = when (mode) {
-            HighlightReasoningMode.CONCISE -> "Active usage session across $targetApp."
-            HighlightReasoningMode.BALANCED -> when (cognitiveMode) {
-                "Communication" -> "Coordinated and shared updates with team members in $cleanAppName."
-                "Deep Focus" -> "Maintained high concentration on planning and documentation in $cleanAppName."
-                "Information Seeking" -> "Researched resources in $cleanAppName."
-                "Creative" -> "Explored visual workflows in $cleanAppName."
-                else -> if (cleanAppName.startsWith("Daily Summary", ignoreCase = true)) {
-                    "A productive session navigating your daily activities."
-                } else {
-                    "Engaged in focused activity in $cleanAppName."
+        // If a synthesized recap sentence is present in ocrDumps, prioritize it
+        val providedRecap = sanitizedDumps.firstOrNull { it.contains("Today totaled", ignoreCase = true) || it.contains("across", ignoreCase = true) && it.contains("apps", ignoreCase = true) }
+
+        val baseSummary = when {
+            providedRecap != null -> providedRecap
+            isDailySummary -> {
+                when (mode) {
+                    HighlightReasoningMode.CONCISE -> "Active daily usage across your core apps."
+                    HighlightReasoningMode.BALANCED -> "A productive and well-balanced day navigating your key workflows."
+                    HighlightReasoningMode.EXPLANATORY -> "A sustained and organized recap across your core daily workflows, maintaining steady progress on key tasks."
                 }
             }
-            HighlightReasoningMode.EXPLANATORY -> when (cognitiveMode) {
-                "Communication" -> "Focused on maintaining team alignment through proactive messaging and review of project threads within $cleanAppName."
-                "Deep Focus" -> "Dedicated time to deep work, focusing on technical architecture, documentation, or implementation tasks within $cleanAppName."
-                "Information Seeking" -> "Conducted comprehensive research, navigating documentation and online resources to support current work within $cleanAppName."
-                "Creative" -> "Invested time in design iterations, exploring visual concepts and prototyping new ideas within $cleanAppName."
-                else -> if (cleanAppName.startsWith("Daily Summary", ignoreCase = true)) {
-                    "A sustained and organized recap across your core daily workflows."
-                } else {
-                    "Engaged in a productive, sustained work session, focusing on task execution and workflow management within $cleanAppName."
+            else -> {
+                val targetApp = cleanAppName
+                when (mode) {
+                    HighlightReasoningMode.CONCISE -> "Active usage session across $targetApp."
+                    HighlightReasoningMode.BALANCED -> when (cognitiveMode) {
+                        "Communication" -> "Coordinated and shared updates with team members in $cleanAppName."
+                        "Deep Focus" -> "Maintained high concentration on planning and documentation in $cleanAppName."
+                        "Information Seeking" -> "Researched resources in $cleanAppName."
+                        "Creative" -> "Explored visual workflows in $cleanAppName."
+                        else -> "Engaged in focused activity in $cleanAppName."
+                    }
+                    HighlightReasoningMode.EXPLANATORY -> when (cognitiveMode) {
+                        "Communication" -> "Focused on maintaining team alignment through proactive messaging and review of project threads within $cleanAppName."
+                        "Deep Focus" -> "Dedicated time to deep work, focusing on technical architecture, documentation, or implementation tasks within $cleanAppName."
+                        "Information Seeking" -> "Conducted comprehensive research, navigating documentation and online resources to support current work within $cleanAppName."
+                        "Creative" -> "Invested time in design iterations, exploring visual concepts and prototyping new ideas within $cleanAppName."
+                        else -> "Engaged in a productive, sustained work session, focusing on task execution and workflow management within $cleanAppName."
+                    }
                 }
             }
         }

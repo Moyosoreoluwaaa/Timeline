@@ -31,7 +31,6 @@ class ReelHighlightViewModel(
     private val _state = MutableStateFlow(ReelHighlightState())
     val state: StateFlow<ReelHighlightState> = _state.asStateFlow()
 
-    private var reelTimerJob: Job? = null
     private var segmentsJob: Job? = null
 
     init {
@@ -128,13 +127,11 @@ class ReelHighlightViewModel(
                         )
                     )
                 }
-                startReelTimer()
             }
         }
     }
 
     private fun closeReel() {
-        reelTimerJob?.cancel()
         _state.update { it.copy(activeReel = null) }
     }
 
@@ -148,7 +145,6 @@ class ReelHighlightViewModel(
                     )
                 )
             }
-            startReelTimer()
         } else {
             closeReel()
         }
@@ -163,22 +159,6 @@ class ReelHighlightViewModel(
                         currentSlideIndex = reel.currentSlideIndex - 1
                     )
                 )
-            }
-            startReelTimer()
-        }
-    }
-
-    private fun startReelTimer() {
-        reelTimerJob?.cancel()
-        reelTimerJob = viewModelScope.launch {
-            delay(5000.milliseconds)
-            while (isActive) {
-                val reel = _state.value.activeReel
-                if (reel != null && !reel.isPaused && !reel.showTicketShare) {
-                    advanceSlide()
-                    break
-                }
-                delay(500.milliseconds)
             }
         }
     }
