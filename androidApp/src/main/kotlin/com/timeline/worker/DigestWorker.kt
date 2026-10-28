@@ -5,7 +5,11 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import co.touchlab.kermit.Logger
 import com.timeline.data.TimelineRepository
+import com.timeline.domain.AppInfoProvider
+import com.timeline.domain.reasoning.AppDailyReasoning
+import com.timeline.domain.reasoning.HighlightContentSynthesizer
 import com.timeline.domain.reasoning.ReasoningService
+import com.timeline.presentation.TimeOfDayFilter
 import com.timeline.service.TrackingNotificationHelper
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.datetime.TimeZone
@@ -20,6 +24,7 @@ class DigestWorker(
 
     private val repository: TimelineRepository by inject()
     private val reasoningService: ReasoningService by inject()
+    private val appInfoProvider: AppInfoProvider by inject()
     private val userPreferences: com.timeline.domain.UserPreferences by inject()
     private val analytics: com.timeline.analytics.Analytics by inject()
     private val logger = Logger.withTag("DigestWorker")
@@ -59,22 +64,71 @@ class DigestWorker(
 
         logger.i { "Starting background digest generation for $dateString (window: $window)" }
 
-        val existing = repository.getAppDailyReasoning("ALL_APPS", dateString).firstOrNull()
-        if (existing != null) {
-            logger.i { "Digest already exists for $dateString, skipping." }
+        val windowKey = "ALL_APPS_${window.uppercase()}"
+        val existingWindow = repository.getAppDailyReasoning(windowKey, dateString).firstOrNull()
+        if (existingWindow != null && window != "evening") {
+            logger.i { "Digest already exists for $windowKey on $dateString, skipping." }
             return Result.success()
         }
 
-        val sessions = repository.getTimeline().firstOrNull() ?: emptyList()
-        val appNames = sessions.map { it.packageName }.distinct().take(3).joinToString(", ")
-        val summaryAppName = if (appNames.isNotBlank()) "Daily Summary ($appNames)" else "Daily Summary"
-        
+        val allSessions = repository.getTimeline().firstOrNull() ?: emptyList()
+        val todaySessions = allSessions.filter { it.startTime.toLocalDateTime(tz).date == today }
+
+        if (todaySessions.isEmpty()) {
+            logger.i { "No sessions recorded today on $dateString. Skipping digest generation." }
+            return Result.success()
+        }
+
+        val windowFilter = when (window) {
+            "morning" -> TimeOfDayFilter.MORNING
+            "afternoon" -> TimeOfDayFilter.AFTERNOON
+            else -> TimeOfDayFilter.EVENING
+        }
+
+        val windowSessions = todaySessions.filter { session ->
+            val hour = session.startTime.toLocalDateTime(tz).hour
+            when (windowFilter) {
+                TimeOfDayFilter.MORNING -> hour in 6..11
+                TimeOfDayFilter.AFTERNOON -> hour in 12..16
+                TimeOfDayFilter.EVENING -> hour in 17..23 || hour in 0..5
+                else -> true
+            }
+        }
+
+        // Synthesize day-wide and window-specific content
+        val dayRecap = HighlightContentSynthesizer.synthesizeDayRecap(todaySessions, appInfoProvider, tz)
+        val windowRecap = HighlightContentSynthesizer.synthesizePeriodHighlight(windowFilter, windowSessions, appInfoProvider, tz)
+
+        // Save window recap immediately
+        repository.saveAppDailyReasoning(
+            AppDailyReasoning(
+                packageName = windowKey,
+                date = dateString,
+                summary = windowRecap.narrative,
+                cognitiveMode = windowRecap.cognitiveMode,
+                actionItems = windowRecap.actionItems
+            )
+        )
+
+        // Extract sample OCR text from today's screenshots
+        val screenshotPaths = todaySessions.flatMap { it.screenshots + it.segments.mapNotNull { s -> s.screenshotPath } }.distinct().take(8)
+        val ocrDumps: List<String> = screenshotPaths.mapNotNull { path -> repository.getAnalysisResult(path)?.textResult?.fullText }.filter { it.isNotBlank() }
+
+        val appSummaries = dayRecap.topApps.take(3).joinToString(", ") { "${it.displayName} (${it.totalMinutes}m)" }
+        val summaryAppName = if (appSummaries.isNotBlank()) "Daily Summary ($appSummaries)" else "Daily Summary"
+
+        val promptDumps = mutableListOf<String>()
+        promptDumps.add(dayRecap.narrative)
+        promptDumps.add("Top apps: $appSummaries")
+        if (dayRecap.peakWindow != null) promptDumps.add("Peak: ${dayRecap.peakWindow}")
+        if (ocrDumps.isNotEmpty()) promptDumps.addAll(ocrDumps.take(4))
+
         val startTime = System.currentTimeMillis()
         val result = reasoningService.generateDailyNarrative(
             packageName = "ALL_APPS",
             appName = summaryAppName,
             date = dateString,
-            ocrDumps = listOf("Active usage today across $appNames"),
+            ocrDumps = promptDumps,
             labels = emptyList(),
             previousDaySummary = null
         )
@@ -100,31 +154,56 @@ class DigestWorker(
                     com.timeline.analytics.AnalyticsParams.LATENCY_BUCKET to latencyBucket
                 )
             )
-            
+
             if (androidx.core.content.ContextCompat.checkSelfPermission(
                     applicationContext, android.Manifest.permission.POST_NOTIFICATIONS
                 ) == android.content.pm.PackageManager.PERMISSION_GRANTED
             ) {
                 val notificationHelper = TrackingNotificationHelper(applicationContext)
+                val notifTitle = if (window == "evening") "Your Day in Review" else "Your ${window.replaceFirstChar { it.uppercase() }} Highlights"
+                val topAppName = dayRecap.topApps.firstOrNull()?.displayName
+                val notifText = if (topAppName != null) {
+                    "$topAppName (${dayRecap.topApps.first().totalMinutes}m) • ${dayRecap.totalMinutes}m total • Tap to explore"
+                } else {
+                    "Tap to see your daily narrative and insights."
+                }
                 notificationHelper.showDigestNotification(
-                    title = "Your Highlights are ready",
-                    text = "Tap to see your daily narrative and insights.",
+                    title = notifTitle,
+                    text = notifText,
                     window = window
                 )
                 logger.i { "Digest notification sent successfully." }
             }
         }.onFailure {
-            val reason = when {
-                it.message?.contains("quota", ignoreCase = true) == true || it.message?.contains("429") == true -> "quota"
-                it.message?.contains("parse", ignoreCase = true) == true || it.message?.contains("json", ignoreCase = true) == true -> "parse_error"
-                it.message?.contains("disabled", ignoreCase = true) == true -> "disabled"
-                else -> "network"
-            }
-            analytics.log(
-                com.timeline.analytics.AnalyticsEvents.HIGHLIGHTS_BATCH_FAILED,
-                mapOf(com.timeline.analytics.AnalyticsParams.REASON to reason)
+            logger.w(it) { "Background digest cloud generation failed, falling back to synthesized day recap" }
+            repository.saveAppDailyReasoning(
+                AppDailyReasoning(
+                    packageName = "ALL_APPS",
+                    date = dateString,
+                    summary = dayRecap.narrative,
+                    cognitiveMode = dayRecap.cognitiveMode,
+                    actionItems = dayRecap.actionItems
+                )
             )
-            logger.e(it) { "Background digest generation failed" }
+
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    applicationContext, android.Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                val notificationHelper = TrackingNotificationHelper(applicationContext)
+                val notifTitle = if (window == "evening") "Your Day in Review" else "Your ${window.replaceFirstChar { it.uppercase() }} Highlights"
+                val topAppName = dayRecap.topApps.firstOrNull()?.displayName
+                val notifText = if (topAppName != null) {
+                    "$topAppName • ${dayRecap.totalMinutes}m total • Tap to explore"
+                } else {
+                    "Tap to see your daily narrative and insights."
+                }
+                notificationHelper.showDigestNotification(
+                    title = notifTitle,
+                    text = notifText,
+                    window = window
+                )
+            }
         }
 
         return Result.success()

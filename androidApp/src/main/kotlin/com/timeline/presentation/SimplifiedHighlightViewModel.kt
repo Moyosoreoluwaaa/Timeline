@@ -103,6 +103,9 @@ class SimplifiedHighlightViewModel(
         }
 
         val dateString = targetLocalDate.toString()
+        val morningReasoning = repository.getAppDailyReasoning("ALL_APPS_MORNING", dateString).firstOrNull()
+        val afternoonReasoning = repository.getAppDailyReasoning("ALL_APPS_AFTERNOON", dateString).firstOrNull()
+        val eveningReasoning = repository.getAppDailyReasoning("ALL_APPS_EVENING", dateString).firstOrNull()
         val dailyReasoning = repository.getAppDailyReasoning("ALL_APPS", dateString).firstOrNull()
 
         val morningSegment = HighlightSegmentBuilder.buildSegment(
@@ -110,8 +113,9 @@ class SimplifiedHighlightViewModel(
             title = "Morning Digest",
             timeRange = "6:00 AM - 12:00 PM",
             sessions = morningSessions,
-            savedReasoning = dailyReasoning,
-            appInfoProvider = appInfoProvider
+            savedReasoning = morningReasoning,
+            appInfoProvider = appInfoProvider,
+            tz = tz
         )
 
         val afternoonSegment = HighlightSegmentBuilder.buildSegment(
@@ -119,8 +123,9 @@ class SimplifiedHighlightViewModel(
             title = "Afternoon Digest",
             timeRange = "12:00 PM - 5:00 PM",
             sessions = afternoonSessions,
-            savedReasoning = dailyReasoning,
-            appInfoProvider = appInfoProvider
+            savedReasoning = afternoonReasoning,
+            appInfoProvider = appInfoProvider,
+            tz = tz
         )
 
         val eveningSegment = HighlightSegmentBuilder.buildSegment(
@@ -128,11 +133,12 @@ class SimplifiedHighlightViewModel(
             title = "Evening Digest",
             timeRange = "5:00 PM - 10:00 PM",
             sessions = eveningSessions,
-            savedReasoning = dailyReasoning,
-            appInfoProvider = appInfoProvider
+            savedReasoning = eveningReasoning ?: dailyReasoning,
+            appInfoProvider = appInfoProvider,
+            tz = tz
         )
 
-        val actionItems = dailyReasoning?.actionItems
+        val actionItems = dailyReasoning?.actionItems?.ifEmpty { null }
             ?: (morningSegment.actionItems + afternoonSegment.actionItems + eveningSegment.actionItems).distinct()
 
         _state.update { current ->

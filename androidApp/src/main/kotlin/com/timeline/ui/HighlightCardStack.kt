@@ -61,7 +61,14 @@ internal fun HighlightCardStack(
     }
 
     val sortedSegments = remember(filteredSegments, activeFilter) {
-        val active = if (activeFilter == TimeOfDayFilter.ALL) TimeOfDayFilter.EVENING else activeFilter
+        val active = if (activeFilter == TimeOfDayFilter.ALL) {
+            when {
+                filteredSegments.any { it.filter == TimeOfDayFilter.EVENING && it.apps.isNotEmpty() } -> TimeOfDayFilter.EVENING
+                filteredSegments.any { it.filter == TimeOfDayFilter.AFTERNOON && it.apps.isNotEmpty() } -> TimeOfDayFilter.AFTERNOON
+                filteredSegments.any { it.filter == TimeOfDayFilter.MORNING && it.apps.isNotEmpty() } -> TimeOfDayFilter.MORNING
+                else -> TimeOfDayFilter.EVENING
+            }
+        } else activeFilter
         val back = defaultOrder.filter { it != active && it in allowedFilters }
         val orderedFilters = back + active
         orderedFilters.mapNotNull { filter -> filteredSegments.find { it.filter == filter } }

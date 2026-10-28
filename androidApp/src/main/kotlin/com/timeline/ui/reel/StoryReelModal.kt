@@ -7,6 +7,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationEndReason
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -99,6 +100,10 @@ fun StoryReelModal(
 
     val containerShape = RoundedCornerShape(26.dp)
 
+    val currentOnNext by rememberUpdatedState(onNext)
+    val currentOnPrevious by rememberUpdatedState(onPrevious)
+    val currentOnPauseChanged by rememberUpdatedState(onPauseChanged)
+
     // Animate the per-slide progress bar from 0→1 over 5 s
     val slideProgress = remember(reelState.currentSlideIndex) { Animatable(0f) }
     LaunchedEffect(reelState.currentSlideIndex, reelState.isPaused, reelState.showTicketShare) {
@@ -108,10 +113,13 @@ fun StoryReelModal(
             val remaining = (1f - slideProgress.value).coerceAtLeast(0f)
             val duration = (remaining * 5000).toInt()
             if (duration > 0) {
-                slideProgress.animateTo(
+                val result = slideProgress.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(durationMillis = duration, easing = LinearEasing)
                 )
+                if (result.endReason == AnimationEndReason.Finished) {
+                    currentOnNext()
+                }
             }
         }
     }
@@ -235,10 +243,6 @@ fun StoryReelModal(
             }
 
             // ── Interactive body: tap zones ──────────────────────────────
-            val currentOnNext by rememberUpdatedState(onNext)
-            val currentOnPrevious by rememberUpdatedState(onPrevious)
-            val currentOnPauseChanged by rememberUpdatedState(onPauseChanged)
-
             Box(
                 modifier = Modifier
                     .weight(1f)

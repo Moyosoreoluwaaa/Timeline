@@ -8,6 +8,7 @@ import com.timeline.domain.model.ReelSegment
 import com.timeline.domain.model.ReelSlide
 import com.timeline.domain.model.ReelSlideKind
 import com.timeline.domain.model.ReelSlideScreenshot
+import com.timeline.domain.reasoning.HighlightContentSynthesizer
 import com.timeline.domain.repository.ReelHighlightRepository
 import com.timeline.presentation.TimeOfDayFilter
 import kotlinx.coroutines.flow.Flow
@@ -63,7 +64,16 @@ class TimelineReelRepositoryImpl(
                 it.startTime.toLocalDateTime(tz).date == today
             }
             val dateString = today.toString()
-            val reasoning = timelineRepository
+            val morningReasoning = timelineRepository
+                .getAppDailyReasoning("ALL_APPS_MORNING", dateString)
+                .firstOrNull()
+            val afternoonReasoning = timelineRepository
+                .getAppDailyReasoning("ALL_APPS_AFTERNOON", dateString)
+                .firstOrNull()
+            val eveningReasoning = timelineRepository
+                .getAppDailyReasoning("ALL_APPS_EVENING", dateString)
+                .firstOrNull()
+            val overallReasoning = timelineRepository
                 .getAppDailyReasoning("ALL_APPS", dateString)
                 .firstOrNull()
 
@@ -73,22 +83,25 @@ class TimelineReelRepositoryImpl(
                         filter = TimeOfDayFilter.MORNING,
                         title = "Morning",
                         sessions = filterByPeriod(todaySessions, TimeOfDayFilter.MORNING, tz),
-                        reasoning = reasoning,
-                        bgColor = colorAmberBg
+                        reasoning = morningReasoning,
+                        bgColor = colorAmberBg,
+                        tz = tz
                     ),
                     buildSegment(
                         filter = TimeOfDayFilter.AFTERNOON,
                         title = "Afternoon",
                         sessions = filterByPeriod(todaySessions, TimeOfDayFilter.AFTERNOON, tz),
-                        reasoning = reasoning,
-                        bgColor = colorTealBg
+                        reasoning = afternoonReasoning,
+                        bgColor = colorTealBg,
+                        tz = tz
                     ),
                     buildSegment(
                         filter = TimeOfDayFilter.EVENING,
                         title = "Evening",
                         sessions = filterByPeriod(todaySessions, TimeOfDayFilter.EVENING, tz),
-                        reasoning = reasoning,
-                        bgColor = colorIndBg
+                        reasoning = eveningReasoning ?: overallReasoning,
+                        bgColor = colorIndBg,
+                        tz = tz
                     )
                 )
             )
@@ -103,9 +116,10 @@ class TimelineReelRepositoryImpl(
             it.startTime.toLocalDateTime(tz).date == today
         }
         val periodSessions = filterByPeriod(todaySessions, filter, tz)
+        val periodKey = if (filter == TimeOfDayFilter.ALL) "ALL_APPS" else "ALL_APPS_${filter.name}"
         val reasoning = timelineRepository
-            .getAppDailyReasoning("ALL_APPS", today.toString())
-            .firstOrNull()
+            .getAppDailyReasoning(periodKey, today.toString())
+            .firstOrNull() ?: timelineRepository.getAppDailyReasoning("ALL_APPS", today.toString()).firstOrNull()
         return buildSlidesForPeriod(filter, periodSessions, reasoning, tz)
     }
 
@@ -134,46 +148,17 @@ class TimelineReelRepositoryImpl(
         title: String,
         sessions: List<Session>,
         reasoning: com.timeline.domain.reasoning.AppDailyReasoning?,
-        bgColor: Long
+        bgColor: Long,
+        tz: TimeZone
     ): ReelSegment {
-        val currentHour = Clock.System.now()
-            .toLocalDateTime(TimeZone.currentSystemDefault()).hour
+        val periodHighlight = HighlightContentSynthesizer.synthesizePeriodHighlight(
+            filter = filter,
+            sessions = sessions,
+            appInfoProvider = appInfoProvider,
+            tz = tz
+        )
 
-        if (sessions.isEmpty()) {
-            val isUpcoming = when (filter) {
-                TimeOfDayFilter.MORNING -> currentHour < 6
-                TimeOfDayFilter.AFTERNOON -> currentHour < 12
-                TimeOfDayFilter.EVENING -> currentHour < 17
-                TimeOfDayFilter.ALL -> false
-            }
-            val upcomingNarrative = when (filter) {
-                TimeOfDayFilter.MORNING -> "Your morning recap arrives at 6 AM."
-                TimeOfDayFilter.AFTERNOON -> "Your afternoon recap arrives at 12 PM."
-                TimeOfDayFilter.EVENING -> "Your evening recap arrives at 5 PM."
-                TimeOfDayFilter.ALL -> "Your recap will appear here once activity is recorded."
-            }
-            val quietNarrative = when (filter) {
-                TimeOfDayFilter.MORNING -> "A quiet morning with minimal screen activity."
-                TimeOfDayFilter.AFTERNOON -> "A quiet afternoon with minimal screen activity."
-                TimeOfDayFilter.EVENING -> "A quiet evening with minimal screen activity."
-                TimeOfDayFilter.ALL -> "No activity recorded."
-            }
-            return ReelSegment(
-                filter = filter,
-                title = title,
-                narrative = if (isUpcoming) upcomingNarrative else quietNarrative,
-                paragraphs = listOf(if (isUpcoming) upcomingNarrative else quietNarrative),
-                accentColor = bgColor,
-                isUpcoming = isUpcoming
-            )
-        }
-
-        val totalMinutes = sessions.sumOf { it.durationMinutes.coerceAtLeast(1) }
-        val appNames = sessions
-            .map { it.displayName ?: appInfoProvider.getAppName(it.packageName) }
-            .distinct()
-        val narrative =
-            reasoning?.summary ?: buildNarrative(filter, appNames, totalMinutes, sessions.size)
+        val narrative = reasoning?.summary ?: periodHighlight.narrative
 
         return ReelSegment(
             filter = filter,
@@ -181,7 +166,7 @@ class TimelineReelRepositoryImpl(
             narrative = narrative,
             paragraphs = listOf(narrative),
             accentColor = bgColor,
-            isUpcoming = false
+            isUpcoming = periodHighlight.cognitiveMode == "Upcoming"
         )
     }
 
@@ -200,14 +185,14 @@ class TimelineReelRepositoryImpl(
             TimeOfDayFilter.ALL -> Triple(colorTealBg, colorTealFg, colorTealAc)
         }
 
+        val periodName = when (filter) {
+            TimeOfDayFilter.MORNING -> "Morning"
+            TimeOfDayFilter.AFTERNOON -> "Afternoon"
+            TimeOfDayFilter.EVENING -> "Evening"
+            TimeOfDayFilter.ALL -> "Today"
+        }
+
         if (sessions.isEmpty()) {
-            // Show a placeholder stat slide when no sessions
-            val periodName = when (filter) {
-                TimeOfDayFilter.MORNING -> "Morning"
-                TimeOfDayFilter.AFTERNOON -> "Afternoon"
-                TimeOfDayFilter.EVENING -> "Evening"
-                TimeOfDayFilter.ALL -> "Today"
-            }
             slides.add(
                 ReelSlide(
                     id = "empty_${filter.name}",
@@ -224,7 +209,32 @@ class TimelineReelRepositoryImpl(
             return slides
         }
 
-        // Build a RECAP slide per unique app (up to 3), using real session timestamps
+        val synthesis = if (filter == TimeOfDayFilter.ALL) {
+            HighlightContentSynthesizer.synthesizeDayRecap(sessions, appInfoProvider, tz)
+        } else {
+            HighlightContentSynthesizer.synthesizePeriodHighlight(filter, sessions, appInfoProvider, tz)
+        }
+
+        val totalMinutes = synthesis.totalMinutes
+        val statFormatted = if (totalMinutes < 60) "${totalMinutes}m"
+        else "${totalMinutes / 60}h ${totalMinutes % 60}m"
+
+        // Slide 1: Executive Narrative Overview
+        slides.add(
+            ReelSlide(
+                id = "${filter.name.lowercase()}_intro",
+                kind = ReelSlideKind.STAT,
+                keyLabel = periodName.uppercase(),
+                headline = reasoning?.summary ?: synthesis.narrative,
+                stat = statFormatted,
+                sub = "${synthesis.cognitiveMode} • ${synthesis.sessionCount} sessions",
+                bgColorHex = bg,
+                fgColorHex = fg,
+                accentColorHex = ac
+            )
+        )
+
+        // Slide 2: RECAP slides per unique app (up to 3)
         val appGroups = sessions
             .groupBy { it.packageName }
             .entries
@@ -233,8 +243,6 @@ class TimelineReelRepositoryImpl(
         appGroups.forEachIndexed { index, (packageName, appSessions) ->
             val appName = appSessions.first().displayName
                 ?: appInfoProvider.getAppName(packageName)
-            val firstSession = appSessions.minByOrNull { it.startTime }
-            val lastSession = appSessions.maxByOrNull { it.startTime }
             val totalAppMins = appSessions.sumOf { it.durationMinutes.coerceAtLeast(1) }
 
             val shots = appSessions.take(2).mapIndexed { shotIndex, session ->
@@ -253,25 +261,18 @@ class TimelineReelRepositoryImpl(
                 )
             }
 
-            // Alternate slide colors for visual interest
             val slidePalette = when (index % 3) {
-                0 -> Triple(bg, fg, ac)
+                0 -> Triple(colorIndBg, colorIndFg, colorIndAc)
                 1 -> Triple(colorAmberBg, colorAmberFg, colorAmberAc)
-                else -> Triple(colorIndBg, colorIndFg, colorIndAc)
+                else -> Triple(colorTealBg, colorTealFg, colorTealAc)
             }
-
-            val narrativeHeadline = reasoning?.summary?.let {
-                // Use first sentence of reasoning summary for first slide
-                if (index == 0) it.split(".").firstOrNull()?.trim()?.let { s -> "$s." }
-                else null
-            } ?: buildSlideHeadline(appName, totalAppMins, appGroups.size)
 
             slides.add(
                 ReelSlide(
                     id = "${filter.name.lowercase()}_recap_$index",
                     kind = ReelSlideKind.RECAP,
-                    keyLabel = "",
-                    headline = narrativeHeadline,
+                    keyLabel = "FOCUS",
+                    headline = buildSlideHeadline(appName, totalAppMins, appGroups.size),
                     shots = shots,
                     bgColorHex = slidePalette.first,
                     fgColorHex = slidePalette.second,
@@ -280,24 +281,34 @@ class TimelineReelRepositoryImpl(
             )
         }
 
-        // Final stat slide
-        val totalMinutes = sessions.sumOf { it.durationMinutes.coerceAtLeast(1) }
-        val statFormatted = if (totalMinutes < 60) "${totalMinutes}m"
-        else "${totalMinutes / 60}h ${totalMinutes % 60}m"
-
-        val periodLabel = when (filter) {
-            TimeOfDayFilter.MORNING -> "Morning total"
-            TimeOfDayFilter.AFTERNOON -> "Afternoon total"
-            TimeOfDayFilter.EVENING -> "Evening total"
-            TimeOfDayFilter.ALL -> "Today's total"
+        // Slide 3: OUTLIER Milestone slide (if longest session >= 15m)
+        val longest = synthesis.longestSession
+        val longestMins = longest?.durationMinutes?.coerceAtLeast(1) ?: 0
+        if (longest != null && longestMins >= 15) {
+            val longestAppName = longest.displayName ?: appInfoProvider.getAppName(longest.packageName)
+            slides.add(
+                ReelSlide(
+                    id = "${filter.name.lowercase()}_outlier",
+                    kind = ReelSlideKind.OUTLIER,
+                    keyLabel = "DEEP DIVE",
+                    badgeTag = "Peak Focus",
+                    headline = "Your longest continuous session in this period: $longestMins minutes in $longestAppName without a break.",
+                    stat = "${longestMins}m",
+                    sub = "uninterrupted",
+                    bgColorHex = colorPinkBg,
+                    fgColorHex = colorPinkFg,
+                    accentColorHex = colorPinkAc
+                )
+            )
         }
 
+        // Slide 4: Final Wrap-up Stat Card
         slides.add(
             ReelSlide(
                 id = "${filter.name.lowercase()}_stat",
                 kind = ReelSlideKind.STAT,
-                keyLabel = periodLabel,
-                headline = buildStatHeadline(sessions.size, totalMinutes),
+                keyLabel = "$periodName Total",
+                headline = "${synthesis.sessionCount} sessions logged across ${synthesis.topApps.size} apps. ${synthesis.cognitiveMode} led your activity.",
                 stat = statFormatted,
                 sub = "screen time",
                 bgColorHex = colorPinkBg,
