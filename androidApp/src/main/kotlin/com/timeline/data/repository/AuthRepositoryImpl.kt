@@ -16,7 +16,7 @@ import androidx.credentials.ClearCredentialStateRequest
 class AuthRepositoryImpl(
     private val firebaseAuth: FirebaseAuth,
     private val context: Context,
-    private val logger: Logger
+    internal val logger: Logger
 ) : AuthRepository {
 
     private val tagLogger = logger.withTag("AuthRepository")
@@ -53,6 +53,7 @@ class AuthRepositoryImpl(
         } catch (e: Exception) {
             tagLogger.w(e) { "Failed to cancel screenshot work on sign out" }
         }
+        com.timeline.util.ScreenshotCache.clear()
         firebaseAuth.signOut()
         credentialManager.clearCredentialState(ClearCredentialStateRequest())
         _currentUser.value = null

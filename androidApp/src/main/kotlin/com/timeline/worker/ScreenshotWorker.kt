@@ -52,8 +52,9 @@ class ScreenshotWorker(
 
         val bitmap = accessibilityService.captureScreenshot()
         if (bitmap != null) {
-            if (ScreenshotCache.isDuplicate(packageName, bitmap)) {
+            if (ScreenshotCache.isDuplicate(applicationContext, session.userId, packageName, bitmap)) {
                 Logger.d { "Duplicate screenshot detected for $packageName, skipping." }
+                bitmap.recycle()
                 return Result.success()
             }
             val screenshotPath = saveBitmap(bitmap, packageName, session.userId)
